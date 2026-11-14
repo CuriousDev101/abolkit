@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Abol Kit: accessible learning-media toolkit (embeddable video player, captions pipeline, job card).",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
@@ -17,6 +17,7 @@
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm build",
     "dev:api": "pnpm --filter @abolkit/api dev",
     "smoke:api": "pnpm --filter @abolkit/api smoke",
+    "smoke:assets": "pnpm --filter @abolkit/api smoke:assets",
     "gh:labels": "bash scripts/gh-labels.sh",
     "gh:issues": "bash scripts/gh-issues.sh"
   },

@@ -3,7 +3,7 @@
   "info": {
     "title": "Abol Kit API",
     "version": "0.0.0",
-    "description": "HTTP API skeleton for Abol Kit (#17). This process does not run speech-to-text. The worker calls a separate MMS ASR service (TRANSCRIBER_URL). Read routes are open with CORS; write routes (#24+) will require API_KEY. No path in this document accepts audio or returns a transcript."
+    "description": "HTTP API for Abol Kit. This process does not run speech-to-text. The worker calls a separate MMS ASR service (TRANSCRIBER_URL). Read routes are open with CORS; write routes require API_KEY. Assets use the configured Storage adapter (local-disk default; MinIO for Compose)."
   },
   "servers": [
     {
@@ -12,6 +12,18 @@
     }
   ],
   "components": {
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      },
+      "Bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API key"
+      }
+    },
     "schemas": {
       "ErrorBody": {
         "type": "object",
@@ -48,6 +60,90 @@
           }
         },
         "required": ["ok", "service"]
+      },
+      "AssetCreated": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "11111111-1111-4111-8111-111111111111"
+          }
+        },
+        "required": ["id"]
+      },
+      "AssetUploadBody": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "Media file (video or audio). Field name must be `file`."
+          },
+          "retentionDays": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 365,
+            "description": "Days to retain the asset before it expires. Defaults to ASSET_RETENTION_DAYS.",
+            "example": 7
+          }
+        }
+      },
+      "Asset": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mime": {
+            "type": "string",
+            "example": "video/mp4"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "originalName": {
+            "type": ["string", "null"],
+            "example": "lesson.mp4"
+          },
+          "retentionDays": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-14T18:00:00.000Z"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-21T18:00:00.000Z"
+          },
+          "downloadUrl": {
+            "type": "string",
+            "description": "Time-limited signed URL for the source object.",
+            "example": "/api/storage/object?key=assets%2F...&exp=...&sig=..."
+          },
+          "downloadUrlExpiresInSeconds": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "example": 3600
+          }
+        },
+        "required": [
+          "id",
+          "mime",
+          "sizeBytes",
+          "originalName",
+          "retentionDays",
+          "createdAt",
+          "expiresAt",
+          "downloadUrl",
+          "downloadUrlExpiresInSeconds"
+        ]
       }
     },
     "parameters": {}
@@ -66,6 +162,239 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assets": {
+      "post": {
+        "operationId": "createAsset",
+        "tags": ["Assets"],
+        "summary": "Upload media",
+        "description": "Accepts multipart form field `file` (and optional `retentionDays`). Requires API_KEY. Stores bytes via the configured Storage adapter and returns `{ id }`.",
+        "security": [
+          {
+            "ApiKey": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetUploadBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Asset stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "File too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "MIME type not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "API_KEY unset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assets/{id}": {
+      "get": {
+        "operationId": "getAsset",
+        "tags": ["Assets"],
+        "summary": "Asset metadata and signed download URL",
+        "description": "Returns asset metadata plus a time-limited `downloadUrl`. Expired retention returns 410 Gone.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "11111111-1111-4111-8111-111111111111"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Asset"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Retention expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/storage/object": {
+      "get": {
+        "operationId": "getStorageObject",
+        "tags": ["Storage"],
+        "summary": "Signed local-disk object download",
+        "description": "HMAC-verified download route used when STORAGE_PROVIDER=local-disk. MinIO adapters return presigned S3 URLs instead of this path.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "assets/…/source"
+            },
+            "required": true,
+            "name": "key",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "example": 1731600000
+            },
+            "required": true,
+            "name": "exp",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "abcdef…"
+            },
+            "required": true,
+            "name": "sig",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Object bytes",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad signature payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired signature",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
                 }
               }
             }

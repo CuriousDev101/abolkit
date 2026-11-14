@@ -1,7 +1,22 @@
 // API process config. Speech-to-text is not configured here: the worker calls the
 // external MMS wrapper (services/worker, TRANSCRIBER_URL).
 
+import { storageConfigFromEnv } from '@abolkit/provider-sdk'
+
 type Env = Record<string, string | undefined>
+
+const DEFAULT_ALLOWED_MIME = [
+  'video/mp4',
+  'video/webm',
+  'audio/mpeg',
+  'audio/mp4',
+  'audio/wav',
+  'audio/x-wav',
+  'audio/webm',
+  'audio/ogg',
+  'audio/opus',
+  'application/octet-stream',
+] as const
 
 export type ApiConfig = {
   port: number
@@ -12,6 +27,22 @@ export type ApiConfig = {
    * Empty means writes must refuse until configured.
    */
   apiKey: string | undefined
+  /** Absolute or relative SQLite URL/path for asset metadata. */
+  databaseUrl: string
+  /** `local-disk` (default for no-Docker) or `minio` (Compose). */
+  storageProvider: string
+  /** Origin embedded in local-disk signed URLs. */
+  publicBaseUrl: string | undefined
+  /** Max upload size in bytes. */
+  assetMaxBytes: number
+  /** Allowed Content-Types for POST /api/assets. */
+  assetAllowedMime: readonly string[]
+  /** Default retention when the client omits retentionDays. */
+  assetRetentionDays: number
+  /** TTL for downloadUrl on GET /api/assets/:id. */
+  signedUrlTtlSeconds: number
+  /** Raw env forwarded to createStorage. */
+  env: Env
 }
 
 export function loadApiConfig(env: Env = process.env as Env): ApiConfig {
@@ -21,9 +52,38 @@ export function loadApiConfig(env: Env = process.env as Env): ApiConfig {
   }
 
   const apiKey = env.API_KEY?.trim()
+  const assetMaxBytes = parsePositiveInt(env.ASSET_MAX_BYTES, 100 * 1024 * 1024, 'ASSET_MAX_BYTES')
+  const assetRetentionDays = parsePositiveInt(env.ASSET_RETENTION_DAYS, 7, 'ASSET_RETENTION_DAYS')
+  const signedUrlTtlSeconds = parsePositiveInt(
+    env.SIGNED_URL_TTL_SECONDS,
+    3600,
+    'SIGNED_URL_TTL_SECONDS',
+  )
+
+  const allowed = env.ASSET_ALLOWED_MIME?.split(',')
+    .map((part) => part.trim())
+    .filter(Boolean) ?? [...DEFAULT_ALLOWED_MIME]
+
   return {
     port,
     corsOrigin: env.CORS_ORIGIN ?? '*',
     apiKey: apiKey || undefined,
+    databaseUrl: env.DATABASE_URL?.trim() || 'file:./data/abolkit.sqlite',
+    storageProvider: storageConfigFromEnv(env).storage,
+    publicBaseUrl: env.PUBLIC_BASE_URL?.trim() || undefined,
+    assetMaxBytes,
+    assetAllowedMime: allowed,
+    assetRetentionDays,
+    signedUrlTtlSeconds,
+    env,
   }
+}
+
+function parsePositiveInt(raw: string | undefined, fallback: number, name: string): number {
+  if (raw == null || raw.trim() === '') return fallback
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new Error(`${name} must be a positive integer, got ${raw}`)
+  }
+  return n
 }

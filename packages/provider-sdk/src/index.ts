@@ -10,14 +10,27 @@ export type {
   Transcriber,
   Translator,
   Tts,
-} from './types.js'
+} from './types.ts'
 
-export { ProviderError } from './errors.js'
-export { createTranscriber, transcriberConfigFromEnv } from './create-transcriber.js'
+export { ProviderError } from './errors.ts'
+export { createTranscriber, transcriberConfigFromEnv } from './create-transcriber.ts'
 export {
   checkMmsHttpHealth,
   createMmsHttpTranscriber,
   type MmsHttpTranscriberOptions,
   type MmsTranscribeResponse,
-} from './transcribers/mms-http.js'
-export { createStubTranscriber } from './transcribers/stub.js'
+} from './transcribers/mms-http.ts'
+export { createStubTranscriber } from './transcribers/stub.ts'
+export {
+  createStorage,
+  storageConfigFromEnv,
+  type CreateStorageOptions,
+  type StorageEnv,
+} from './storage/create-storage.ts'
+export {
+  createLocalDiskStorage,
+  signLocalDiskToken,
+  verifyLocalDiskSignedUrl,
+  type LocalDiskStorageOptions,
+} from './storage/local-disk.ts'
+export { createMinioStorage, type MinioStorageOptions } from './storage/minio.ts'

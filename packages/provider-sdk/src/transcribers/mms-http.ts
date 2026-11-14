@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import type { Cue } from '@abolkit/core'
-import { ProviderError } from '../errors.js'
-import type { LangCode, Transcriber } from '../types.js'
+import { ProviderError } from '../errors.ts'
+import type { LangCode, Transcriber } from '../types.ts'
 
 /** Successful body from the external MMS ASR wrapper (see spikes/07-stt/contract.md). */
 export interface MmsTranscribeResponse {

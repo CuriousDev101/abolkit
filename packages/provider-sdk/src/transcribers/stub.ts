@@ -1,5 +1,5 @@
 import type { Cue } from '@abolkit/core'
-import type { Transcriber } from '../types.js'
+import type { Transcriber } from '../types.ts'
 
 /**
  * Offline stand-in when TRANSCRIBER_URL is unset (local UI/API work without MMS).

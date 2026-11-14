@@ -1,4 +1,4 @@
-import type { Cue } from './cue.js'
+import type { Cue } from './cue.ts'
 
 /**
  * Parse a WebVTT document into cues.

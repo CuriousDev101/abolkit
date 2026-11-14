@@ -11,3 +11,6 @@ allowBuilds:
   vue-demi: false
   # tsx (and other tools) need esbuild's postinstall binary
   esbuild: true
+minimumReleaseAgeExclude:
+  - '@aws-sdk/client-s3@3.1169.0'
+  - '@aws-sdk/s3-request-presigner@3.1169.0'

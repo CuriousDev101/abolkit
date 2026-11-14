@@ -1,6 +1,7 @@
-// API entry (#17): health, /openapi.json, Scalar at /docs, CORS, JSON errors.
+// API entry (#17 + #24): health, assets upload/metadata, signed downloads,
+// /openapi.json, Scalar at /docs, CORS, JSON errors.
 // STT is not this process. The worker calls the external MMS wrapper.
-// Next: assets/jobs/lessons (#24+), gated with requireApiKey.
+// Next: jobs (#25+), gated with requireApiKey.
 
 import { serve } from '@hono/node-server'
 

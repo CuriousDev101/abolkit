@@ -1,7 +1,7 @@
-import { ProviderError } from './errors.js'
-import { createMmsHttpTranscriber } from './transcribers/mms-http.js'
-import { createStubTranscriber } from './transcribers/stub.js'
-import type { ProviderConfig, Transcriber } from './types.js'
+import { ProviderError } from './errors.ts'
+import { createMmsHttpTranscriber } from './transcribers/mms-http.ts'
+import { createStubTranscriber } from './transcribers/stub.ts'
+import type { ProviderConfig, Transcriber } from './types.ts'
 
 /** Build the configured Transcriber. Default id is mms-http (ADR 0003 / spike #7). */
 export function createTranscriber(
