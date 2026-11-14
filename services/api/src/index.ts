@@ -1,4 +1,39 @@
 // API entry point. Owner: pair "ol".
-// TODO(#17): Hono app, config, /api/health, zod-openapi spec, Scalar at /docs.
-// Endpoint contract: docs-internal/architecture.md (section "API surface").
-export {}
+// Spike #10: health, /openapi.json, Scalar at /docs, script-tag embed.
+// STT is not this process. The worker calls the external MMS wrapper.
+// TODO(#17): assets, jobs, lessons, credentials.
+
+import { serve } from '@hono/node-server'
+
+import { createApp } from './app.ts'
+import { loadApiConfig } from './config.ts'
+
+export { createApp } from './app.ts'
+export { loadApiConfig } from './config.ts'
+
+export function start(env: Record<string, string | undefined> = process.env) {
+  const config = loadApiConfig(env)
+  const app = createApp(env)
+
+  const server = serve({ fetch: app.fetch, port: config.port, hostname: '127.0.0.1' }, (info) => {
+    console.log(
+      JSON.stringify({
+        ok: true,
+        service: 'abolkit-api',
+        url: `http://127.0.0.1:${info.port}`,
+        docs: `http://127.0.0.1:${info.port}/docs`,
+        openapi: `http://127.0.0.1:${info.port}/openapi.json`,
+      }),
+    )
+  })
+
+  return server
+}
+
+const entry = process.argv[1]?.replaceAll('\\', '/')
+const isDirectRun =
+  entry?.endsWith('api/src/index.ts') === true || entry?.endsWith('api/src/index.js') === true
+
+if (isDirectRun) {
+  start()
+}

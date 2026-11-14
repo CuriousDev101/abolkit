@@ -12,6 +12,7 @@ export default tseslint.config(
       '**/coverage/**',
       'data/**',
       '**/_abol-test-*.html',
+      'services/api/scripts/schema.d.ts',
     ],
   },
   js.configs.recommended,
