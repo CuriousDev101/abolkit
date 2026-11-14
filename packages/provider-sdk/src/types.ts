@@ -14,7 +14,7 @@ export interface ProviderInfo {
 }
 
 export interface Transcriber extends ProviderInfo {
-  /** audioPath: 16 kHz mono file produced by the worker (ffmpeg). */
+  /** audioPath: 16 kHz mono MP3 produced by the worker (ffmpeg spike #9). */
   transcribe(audioPath: string, opts: { lang: LangCode; signal?: AbortSignal }): Promise<Cue[]>
 }
 

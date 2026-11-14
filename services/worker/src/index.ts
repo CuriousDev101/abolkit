@@ -1,6 +1,6 @@
 // Worker entry point. Owner: pair "ol".
 // STT: HTTP client to external MMS wrapper (spike #7). Model lives in another repo.
-// TODO(#25): queue + job runner. TODO(#26): ffmpeg. TODO(#27): full job wiring.
+// TODO(#25): queue + job runner. TODO(#26): wrap spikes/09-ffmpeg recipes. TODO(#27): STT job wiring.
 
 import { createTranscriber, ProviderError } from '@abolkit/provider-sdk'
 import { loadWorkerConfig } from './config.js'

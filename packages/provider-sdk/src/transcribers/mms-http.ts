@@ -85,7 +85,7 @@ export function createMmsHttpTranscriber(options: MmsHttpTranscriberOptions): Tr
     async transcribe(audioPath, opts) {
       const bytes = await read(audioPath)
       const form = new FormData()
-      const filename = path.basename(audioPath) || 'audio.wav'
+      const filename = path.basename(audioPath) || 'audio.mp3'
       const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
       form.append('file', new Blob([ab], { type: mimeFor(audioPath) }), filename)
 
