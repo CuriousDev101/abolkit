@@ -4,7 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "description": "Abol Kit: accessible learning-media toolkit (embeddable video player, captions pipeline, job card).",
-  "packageManager": "pnpm@11.28.9",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
@@ -14,11 +17,14 @@
     "build": "pnpm -r --if-present build",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm build",
     "gh:labels": "bash scripts/gh-labels.sh",
-    "gh:issues": "bash scripts/gh-issues.sh",
-    "typecheck": "echo \"typecheck: add per-package tsconfigs in #1\" && exit 0"
+    "gh:issues": "bash scripts/gh-issues.sh"
   },
-  "packageManager": "pnpm@9.15.9",
-  "engines": {
-    "node": ">=20"
+  "devDependencies": {
+    "@eslint/js": "^9.22.0",
+    "eslint": "^9.22.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.26.1"
   }
 }

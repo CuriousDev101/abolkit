@@ -15,6 +15,15 @@ package-lock.json
 .tools/
 .pnpm-store/
 
+# spike local envs and caches (never commit)
+spikes/**/.venv/
+spikes/**/.venv*/
+spikes/**/.uv-cache/
+spikes/**/.hf-cache/
+spikes/**/.python/
+spikes/**/.tmp/
+spikes/**/__pycache__/
+
 # local data written by the API/worker (uploads, sqlite, generated packs)
 data/
 *.sqlite

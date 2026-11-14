@@ -21,13 +21,19 @@ export interface Transcriber extends ProviderInfo {
 }
 
 export interface Translator extends ProviderInfo {
-  translate(cues: Cue[], opts: { from: LangCode; to: LangCode; signal?: AbortSignal }): Promise<Cue[]>
+  translate(
+    cues: Cue[],
+    opts: { from: LangCode; to: LangCode; signal?: AbortSignal },
+  ): Promise<Cue[]>
 }
 
 export interface Tts extends ProviderInfo {
   /** Which languages this provider can voice. Do not assume 'am' is present. */
   languages(): LangCode[]
-  synthesize(text: string, opts: { lang: LangCode; signal?: AbortSignal }): Promise<{ bytes: Uint8Array; mime: string }>
+  synthesize(
+    text: string,
+    opts: { lang: LangCode; signal?: AbortSignal },
+  ): Promise<{ bytes: Uint8Array; mime: string }>
 }
 
 export interface Storage extends ProviderInfo {
@@ -38,10 +44,11 @@ export interface Storage extends ProviderInfo {
   signedUrl(key: string, ttlSeconds: number): Promise<string>
 }
 
-/** Chosen at deploy time from environment/config. Defaults must work with no accounts and no network. */
+/** Chosen at deploy time from environment/config. Speech/TTS defaults need no cloud accounts. */
 export interface ProviderConfig {
   transcriber: string // e.g. 'faster-whisper' (default) | 'assemblyai'
   translator: string // e.g. 'nllb-local' | 'none' | 'cloud'
   tts: string // e.g. 'recorded-clips' | 'mms-local' | 'cloud'
-  storage: string // e.g. 'local-disk' (default) | 'minio' | 'r2'
+  /** Compose/demo default: 'minio' (mandatory). Use 'local-disk' for tests / no-Docker. 'r2' later. */
+  storage: string // e.g. 'minio' | 'local-disk' | 'r2'
 }

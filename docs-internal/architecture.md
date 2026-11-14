@@ -22,8 +22,9 @@ Principle: **components work alone in any host; the backend is an optional servi
  │ worker: ffmpeg → STT → translate → TTS → pack builder
  │ providers (packages/provider-sdk): Transcriber, Translator, Tts, Storage
  └─────────────────────────────────────────────┘
-  Defaults: local disk + SQLite + in-process/DB queue + self-hosted models.
-  Optional: MinIO/R2, Redis+BullMQ, Postgres, AssemblyAI/cloud TTS (consent required).
+  Defaults: MinIO (required in Compose) + SQLite + DB-backed job queue + self-hosted models.
+  Local-disk Storage adapter for tests / no-Docker. Optional later: R2, Redis+BullMQ, Postgres,
+  AssemblyAI/cloud TTS (consent required for off-host providers; see ADR 0003 / 0005).
 ```
 
 ## Components
@@ -117,4 +118,4 @@ Errors: JSON `{ error: { code, message } }`. CORS open for read endpoints; write
 
 ## Deployment
 
-`docker compose up` runs api, worker and storage from a clean clone. Environment variables select providers (`TRANSCRIBER`, `TRANSLATOR`, `TTS`, `STORAGE`). Built bundles are served from the API at `/widget/*` for the script-tag install, and attached to releases for CDN use.
+`docker compose up` runs **api**, **worker**, and **MinIO** (mandatory object storage) from a clean clone, with SQLite on a persisted volume for metadata and the DB-backed job queue (ADR 0005). Environment variables select providers (`TRANSCRIBER`, `TRANSLATOR`, `TTS`, `STORAGE` / `STORAGE_PROVIDER`). Built bundles are served from the API at `/widget/*` for the script-tag install, and attached to releases for CDN use.
