@@ -7,3 +7,5 @@ packages:
 # prebuilt UMD bundle and does not import the Vue components.
 allowBuilds:
   vue-demi: false
+  # tsx (and other tools) need esbuild's postinstall binary
+  esbuild: true

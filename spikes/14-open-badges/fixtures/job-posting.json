@@ -1,0 +1,37 @@
+{
+  "@context": "https://schema.org",
+  "@type": "JobPosting",
+  "title": "Junior Accessibility Engineer",
+  "description": "Help build accessible learning media for graduates. You will work on captions, keyboard UX, and clear job information so employers and learners can trust what they see.",
+  "datePosted": "2026-11-14",
+  "validThrough": "2026-12-31T23:59:59+03:00",
+  "employmentType": "FULL_TIME",
+  "hiringOrganization": {
+    "@type": "Organization",
+    "name": "Abol Kit Demo Employer",
+    "sameAs": "https://abolkit.local"
+  },
+  "jobLocation": {
+    "@type": "Place",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Addis Ababa",
+      "addressCountry": "ET"
+    }
+  },
+  "applicantLocationRequirements": {
+    "@type": "Country",
+    "name": "Ethiopia"
+  },
+  "baseSalary": {
+    "@type": "MonetaryAmount",
+    "currency": "ETB",
+    "value": {
+      "@type": "QuantitativeValue",
+      "value": 25000,
+      "unitText": "MONTH"
+    }
+  },
+  "abolSummaryText": "Junior Accessibility Engineer in Addis Ababa. Full time. Apply by the end of December. Focus on captions, keyboard access, and clear job cards.",
+  "abolAudioSummary": "/samples/job-summary.opus"
+}
