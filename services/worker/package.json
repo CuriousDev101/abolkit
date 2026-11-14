@@ -1,0 +1,12 @@
+{
+  "name": "@abolkit/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "description": "Background worker: ffmpeg, speech-to-text, translation, TTS and offline-pack builder, driven by a job queue.",
+  "dependencies": {
+    "@abolkit/core": "workspace:*",
+    "@abolkit/provider-sdk": "workspace:*"
+  }
+}

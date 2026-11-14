@@ -1,0 +1,12 @@
+{
+  "name": "@abolkit/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "description": "Hono + zod-openapi REST API: assets, jobs, lessons/cues, offline packs, credentials. Serves the OpenAPI spec and docs.",
+  "dependencies": {
+    "@abolkit/core": "workspace:*",
+    "@abolkit/provider-sdk": "workspace:*"
+  }
+}

@@ -1,0 +1,43 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .: {}
+
+  packages/core: {}
+
+  packages/job-card: {}
+
+  packages/player:
+    dependencies:
+      '@abolkit/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/provider-sdk:
+    dependencies:
+      '@abolkit/core':
+        specifier: workspace:*
+        version: link:../core
+
+  services/api:
+    dependencies:
+      '@abolkit/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@abolkit/provider-sdk':
+        specifier: workspace:*
+        version: link:../../packages/provider-sdk
+
+  services/worker:
+    dependencies:
+      '@abolkit/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@abolkit/provider-sdk':
+        specifier: workspace:*
+        version: link:../../packages/provider-sdk

@@ -1,0 +1,11 @@
+{
+  "name": "abolkit",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Abol Kit: accessible learning-media toolkit (embeddable video player, captions pipeline, job card).",
+  "scripts": {
+    "gh:labels": "bash scripts/gh-labels.sh",
+    "gh:issues": "bash scripts/gh-issues.sh"
+  }
+}

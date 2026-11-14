@@ -1,0 +1,8 @@
+{
+  "name": "@abolkit/job-card",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "description": "<abol-job-card>: accessible job card with schema.org/JobPosting data and an audio summary."
+}

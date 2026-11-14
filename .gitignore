@@ -1,0 +1,17 @@
+node_modules
+dist
+.astro
+coverage
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+
+# local data written by the API/worker (uploads, sqlite, generated packs)
+data/
+*.sqlite
+*.sqlite-journal
+
+# generated test copies of the Savanna pages
+**/_abol-test-*.html
