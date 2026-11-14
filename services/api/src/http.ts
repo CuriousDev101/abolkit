@@ -5,12 +5,7 @@ import type { ZodError } from 'zod'
 import type { ErrorBody } from './schemas.ts'
 
 /** Stable JSON error body from architecture.md. */
-export function jsonError(
-  c: Context,
-  status: ContentfulStatusCode,
-  code: string,
-  message: string,
-) {
+export function jsonError(c: Context, status: ContentfulStatusCode, code: string, message: string) {
   return c.json({ error: { code, message } } satisfies ErrorBody, status)
 }
 
