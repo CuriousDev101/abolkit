@@ -1,0 +1,13 @@
+node_modules
+dist
+.astro
+coverage
+data
+pnpm-lock.yaml
+# Hand-written prose and tables: do not reflow
+*.md
+docs-internal
+# Generated test copies of the Savanna pages
+**/_abol-test-*.html
+# Shell scripts are not formatted by Prettier
+scripts
