@@ -1,4 +1,4 @@
-// Spike #10 proof: spec, Scalar page, typed client, CORS, script-tag embed.
+// #17 / spike #10 proof: health, spec, Scalar, typed client, CORS, JSON errors, API key gate.
 // Speech-to-text is not contacted. This process only serves the API.
 
 import { spawnSync } from 'node:child_process'
@@ -10,10 +10,12 @@ import { fileURLToPath } from 'node:url'
 import { runInNewContext } from 'node:vm'
 import type { AddressInfo } from 'node:net'
 
+import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
 
 import { createApiClient, fetchHealth } from './client.ts'
 import { createApp } from '../src/app.ts'
+import { requireApiKey } from '../src/middleware/api-key.ts'
 import { openApiConfig } from '../src/openapi.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -92,8 +94,19 @@ async function main() {
   assert(widgetSource.includes("/api/health"), 'widget calls health')
 
   const missing = await app.request('/api/missing')
-  const missingBody = (await missing.json()) as { error?: { code?: string } }
+  const missingBody = (await missing.json()) as { error?: { code?: string; message?: string } }
   assert(missing.status === 404 && missingBody.error?.code === 'NOT_FOUND', '404 shape')
+  assert(typeof missingBody.error?.message === 'string', '404 message')
+
+  const components = (
+    app.getOpenAPI31Document(openApiConfig) as {
+      components?: { schemas?: Record<string, unknown> }
+    }
+  ).components?.schemas
+  assert(components?.ErrorBody !== undefined, 'ErrorBody registered in OpenAPI')
+  assert(components?.Health !== undefined, 'Health registered in OpenAPI')
+
+  await assertApiKeyGate()
 
   const api = await listen(app)
   const host = await listenHost(api.origin)
@@ -142,15 +155,52 @@ async function main() {
   console.log(
     JSON.stringify({
       ok: true,
+      issue: 17,
       openapi: '3.1.0',
       paths,
       specBytes: Buffer.byteLength(JSON.stringify(document)),
       scalarBytes,
       cors: '*',
+      errors: '{ error: { code, message } }',
+      apiKeyGate: true,
       embed: 'Abol Kit API is up',
       client: 'fetchHealth',
       stt: 'not this service',
+      dev: 'pnpm dev:api',
     }),
+  )
+}
+
+async function assertApiKeyGate() {
+  const gated = new Hono()
+  gated.use('*', requireApiKey('secret-demo'))
+  gated.post('/write', (c) => c.json({ ok: true }))
+
+  const unset = new Hono()
+  unset.use('*', requireApiKey(undefined))
+  unset.post('/write', (c) => c.json({ ok: true }))
+
+  const denied = await gated.request('/write', { method: 'POST' })
+  const deniedBody = (await denied.json()) as { error?: { code?: string } }
+  assert(denied.status === 401 && deniedBody.error?.code === 'UNAUTHORIZED', 'api key denied')
+
+  const allowed = await gated.request('/write', {
+    method: 'POST',
+    headers: { 'X-API-Key': 'secret-demo' },
+  })
+  assert(allowed.status === 200, 'api key accepted')
+
+  const bearer = await gated.request('/write', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer secret-demo' },
+  })
+  assert(bearer.status === 200, 'bearer api key accepted')
+
+  const missingConfig = await unset.request('/write', { method: 'POST' })
+  const missingBody = (await missingConfig.json()) as { error?: { code?: string } }
+  assert(
+    missingConfig.status === 503 && missingBody.error?.code === 'API_KEY_UNSET',
+    'writes refuse when API_KEY unset',
   )
 }
 
