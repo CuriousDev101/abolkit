@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global console */
 /**
  * Classic IIFE bundles for the Level-1 script-tag install (also loads from file://).
  *
@@ -37,12 +38,24 @@ const videojsDiet = {
     build.onResolve({ filter: /^@videojs\/html(?:\/|$)/ }, (args) =>
       ALLOWED_VIDEOJS.has(args.path) || args.importer.includes('node_modules')
         ? undefined
-        : { errors: [{ text: `Only ${[...ALLOWED_VIDEOJS].join(', ')} may be imported (got ${args.path}).` }] },
+        : {
+            errors: [
+              {
+                text: `Only ${[...ALLOWED_VIDEOJS].join(', ')} may be imported (got ${args.path}).`,
+              },
+            ],
+          },
     )
-    build.onLoad({ filter: /[\\/]@videojs[\\/]core[\\/]dist[\\/][^\\/]+[\\/]core[\\/]i18n[\\/]load-locale\.js$/ }, () => ({
-      contents: 'export async function loadLocale() {}',
-      loader: 'js',
-    }))
+    build.onLoad(
+      {
+        filter:
+          /[\\/]@videojs[\\/]core[\\/]dist[\\/][^\\/]+[\\/]core[\\/]i18n[\\/]load-locale\.js$/,
+      },
+      () => ({
+        contents: 'export async function loadLocale() {}',
+        loader: 'js',
+      }),
+    )
   },
 }
 
@@ -69,5 +82,7 @@ for (const { outfile, videojs, hls } of bundles) {
   })
   const bytes = readFileSync(join(root, outfile))
   const kb = (n) => `${(n / 1024).toFixed(1)} KB`
-  console.log(`${outfile.padEnd(28)} ${kb(bytes.length).padStart(9)}  (${kb(gzipSync(bytes, { level: 9 }).length)} gzip)`)
+  console.log(
+    `${outfile.padEnd(28)} ${kb(bytes.length).padStart(9)}  (${kb(gzipSync(bytes, { level: 9 }).length)} gzip)`,
+  )
 }

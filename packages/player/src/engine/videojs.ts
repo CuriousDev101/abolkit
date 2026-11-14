@@ -8,7 +8,8 @@ import { buildVideo, NativeEngine, type Playable } from './native.js'
 import { SKIN_TAG } from './skin.js'
 import { isHls, isYouTube } from './source.js'
 
-const isCaption = (track: { kind: string }) => track.kind === 'captions' || track.kind === 'subtitles'
+const isCaption = (track: { kind: string }) =>
+  track.kind === 'captions' || track.kind === 'subtitles'
 
 export class VideoJsEngine extends NativeEngine {
   override readonly kind = 'videojs' as const

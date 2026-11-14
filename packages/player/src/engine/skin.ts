@@ -4,7 +4,12 @@
 // (hotkeys, gestures, indicators, error dialog, styles) stays upstream.
 import '@videojs/html/video/compat-skin'
 import '@videojs/html/ui/playback-rate-button'
-import { CaptionsButtonElement, MenuRadioGroupElement, type PropertyValues, UIElement } from '@videojs/html'
+import {
+  CaptionsButtonElement,
+  MenuRadioGroupElement,
+  type PropertyValues,
+  UIElement,
+} from '@videojs/html'
 import { registerIcons } from '@videojs/html/icons'
 import { qualityIcon } from '@videojs/html/icons/compat'
 import { CompatVideoSkinElement } from '@videojs/html/video'
@@ -12,7 +17,8 @@ import { OPTIONS, type PlayerOption } from '../options.js'
 
 export const TOGGLE_EVENT = 'abol-toggle'
 
-const SVG = 'xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" aria-hidden="true" viewBox="0 0 18 18"'
+const SVG =
+  'xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" aria-hidden="true" viewBox="0 0 18 18"'
 registerIcons('compat', {
   quality: qualityIcon,
   transcript: `<svg ${SVG}><rect width="14" height="14" x="2" y="2" stroke="currentColor" stroke-linejoin="round" stroke-width="2" rx="2"/><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M5.5 6.5h7m-7 3h7m-7 3h4"/></svg>`,
@@ -66,7 +72,13 @@ export class ToggleButtonElement extends UIElement {
   }
 
   #activate = (): void => {
-    this.dispatchEvent(new CustomEvent(TOGGLE_EVENT, { bubbles: true, composed: true, detail: { action: this.dataset.action } }))
+    this.dispatchEvent(
+      new CustomEvent(TOGGLE_EVENT, {
+        bubbles: true,
+        composed: true,
+        detail: { action: this.dataset.action },
+      }),
+    )
   }
 }
 
@@ -82,7 +94,8 @@ export class CaptionsMenuButtonElement extends CaptionsButtonElement {
     const getAttrs = core.getAttrs.bind(core)
     // The key must be absent, not undefined: applyElementProps would remove the menu's `hidden`.
     core.getAttrs = (state) => {
-      const { hidden: _, ...attrs } = getAttrs(state)
+      const attrs = { ...getAttrs(state) }
+      delete attrs.hidden
       return attrs as ReturnType<typeof getAttrs>
     }
   }
@@ -90,7 +103,8 @@ export class CaptionsMenuButtonElement extends CaptionsButtonElement {
   protected override activate(_state: unknown, event?: UIEvent): void {
     // Pointer activation opens the menu through `commandfor`; keyboard activation is not routed there.
     if (!(event instanceof KeyboardEvent) || !this.commandfor) return
-    const menu = (this.getRootNode() as ShadowRoot).getElementById(this.commandfor) as (HTMLElement & { open: boolean }) | null
+    const menu = (this.getRootNode() as ShadowRoot).getElementById(this.commandfor) as
+      (HTMLElement & { open: boolean }) | null
     if (menu && 'open' in menu) menu.open = !menu.open
   }
 
@@ -115,7 +129,10 @@ const radioItem = (value: string, label: string, l = true) =>
  */
 export class OptionGroupElement extends MenuRadioGroupElement {
   static override readonly tagName = 'abol-option-group'
-  static override properties = { ...MenuRadioGroupElement.properties, unavailable: { type: Boolean } }
+  static override properties = {
+    ...MenuRadioGroupElement.properties,
+    unavailable: { type: Boolean },
+  }
   declare unavailable: boolean
 
   #abort: AbortController | null = null
@@ -155,21 +172,30 @@ export class OptionGroupElement extends MenuRadioGroupElement {
   /** Replace the items; labels are shown as given (used for caption tracks, whose labels come from the host). */
   setChoices(choices: ReadonlyArray<readonly [string, string]>): void {
     this.innerHTML = choices.map(([value]) => radioItem(value, '', false)).join('')
-    this.querySelectorAll('[data-part="label"]').forEach((el, i) => (el.textContent = choices[i]![1]))
+    this.querySelectorAll('[data-part="label"]').forEach(
+      (el, i) => (el.textContent = choices[i]![1]),
+    )
   }
 
   protected override update(changed: PropertyValues): void {
     super.update(changed)
-    this.publishMenuOptionState(false, this.unavailable, this.unavailable ? 'unavailable' : 'available')
+    this.publishMenuOptionState(
+      false,
+      this.unavailable,
+      this.unavailable ? 'unavailable' : 'available',
+    )
   }
 }
 
 const tooltip = (trigger: string, content: string) =>
   `<media-tooltip trigger="${trigger}" side="top" class="media-popup media-popup-safe-area media-popup-transition media-tooltip-popup">${content}</media-tooltip>`
-const icon = (name: string, cls = 'media-button-icon') => `<media-icon family="compat" name="${name}" class="${cls}"></media-icon>`
-const LABEL_TIP = '<media-tooltip-label></media-tooltip-label><media-tooltip-shortcut class="media-tooltip-shortcut"></media-tooltip-shortcut>'
+const icon = (name: string, cls = 'media-button-icon') =>
+  `<media-icon family="compat" name="${name}" class="${cls}"></media-icon>`
+const LABEL_TIP =
+  '<media-tooltip-label></media-tooltip-label><media-tooltip-shortcut class="media-tooltip-shortcut"></media-tooltip-shortcut>'
 const HINT = `<span class="media-menu-hint"><span data-part="value" class="media-menu-hint-label"></span>${icon('chevron', 'media-menu-forward-chevron')}</span>`
-const MENU = 'class="media-popup media-popup-safe-area media-menu-popup media-menu-resizable-popup" side="top" align="center"'
+const MENU =
+  'class="media-popup media-popup-safe-area media-menu-popup media-menu-resizable-popup" side="top" align="center"'
 
 /** One of Video.js's media option groups (audio, captions, speed, quality), items from its template. */
 const mediaGroup = (group: string, extra = '') =>
@@ -271,8 +297,11 @@ function buildTemplate(): HTMLTemplateElement {
   const base = CompatVideoSkinElement.template
   if (!base) throw new Error('Video.js compat skin template is missing')
   const template = base.cloneNode(true) as HTMLTemplateElement
-  const group = template.content.querySelector('.video-controls-row > .video-controls-group:last-child')
-  if (!group) throw new Error('Video.js compat skin layout changed: bottom-right control group not found')
+  const group = template.content.querySelector(
+    '.video-controls-row > .video-controls-group:last-child',
+  )
+  if (!group)
+    throw new Error('Video.js compat skin layout changed: bottom-right control group not found')
   group.innerHTML = CONTROLS
   const style = document.createElement('style')
   style.textContent = SKIN_CSS
@@ -291,5 +320,6 @@ const ELEMENTS: Array<[string, CustomElementConstructor]> = [
   ['abol-captions-button', CaptionsMenuButtonElement],
   [OptionGroupElement.tagName, OptionGroupElement],
 ]
-for (const [tag, element] of ELEMENTS) if (!customElements.get(tag)) customElements.define(tag, element)
+for (const [tag, element] of ELEMENTS)
+  if (!customElements.get(tag)) customElements.define(tag, element)
 if (!customElements.get(SKIN_TAG)) customElements.define(SKIN_TAG, AbolSkinElement)

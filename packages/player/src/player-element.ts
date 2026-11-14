@@ -1,5 +1,12 @@
 import type { AdClip, PlayerSettings, SignWindowLayout, UiStringKey } from '@abolkit/core'
-import { DEFAULT_SIGN_LAYOUT, formatTime, isLessonManifest, isUiStringKey, resolveUiLang, t } from '@abolkit/core'
+import {
+  DEFAULT_SIGN_LAYOUT,
+  formatTime,
+  isLessonManifest,
+  isUiStringKey,
+  resolveUiLang,
+  t,
+} from '@abolkit/core'
 import type { LessonConfig } from './config.js'
 import { configFromAttributes, configFromManifest, mergeConfig } from './config.js'
 import type { EngineEvent, MediaEngine } from './engine.js'
@@ -19,15 +26,17 @@ const SHORTCUTS: Record<string, string> = { d: 'ad', s: 'sign', t: 'transcript' 
 /** Must match TOGGLE_EVENT in engine/skin.ts (not imported, so the lite build stays free of Video.js). */
 const TOGGLE_EVENT = 'abol-toggle'
 /** Our control-bar toggles: in the Video.js skin, or in the native fallback bar. */
-const toggles = (action: string) => `abol-toggle-button[data-action="${action}"], .bar [data-a="${action}"]`
+const toggles = (action: string) =>
+  `abol-toggle-button[data-action="${action}"], .bar [data-a="${action}"]`
 const CLOSE_ICON =
   '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="m4.5 4.5 9 9m0-9-9 9"/></svg>'
 
 /** Fallback controls for the native engine only; with Video.js these live in its control bar (engine/skin.ts). */
 const NATIVE_SETTINGS = OPTIONS.map(
-  (o) => `<label><span data-l="${o.label}"></span><select data-s="${o.key}">${o.choices
-    .map(([value, label]) => `<option value="${value}" data-l="${label}">${label}</option>`)
-    .join('')}</select></label>`,
+  (o) =>
+    `<label><span data-l="${o.label}"></span><select data-s="${o.key}">${o.choices
+      .map(([value, label]) => `<option value="${value}" data-l="${label}">${label}</option>`)
+      .join('')}</select></label>`,
 ).join('')
 
 const TEMPLATE = `
@@ -146,8 +155,14 @@ export class AbolPlayerElement extends HTMLElement {
   #audioOnly = false
   #moveMode = false
   #resumeAfterSign = false
-  #drag: { mode: 'move' | 'resize'; x: number; y: number; w: number; h: number; start: SignWindowLayout } | null =
-    null
+  #drag: {
+    mode: 'move' | 'resize'
+    x: number
+    y: number
+    w: number
+    h: number
+    start: SignWindowLayout
+  } | null = null
   #layers: HTMLElement | null = null
   #cue: HTMLElement | null = null
   #sign: HTMLElement | null = null
@@ -199,7 +214,10 @@ export class AbolPlayerElement extends HTMLElement {
     query.addEventListener('keydown', (ev) => {
       if (ev.key !== 'Enter') return
       ev.preventDefault()
-      this.#q('.tr-body').querySelector<HTMLElement>('mark')?.closest<HTMLElement>('[data-a="seek"]')?.focus()
+      this.#q('.tr-body')
+        .querySelector<HTMLElement>('mark')
+        ?.closest<HTMLElement>('[data-a="seek"]')
+        ?.focus()
     })
   }
 
@@ -248,7 +266,9 @@ export class AbolPlayerElement extends HTMLElement {
   }
 
   get #lang(): string {
-    return resolveUiLang(this.getAttribute('lang') ?? this.#config?.lang ?? document.documentElement.lang)
+    return resolveUiLang(
+      this.getAttribute('lang') ?? this.#config?.lang ?? document.documentElement.lang,
+    )
   }
 
   /** Boot once per burst of attribute changes, after `<track>` children have been parsed. */
@@ -259,7 +279,8 @@ export class AbolPlayerElement extends HTMLElement {
       this.#scheduled = false
       if (this.isConnected) void this.#boot()
     }
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true })
+    if (document.readyState === 'loading')
+      document.addEventListener('DOMContentLoaded', run, { once: true })
     else queueMicrotask(run)
   }
 
@@ -275,21 +296,33 @@ export class AbolPlayerElement extends HTMLElement {
         if (!res.ok) throw new Error(`Manifest HTTP ${res.status}`)
         const data: unknown = await res.json()
         if (!isLessonManifest(data)) throw new Error('Invalid lesson manifest')
-        config = mergeConfig(configFromManifest(data, res.url || new URL(manifest, document.baseURI).href), config)
+        config = mergeConfig(
+          configFromManifest(data, res.url || new URL(manifest, document.baseURI).href),
+          config,
+        )
       }
       if (!config.src) throw new Error('Set the src or manifest attribute')
 
       const keys = this.getAttribute('controls-keys')
       if (keys === 'off' || keys === 'focus') this.#settings.controlsKeys = keys
       const preferred = this.#settings.captionsLang
-      if (preferred !== undefined && config.tracks.some((tr) => tr.lang === preferred || preferred === '')) {
-        for (const tr of config.tracks) if (tr.kind === 'captions' || tr.kind === 'subtitles') tr.default = tr.lang === preferred
+      if (
+        preferred !== undefined &&
+        config.tracks.some((tr) => tr.lang === preferred || preferred === '')
+      ) {
+        for (const tr of config.tracks)
+          if (tr.kind === 'captions' || tr.kind === 'subtitles') tr.default = tr.lang === preferred
       }
 
       const engine = await createEngine(this.getAttribute('engine'))
       if (boot !== this.#boots) return
-      if (engine.kind === 'native' && isYouTube({ src: config.src, type: this.getAttribute('type') })) {
-        throw new Error('YouTube sources need the Video.js build (abol-player.js), not the lite build')
+      if (
+        engine.kind === 'native' &&
+        isYouTube({ src: config.src, type: this.getAttribute('type') })
+      ) {
+        throw new Error(
+          'YouTube sources need the Video.js build (abol-player.js), not the lite build',
+        )
       }
       this.#config = config
       this.#engine = engine
@@ -351,10 +384,21 @@ export class AbolPlayerElement extends HTMLElement {
       ev.stopPropagation()
       const target = ev.target as Element
       if (target.closest('button')) return
-      const mode = target.closest('.sign-grip') ? 'resize' : target.closest('.sign-bar') ? 'move' : null
+      const mode = target.closest('.sign-grip')
+        ? 'resize'
+        : target.closest('.sign-bar')
+          ? 'move'
+          : null
       if (!mode) return
       const rect = layers.getBoundingClientRect()
-      this.#drag = { mode, x: ev.clientX, y: ev.clientY, w: rect.width, h: rect.height, start: { ...this.#layout } }
+      this.#drag = {
+        mode,
+        x: ev.clientX,
+        y: ev.clientY,
+        w: rect.width,
+        h: rect.height,
+        start: { ...this.#layout },
+      }
       sign.setPointerCapture(ev.pointerId)
     })
     sign.addEventListener('pointermove', (ev) => {
@@ -384,7 +428,8 @@ export class AbolPlayerElement extends HTMLElement {
 
   #bindMedia(engine: MediaEngine): void {
     const sign = this.#signVideo!
-    const on = (event: EngineEvent, handler: () => void) => this.#off.push(engine.on(event, handler))
+    const on = (event: EngineEvent, handler: () => void) =>
+      this.#off.push(engine.on(event, handler))
     const listen = (target: EventTarget, type: string, handler: (ev: Event) => void) => {
       target.addEventListener(type, handler)
       this.#off.push(() => target.removeEventListener(type, handler))
@@ -486,7 +531,8 @@ export class AbolPlayerElement extends HTMLElement {
   #selectCaption(lang: string): void {
     for (const track of this.#captionTracks()) {
       if (lang && track.language === lang) track.mode = 'showing'
-      else if (track.mode === 'showing') track.mode = track === this.#trTrack ? 'hidden' : 'disabled'
+      else if (track.mode === 'showing')
+        track.mode = track === this.#trTrack ? 'hidden' : 'disabled'
     }
   }
 
@@ -511,16 +557,25 @@ export class AbolPlayerElement extends HTMLElement {
       captionTrack: !!this.#engine?.customTracks && captions.length > 0,
     }
     // Caption style only applies to captions we draw; without any, the captions menu keeps just Video.js's tracks.
-    for (const { key, group } of OPTIONS) if (group === 'caption') available[key] = captions.length > 0
-    type Group = HTMLElement & { unavailable: boolean; setChoices?(choices: Array<[string, string]>): void }
+    for (const { key, group } of OPTIONS)
+      if (group === 'caption') available[key] = captions.length > 0
+    type Group = HTMLElement & {
+      unavailable: boolean
+      setChoices?(choices: Array<[string, string]>): void
+    }
     for (const [key, ok] of Object.entries(available)) {
       // Video.js menu: the group reports to its menu, which hides the parent item.
-      for (const group of this.#all<Group>(`abol-option-group[data-opt="${key}"]`)) group.unavailable = !ok
+      for (const group of this.#all<Group>(`abol-option-group[data-opt="${key}"]`))
+        group.unavailable = !ok
       for (const label of this.#all(`label:has(> [data-s="${key}"])`)) label.hidden = !ok
     }
     if (available.captionTrack) {
-      const choices: Array<[string, string]> = [['', t(this.#lang, 'off')], ...captions.map((tr): [string, string] => [tr.language, tr.label || tr.language])]
-      for (const group of this.#all<Group>('abol-option-group[data-opt="captionTrack"]')) group.setChoices?.(choices)
+      const choices: Array<[string, string]> = [
+        ['', t(this.#lang, 'off')],
+        ...captions.map((tr): [string, string] => [tr.language, tr.label || tr.language]),
+      ]
+      for (const group of this.#all<Group>('abol-option-group[data-opt="captionTrack"]'))
+        group.setChoices?.(choices)
       this.#reflectCaptions()
     }
     for (const node of this.#all(toggles('transcript'))) node.hidden = !this.#hasTranscript()
@@ -531,8 +586,11 @@ export class AbolPlayerElement extends HTMLElement {
   #reflectCaptions(): void {
     if (!this.#engine?.customTracks) return
     const showing = this.#showingCaption()
-    for (const button of this.#all('abol-captions-button')) button.toggleAttribute('data-abol-active', !!showing)
-    for (const group of this.#all<HTMLElement & { value: string }>('abol-option-group[data-opt="captionTrack"]')) {
+    for (const button of this.#all('abol-captions-button'))
+      button.toggleAttribute('data-abol-active', !!showing)
+    for (const group of this.#all<HTMLElement & { value: string }>(
+      'abol-option-group[data-opt="captionTrack"]',
+    )) {
       group.value = showing?.language ?? ''
     }
   }
@@ -548,11 +606,14 @@ export class AbolPlayerElement extends HTMLElement {
     this.#settings.captionsLang = lang
     saveSettings(this.#settings)
     if (!initial) {
-      this.#announce(track ? `${t(this.#lang, 'captions')}: ${track.label}` : t(this.#lang, 'captionsOff'))
+      this.#announce(
+        track ? `${t(this.#lang, 'captions')}: ${track.label}` : t(this.#lang, 'captionsOff'),
+      )
       this.#emit('abol:caption-change', { lang: lang || null })
     }
     // Follow the viewer's caption language; turning captions off keeps the current transcript.
-    if (track && this.#transcriptOpen && track.language !== this.#q('.tr-body').lang) void this.#loadTranscript()
+    if (track && this.#transcriptOpen && track.language !== this.#q('.tr-body').lang)
+      void this.#loadTranscript()
   }
 
   #renderCue(): void {
@@ -561,7 +622,8 @@ export class AbolPlayerElement extends HTMLElement {
     let active = track?.activeCues ? Array.from(track.activeCues) : []
     // Chrome leaves activeCues empty until playback first moves.
     const now = this.#engine?.currentTime ?? 0
-    if (!active.length && track?.cues) active = Array.from(track.cues).filter((c) => c.startTime <= now && now < c.endTime)
+    if (!active.length && track?.cues)
+      active = Array.from(track.cues).filter((c) => c.startTime <= now && now < c.endTime)
     const text = active.map(cueText).join('\n')
     this.#cue.textContent = text
     this.#cue.hidden = !text
@@ -586,7 +648,9 @@ export class AbolPlayerElement extends HTMLElement {
     const duck = () => (video.volume = Math.min(volume, 0.3))
     const restore = () => (video.volume = volume)
 
-    const clip = this.#clips.find((c) => c.id === cue.id || Math.abs(c.start - cue.startTime) < 0.05)
+    const clip = this.#clips.find(
+      (c) => c.id === cue.id || Math.abs(c.start - cue.startTime) < 0.05,
+    )
     if (clip) {
       this.#clipAudio?.pause()
       const audio = new Audio(new URL(clip.audio, this.#config?.adClips).href)
@@ -606,7 +670,9 @@ export class AbolPlayerElement extends HTMLElement {
 
     const synth = globalThis.speechSynthesis
     const lang = this.#descTrack()?.language || this.#lang
-    const voice = synth?.getVoices().find((v) => v.localService && v.lang.toLowerCase().startsWith(lang))
+    const voice = synth
+      ?.getVoices()
+      .find((v) => v.localService && v.lang.toLowerCase().startsWith(lang))
     if (!voice) return false
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.voice = voice
@@ -697,13 +763,18 @@ export class AbolPlayerElement extends HTMLElement {
     const sign = this.#signVideo
     const video = this.#engine
     if (!sign || !video || !this.#signShown() || sign.readyState === 0) return
-    if (force || Math.abs(sign.currentTime - video.currentTime) > DRIFT_S) sign.currentTime = video.currentTime
+    if (force || Math.abs(sign.currentTime - video.currentTime) > DRIFT_S)
+      sign.currentTime = video.currentTime
   }
 
   #setMoveMode(on: boolean): void {
     this.#moveMode = on
     this.#sign?.querySelector('[data-a="sign-move"]')?.setAttribute('aria-pressed', String(on))
-    this.#announce(on ? 'Arrow keys move, Shift and arrow keys resize, Escape to finish.' : t(this.#lang, 'signWindow'))
+    this.#announce(
+      on
+        ? 'Arrow keys move, Shift and arrow keys resize, Escape to finish.'
+        : t(this.#lang, 'signWindow'),
+    )
   }
 
   #onSignKey(ev: KeyboardEvent): void {
@@ -713,9 +784,12 @@ export class AbolPlayerElement extends HTMLElement {
       this.#setMoveMode(false)
       return
     }
-    const step = ({ ArrowLeft: [-2, 0], ArrowRight: [2, 0], ArrowUp: [0, -2], ArrowDown: [0, 2] } as Record<string, number[]>)[
-      ev.key
-    ]
+    const step = (
+      { ArrowLeft: [-2, 0], ArrowRight: [2, 0], ArrowUp: [0, -2], ArrowDown: [0, 2] } as Record<
+        string,
+        number[]
+      >
+    )[ev.key]
     if (!step) return
     ev.preventDefault()
     const [dx = 0, dy = 0] = step
@@ -811,7 +885,8 @@ export class AbolPlayerElement extends HTMLElement {
 
   #choiceLabel(key: OptionKey): string {
     const value = this.#optionValue(key)
-    const label = OPTIONS.find((o) => o.key === key)?.choices.find(([v]) => v === value)?.[1] ?? value
+    const label =
+      OPTIONS.find((o) => o.key === key)?.choices.find(([v]) => v === value)?.[1] ?? value
     return isUiStringKey(label) ? t(this.#lang, label) : label
   }
 
@@ -831,7 +906,9 @@ export class AbolPlayerElement extends HTMLElement {
     }
     for (const { key } of OPTIONS) {
       const value = this.#optionValue(key)
-      for (const node of this.#all<HTMLElement & { value: string }>(`[data-opt="${key}"], [data-s="${key}"]`)) {
+      for (const node of this.#all<HTMLElement & { value: string }>(
+        `[data-opt="${key}"], [data-s="${key}"]`,
+      )) {
         if (node.value !== value) node.value = value
       }
     }
@@ -930,10 +1007,16 @@ export class AbolPlayerElement extends HTMLElement {
     const engine = this.#engine
     const tracks = this.#captionTracks()
     const track =
-      this.#showingCaption() ?? tracks.find((tr) => tr.language === this.#transcriptLang()) ?? tracks.find((tr) => tr.language === this.#lang) ?? tracks[0]
+      this.#showingCaption() ??
+      tracks.find((tr) => tr.language === this.#transcriptLang()) ??
+      tracks.find((tr) => tr.language === this.#lang) ??
+      tracks[0]
     if (!engine || !track) return false
     if (track.mode === 'disabled') track.mode = 'hidden'
-    if (!track.cues?.length && engine.whenLoaded(track, () => this.#transcriptOpen && void this.#loadTranscript())) {
+    if (
+      !track.cues?.length &&
+      engine.whenLoaded(track, () => this.#transcriptOpen && void this.#loadTranscript())
+    ) {
       this.#trTrack = track
       return true
     }
@@ -959,7 +1042,14 @@ export class AbolPlayerElement extends HTMLElement {
       const item = document.createElement('li')
       item.append(button)
       list.append(item)
-      return { start: cue.startTime, end: cue.endTime, el: button, text, original: text.cloneNode(true), filter: item }
+      return {
+        start: cue.startTime,
+        end: cue.endTime,
+        el: button,
+        text,
+        original: text.cloneNode(true),
+        filter: item,
+      }
     })
     this.#setTranscriptBody(list, track.language, items)
     return true
@@ -1018,10 +1108,15 @@ export class AbolPlayerElement extends HTMLElement {
     if (!active) return
     active.el.setAttribute('aria-current', 'true')
     const body = this.#q('.tr-body')
-    const reading = this.#trQuery || Date.now() < this.#trManualUntil || body.contains(this.#shadow.activeElement)
+    const reading =
+      this.#trQuery || Date.now() < this.#trManualUntil || body.contains(this.#shadow.activeElement)
     if (reading && !force) return
-    const top = active.el.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop
-    body.scrollTo({ top: top - body.clientHeight / 2 + active.el.offsetHeight / 2, behavior: reducedMotion() ? 'auto' : 'smooth' })
+    const top =
+      active.el.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop
+    body.scrollTo({
+      top: top - body.clientHeight / 2 + active.el.offsetHeight / 2,
+      behavior: reducedMotion() ? 'auto' : 'smooth',
+    })
   }
 
   #search(raw: string): void {
@@ -1034,7 +1129,11 @@ export class AbolPlayerElement extends HTMLElement {
       if (item.filter) item.filter.hidden = !!query && !match
     }
     const count = this.#q('.tr-count')
-    count.textContent = query ? (hits ? `${hits} ${t(this.#lang, hits === 1 ? 'match' : 'matches')}` : t(this.#lang, 'noMatches')) : ''
+    count.textContent = query
+      ? hits
+        ? `${hits} ${t(this.#lang, hits === 1 ? 'match' : 'matches')}`
+        : t(this.#lang, 'noMatches')
+      : ''
     if (query) this.#q('.tr-body').querySelector('mark')?.scrollIntoView({ block: 'nearest' })
     else this.#syncTranscript(true)
   }
@@ -1046,7 +1145,10 @@ export class AbolPlayerElement extends HTMLElement {
         this.#setOption('signVisible', settings.signVisible ? 'off' : 'on')
         break
       case 'ad':
-        this.#setOption('adMode', AD_MODES[(AD_MODES.indexOf(settings.adMode) + 1) % AD_MODES.length]!)
+        this.#setOption(
+          'adMode',
+          AD_MODES[(AD_MODES.indexOf(settings.adMode) + 1) % AD_MODES.length]!,
+        )
         break
       case 'transcript':
         if (this.#hasTranscript()) void this.#setTranscriptOpen(!this.#transcriptOpen)
@@ -1089,9 +1191,11 @@ export class AbolPlayerElement extends HTMLElement {
       if (node instanceof HTMLInputElement) node.placeholder = label
     }
     // Control-bar buttons: name only, since Video.js tooltips already show it (a title would double it).
-    for (const node of this.#all('[data-aria]')) node.setAttribute('aria-label', text(node.dataset.aria!))
+    for (const node of this.#all('[data-aria]'))
+      node.setAttribute('aria-label', text(node.dataset.aria!))
     // Option groups copy the selected label into their menu hint when they update.
-    for (const group of this.#all<HTMLElement & { requestUpdate(): void }>('abol-option-group')) group.requestUpdate()
+    for (const group of this.#all<HTMLElement & { requestUpdate(): void }>('abol-option-group'))
+      group.requestUpdate()
     this.#q('.bar').setAttribute('aria-label', t(lang, 'settings'))
     this.#sign?.setAttribute('aria-label', t(lang, 'signWindow'))
     this.#reflectTranscript()
@@ -1104,7 +1208,8 @@ export class AbolPlayerElement extends HTMLElement {
     if (this.#settings.controlsKeys !== 'off') return
     const origin = ev.composedPath()[0] as HTMLElement
     if (origin instanceof HTMLInputElement) return
-    if (ev.key.length === 1 && ev.key !== ' ' && !ev.ctrlKey && !ev.metaKey && !ev.altKey) ev.stopPropagation()
+    if (ev.key.length === 1 && ev.key !== ' ' && !ev.ctrlKey && !ev.metaKey && !ev.altKey)
+      ev.stopPropagation()
   }
 
   #onKey = (ev: KeyboardEvent): void => {
@@ -1116,7 +1221,9 @@ export class AbolPlayerElement extends HTMLElement {
       } else if (this.#transcriptOpen && this.#q('#abol-tr').contains(origin)) {
         if (origin.classList.contains('tr-query') && this.#trQuery) return
         void this.#setTranscriptOpen(false)
-        this.#all(toggles('transcript')).find((b) => !b.hidden)?.focus()
+        this.#all(toggles('transcript'))
+          .find((b) => !b.hidden)
+          ?.focus()
       }
       return
     }
@@ -1124,7 +1231,11 @@ export class AbolPlayerElement extends HTMLElement {
     if (/^(INPUT|SELECT|TEXTAREA)$/.test(origin.tagName) || origin.isContentEditable) return
     const action = SHORTCUTS[ev.key.toLowerCase()]
     if (!action) return
-    const available = { ad: !!this.#descTrack(), sign: !!this.#config?.sign, transcript: this.#hasTranscript() }
+    const available = {
+      ad: !!this.#descTrack(),
+      sign: !!this.#config?.sign,
+      transcript: this.#hasTranscript(),
+    }
     if (!available[action as keyof typeof available]) return
     ev.preventDefault()
     this.#act(action)

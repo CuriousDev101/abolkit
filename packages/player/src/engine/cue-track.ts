@@ -30,7 +30,10 @@ export class CueTrack extends EventTarget {
     this.label = info.label
     this.language = info.lang
     this.#list = list
-    this.#mode = info.default && (info.kind === 'captions' || info.kind === 'subtitles') ? 'showing' : 'disabled'
+    this.#mode =
+      info.default && (info.kind === 'captions' || info.kind === 'subtitles')
+        ? 'showing'
+        : 'disabled'
   }
 
   get mode(): TextTrackMode {
@@ -64,8 +67,12 @@ export class CueTrack extends EventTarget {
 
   /** Recompute `activeCues` for `time`; fires `cuechange` when the set changes. */
   tick(time: number): void {
-    const next = this.#mode === 'disabled' || !this.cues ? [] : this.cues.filter((c) => time >= c.startTime && time < c.endTime)
-    if (next.length === this.activeCues.length && next.every((c, i) => c === this.activeCues[i])) return
+    const next =
+      this.#mode === 'disabled' || !this.cues
+        ? []
+        : this.cues.filter((c) => time >= c.startTime && time < c.endTime)
+    if (next.length === this.activeCues.length && next.every((c, i) => c === this.activeCues[i]))
+      return
     this.activeCues = next
     this.dispatchEvent(new Event('cuechange'))
   }

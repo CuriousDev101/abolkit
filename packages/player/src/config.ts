@@ -48,7 +48,8 @@ export function configFromAttributes(el: HTMLElement): LessonConfig {
   }
 
   const descriptions = url('descriptions')
-  if (descriptions) tracks.push({ kind: 'descriptions', src: descriptions, lang, label: 'Audio description' })
+  if (descriptions)
+    tracks.push({ kind: 'descriptions', src: descriptions, lang, label: 'Audio description' })
 
   for (const child of el.querySelectorAll<HTMLTrackElement>(':scope > track')) {
     const kind = child.getAttribute('kind') ?? 'captions'

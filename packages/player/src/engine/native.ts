@@ -136,7 +136,9 @@ export class NativeEngine implements MediaEngine {
   whenLoaded(track: TextTrack, handler: () => void): boolean {
     const media = this.media
     const element =
-      media instanceof HTMLMediaElement ? Array.from(media.querySelectorAll('track')).find((el) => el.track === track) : undefined
+      media instanceof HTMLMediaElement
+        ? Array.from(media.querySelectorAll('track')).find((el) => el.track === track)
+        : undefined
     if (!element || element.readyState === HTMLTrackElement.LOADED) return false
     element.addEventListener('load', handler, { once: true })
     return true

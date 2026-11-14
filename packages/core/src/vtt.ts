@@ -17,7 +17,7 @@ export function parseVtt(text: string): Cue[] {
     if (/^(NOTE|STYLE|REGION)\b/i.test(block)) continue
 
     const lines = block.split('\n')
-    let timingIndex = lines.findIndex((line) => line.includes('-->'))
+    const timingIndex = lines.findIndex((line) => line.includes('-->'))
     if (timingIndex < 0) continue
 
     const id = timingIndex > 0 ? lines[0]?.trim() || undefined : undefined

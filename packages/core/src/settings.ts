@@ -87,6 +87,8 @@ export function mergeSettings(partial?: Partial<PlayerSettings> | null): PlayerS
     ...base,
     ...partial,
     captionStyle: { ...base.captionStyle, ...partial.captionStyle },
-    signLayout: isLegacySign(partial.signLayout) ? { ...DEFAULT_SIGN_LAYOUT } : { ...base.signLayout, ...partial.signLayout },
+    signLayout: isLegacySign(partial.signLayout)
+      ? { ...DEFAULT_SIGN_LAYOUT }
+      : { ...base.signLayout, ...partial.signLayout },
   }
 }
