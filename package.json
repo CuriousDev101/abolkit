@@ -4,7 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "description": "Abol Kit: accessible learning-media toolkit (embeddable video player, captions pipeline, job card).",
+  "packageManager": "pnpm@11.28.9",
   "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "build": "pnpm -r --if-present build",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm build",
     "gh:labels": "bash scripts/gh-labels.sh",
     "gh:issues": "bash scripts/gh-issues.sh"
   }
