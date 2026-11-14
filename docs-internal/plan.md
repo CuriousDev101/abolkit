@@ -60,7 +60,7 @@ Adjust freely; the order of issue numbers is the order of priority.
 | Video.js fights Shadow DOM or bloats bundle | Medium | MediaEngine seam; exit rules in ADR 0001; native adapter ready |
 | No real Ethiopian Sign Language content | High | Generic sync window; placeholder labelled; ask organisers/co-designer (#3) |
 | Savanna integration surprises | Medium | Embed early (#6, #41); Shadow DOM isolation |
-| Too many services to run | Medium | Local-disk/SQLite/in-process defaults; Compose tested from clean clone |
+| Too many services to run | Medium | MinIO + SQLite + DB-backed queue (no Redis/Postgres); Compose tested from clean clone (ADR 0005) |
 | Accessibility defects found late | Medium | Keyboard/axe checks from the first UI PR; early co-designer test |
 | Team contract drift | Medium | Manifest/VTT in `architecture.md`; PR review by the other pair |
 | Fatigue | High | Feature freeze on day 2 midday; rehearse; backup demo recording |
