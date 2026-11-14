@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseVtt, serializeVtt } from './vtt.js'
+import { parseVtt, serializeVtt } from './vtt.ts'
 
 describe('parseVtt', () => {
   it('parses a basic cue with hours', () => {

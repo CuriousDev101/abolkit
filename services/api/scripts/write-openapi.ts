@@ -10,7 +10,12 @@ const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(here, '../../..')
 const out = join(repoRoot, 'spikes/10-zod-openapi/openapi.json')
 
-const app = createApp()
+const app = createApp({
+  STORAGE_PROVIDER: 'local-disk',
+  STORAGE_LOCAL_ROOT: './data/storage',
+  STORAGE_SIGNING_SECRET: 'openapi-write-only',
+  DATABASE_URL: ':memory:',
+})
 const document = app.getOpenAPI31Document(openApiConfig)
 writeFileSync(out, `${JSON.stringify(document, null, 2)}\n`)
 

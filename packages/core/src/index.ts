@@ -1,10 +1,10 @@
 // @abolkit/core: shared, dependency-free code used by the player, the API and the worker.
 // Owner: pair "ab". Reviewer: pair "ol". See docs-internal/modules/player.md and captions contract in architecture.md.
 
-export type { Cue } from './cue.js'
-export { cueAt, hasUnreviewed } from './cue.js'
+export type { Cue } from './cue.ts'
+export { cueAt, hasUnreviewed } from './cue.ts'
 
-export { parseVtt, serializeVtt } from './vtt.js'
+export { parseVtt, serializeVtt } from './vtt.ts'
 
 export type {
   AdClip,
@@ -13,8 +13,8 @@ export type {
   LessonManifest,
   LessonMedia,
   SignTrack,
-} from './manifest.js'
-export { isLessonManifest } from './manifest.js'
+} from './manifest.ts'
+export { isLessonManifest } from './manifest.ts'
 
 export type {
   AdMode,
@@ -22,15 +22,15 @@ export type {
   ControlsKeys,
   PlayerSettings,
   SignWindowLayout,
-} from './settings.js'
+} from './settings.ts'
 export {
   DEFAULT_CAPTION_STYLE,
   DEFAULT_PLAYER_SETTINGS,
   DEFAULT_SIGN_LAYOUT,
   mergeSettings,
-} from './settings.js'
+} from './settings.ts'
 
-export type { UiLang, UiStringKey } from './i18n.js'
-export { isUiStringKey, resolveUiLang, t } from './i18n.js'
+export type { UiLang, UiStringKey } from './i18n.ts'
+export { isUiStringKey, resolveUiLang, t } from './i18n.ts'
 
-export { captionLangAnnouncement, formatTime, MIN_TARGET_PX, shouldReduceMotion } from './a11y.js'
+export { captionLangAnnouncement, formatTime, MIN_TARGET_PX, shouldReduceMotion } from './a11y.ts'

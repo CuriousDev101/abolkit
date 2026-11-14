@@ -4,7 +4,8 @@
 import { spawnSync } from 'node:child_process'
 import { createServer } from 'node:http'
 import { createRequire } from 'node:module'
-import { readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { runInNewContext } from 'node:vm'
@@ -28,8 +29,18 @@ const otherOrigin = 'http://127.0.0.1:8790'
 const require = createRequire(import.meta.url)
 
 async function main() {
-  const app = createApp({ PORT: '0', CORS_ORIGIN: '*' })
+  const root = mkdtempSync(join(tmpdir(), 'abolkit-api-smoke-'))
+  const app = createApp({
+    PORT: '0',
+    CORS_ORIGIN: '*',
+    STORAGE_PROVIDER: 'local-disk',
+    STORAGE_LOCAL_ROOT: join(root, 'storage'),
+    STORAGE_SIGNING_SECRET: 'smoke-signing-secret',
+    DATABASE_URL: ':memory:',
+    API_KEY: 'smoke-key',
+  })
 
+  try {
   const health = await app.request('/api/health')
   const healthBody = (await health.json()) as { ok?: boolean; service?: string }
   assert(health.status === 200, `health status ${health.status}`)
@@ -45,7 +56,9 @@ async function main() {
   assert(spec.openapi === '3.1.0', `openapi version ${spec.openapi}`)
   assert(spec.info?.description?.includes('does not run speech-to-text') === true, 'spec names the STT boundary')
   const paths = Object.keys(spec.paths ?? {})
-  assert(paths.length === 1 && paths[0] === '/api/health', `paths ${paths.join(',')}`)
+  assert(paths.includes('/api/health'), 'health path')
+  assert(paths.includes('/api/assets'), 'assets path')
+  assert(paths.includes('/api/assets/{id}'), 'asset by id path')
   assert(
     !paths.some((path) => path.toLowerCase().includes('transcrib')),
     'spec must not grow an STT route',
@@ -169,6 +182,9 @@ async function main() {
       dev: 'pnpm dev:api',
     }),
   )
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
 }
 
 async function assertApiKeyGate() {
