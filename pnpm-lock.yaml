@@ -50,6 +50,31 @@ importers:
       '@abolkit/provider-sdk':
         specifier: workspace:*
         version: link:../../packages/provider-sdk
+      '@hono/node-server':
+        specifier: ^2.1.8
+        version: 2.1.8(hono@4.13.18)
+      '@hono/zod-openapi':
+        specifier: ^1.6.3
+        version: 1.6.3(hono@4.13.18)(zod@4.6.7)
+      '@scalar/api-reference':
+        specifier: ^1.78.1
+        version: 1.78.1(change-case@5.4.4)(tailwindcss@4.3.5)(typescript@5.9.3)(zod@4.6.7)
+      '@scalar/hono-api-reference':
+        specifier: ^0.12.20
+        version: 0.12.20(hono@4.13.18)
+      hono:
+        specifier: ^4.13.18
+        version: 4.13.18
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      openapi-fetch:
+        specifier: ^0.17.0
+        version: 0.17.0
+      openapi-typescript:
+        specifier: ^7.13.0
+        version: 7.13.0(typescript@5.9.3)
 
   services/worker:
     dependencies:
