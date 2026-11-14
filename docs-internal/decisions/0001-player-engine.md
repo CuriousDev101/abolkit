@@ -35,3 +35,20 @@ Use **Video.js** to avoid hitting a wall early, **behind our own `MediaEngine` i
 ## Evidence
 
 Spike #5 (`spikes/05-player-engine/RESULT.md`), measurements above.
+
+### Skin choice (2026-11-14, Video.js 10.4, esbuild IIFE, gzip -9)
+
+| Import | Gzip |
+|---|---|
+| `video/player` only | 18.3 KB |
+| player + Default / Neutral skin | 84.4 / 84.3 KB |
+| player + **Compat** skin | **82.4 KB** |
+| player + Scaffold skin | 79.9 KB |
+
+Measured with the locale loader stubbed. Without the stub, a single-file IIFE inlines all 50+ Video.js locale packs (+~47 KB gzip), so `packages/player/build.mjs` replaces `loadLocale` (English is built in) and rejects any `@videojs/html` import other than `video/player` and `video/compat-skin`.
+
+We use **Compat**: polished but unbranded (blends into host pages), avoids backdrop blur and newer CSS so it renders consistently on older and low-end Android browsers, and is 2 KB lighter than Default/Neutral. Scaffold saves 2.5 KB more but is a restyling foundation, not a finished UI.
+
+Integration: our captions overlay, sign window and AD live as children of `<video-compat-skin>`, which slots them inside the media container that goes fullscreen. Native cue rendering is hidden so our styleable overlay is the only one; the skin's caption menu still selects the track. The skin owns play/seek/volume/rate/captions/PiP/fullscreen; our toolbar owns sign, AD, transcript, audio-only and caption style.
+
+Result: `abol-player.js` 97.6 KB gzip (Video.js + compat skin + our UI). `abol-player.lite.js` 10.1 KB gzip uses native controls with the same toolbar, for hosts where size matters most.

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Abol Player: YouTube</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: "Noto Sans", system-ui, sans-serif;
+        background: #e8eee9;
+        color: #122;
+      }
+      main {
+        max-width: 960px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>YouTube source</h1>
+      <p>
+        Video.js's <code>&lt;youtube-video&gt;</code> plays the video. Our captions, transcript, audio description and
+        sign window come from the host's files and follow the YouTube clock. YouTube's own captions (if the video has
+        any) appear in the CC menu once playback starts.
+      </p>
+      <abol-player
+        src="https://www.youtube.com/watch?v=aqz-KE-bpKQ"
+        captions="../../../samples/lesson-1/en.vtt"
+        descriptions="../../../samples/lesson-1/ad.en.vtt"
+        sign="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+        sign-placeholder
+      >
+        <track kind="captions" src="../../../samples/lesson-1/am.vtt" srclang="am" label="አማርኛ" />
+      </abol-player>
+    </main>
+    <script src="../dist/abol-player.js"></script>
+  </body>
+</html>

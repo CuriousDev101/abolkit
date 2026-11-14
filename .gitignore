@@ -7,6 +7,9 @@ coverage
 !.env.example
 *.log
 .DS_Store
+.pnpm-store
+.pnpm-home
+node_modules/.pnpm-store
 
 # local data written by the API/worker (uploads, sqlite, generated packs)
 data/
