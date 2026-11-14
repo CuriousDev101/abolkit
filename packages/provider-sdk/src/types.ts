@@ -48,6 +48,7 @@ export interface ProviderConfig {
   transcriber: string
   translator: string
   tts: string
+  /** Compose/demo default: 'minio' (mandatory, ADR 0005). Use 'local-disk' for tests / no-Docker. 'r2' later. */
   storage: string
   /** Base URL for mms-http, e.g. http://mms-stt:8000 */
   transcriberUrl?: string

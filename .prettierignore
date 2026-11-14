@@ -4,6 +4,14 @@ dist
 coverage
 data
 pnpm-lock.yaml
+.tools
+.pnpm-store
+spikes/**/.venv
+spikes/**/.venv*
+spikes/**/.uv-cache
+spikes/**/.hf-cache
+spikes/**/.python
+spikes/**/.tmp
 # Hand-written prose and tables: do not reflow
 *.md
 docs-internal

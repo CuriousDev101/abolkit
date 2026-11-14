@@ -12,7 +12,7 @@ Judging gives 15 points to "can be kept running" (low cost, no paid-API lock-in)
 
 1. All speech/translation/TTS/storage access goes through `@abolkit/provider-sdk` interfaces. The components never call a provider.
 2. **Default STT (spike #7): `mms-http`.** Abol Kit calls a **self-hosted MMS ASR HTTP wrapper** (separate repo / Compose service / EC2) via `TRANSCRIBER_URL`. Python weights do **not** live in this monorepo. See `spikes/07-stt/RESULT.md` and `spikes/07-stt/contract.md`.
-3. **Defaults otherwise work with no paid accounts:** recorded or self-hosted TTS (spike #8), local-disk storage.
+3. **Defaults otherwise work with no paid cloud account:** recorded or self-hosted TTS (spike #8), and host-local object storage. Compose uses **MinIO** (mandatory; ADR 0005); local-disk is the same `Storage` adapter for tests / no-Docker.
 4. **Cloud providers (for example AssemblyAI) are optional adapters, off by default.** Each declares `sendsDataOffHost: true`; enabling one requires an explicit config flag and a consent notice shown in the review editor and in docs. The pitch states which provider produced the demo captions.
 5. Machine output is always `needsReview`; a human reviews before captions are called final.
 6. No third-party scripts, fonts or analytics at runtime. Uploaded media has a retention setting; downloads use expiring signed URLs.

@@ -4,7 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "description": "Abol Kit: accessible learning-media toolkit (embeddable video player, captions pipeline, job card).",
-  "packageManager": "pnpm@11.28.9",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
