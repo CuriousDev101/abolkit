@@ -86,7 +86,10 @@ export function createMmsHttpTranscriber(options: MmsHttpTranscriberOptions): Tr
       const bytes = await read(audioPath)
       const form = new FormData()
       const filename = path.basename(audioPath) || 'audio.mp3'
-      const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
+      const ab = bytes.buffer.slice(
+        bytes.byteOffset,
+        bytes.byteOffset + bytes.byteLength,
+      ) as ArrayBuffer
       form.append('file', new Blob([ab], { type: mimeFor(audioPath) }), filename)
 
       const url = `${baseUrl}/transcribe?lang=${encodeURIComponent(opts.lang)}`
@@ -103,7 +106,11 @@ export function createMmsHttpTranscriber(options: MmsHttpTranscriberOptions): Tr
       try {
         parsed = raw ? JSON.parse(raw) : {}
       } catch {
-        throw new ProviderError('BAD_RESPONSE', `MMS wrapper returned non-JSON (${res.status})`, res.status)
+        throw new ProviderError(
+          'BAD_RESPONSE',
+          `MMS wrapper returned non-JSON (${res.status})`,
+          res.status,
+        )
       }
 
       if (!res.ok) {

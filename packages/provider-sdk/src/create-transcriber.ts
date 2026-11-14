@@ -4,7 +4,9 @@ import { createStubTranscriber } from './transcribers/stub.js'
 import type { ProviderConfig, Transcriber } from './types.js'
 
 /** Build the configured Transcriber. Default id is mms-http (ADR 0003 / spike #7). */
-export function createTranscriber(config: Pick<ProviderConfig, 'transcriber' | 'transcriberUrl'>): Transcriber {
+export function createTranscriber(
+  config: Pick<ProviderConfig, 'transcriber' | 'transcriberUrl'>,
+): Transcriber {
   const id = config.transcriber || 'mms-http'
 
   switch (id) {

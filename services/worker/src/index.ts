@@ -39,7 +39,8 @@ export async function main(): Promise<void> {
 const isDirectRun =
   typeof process !== 'undefined' &&
   process.argv[1] &&
-  (process.argv[1].endsWith('worker/src/index.ts') || process.argv[1].endsWith('worker/src/index.js'))
+  (process.argv[1].endsWith('worker/src/index.ts') ||
+    process.argv[1].endsWith('worker/src/index.js'))
 
 if (isDirectRun) {
   void main()

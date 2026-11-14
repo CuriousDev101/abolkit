@@ -19,13 +19,19 @@ export interface Transcriber extends ProviderInfo {
 }
 
 export interface Translator extends ProviderInfo {
-  translate(cues: Cue[], opts: { from: LangCode; to: LangCode; signal?: AbortSignal }): Promise<Cue[]>
+  translate(
+    cues: Cue[],
+    opts: { from: LangCode; to: LangCode; signal?: AbortSignal },
+  ): Promise<Cue[]>
 }
 
 export interface Tts extends ProviderInfo {
   /** Which languages this provider can voice. Do not assume 'am' is present. */
   languages(): LangCode[]
-  synthesize(text: string, opts: { lang: LangCode; signal?: AbortSignal }): Promise<{ bytes: Uint8Array; mime: string }>
+  synthesize(
+    text: string,
+    opts: { lang: LangCode; signal?: AbortSignal },
+  ): Promise<{ bytes: Uint8Array; mime: string }>
 }
 
 export interface Storage extends ProviderInfo {
