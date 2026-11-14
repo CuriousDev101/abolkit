@@ -1,0 +1,18 @@
+[
+  {
+    "id": "ad-001",
+    "start": 2.0,
+    "end": 3.2,
+    "text": "A blue slide fills the frame.",
+    "audio": "ad-001.opus",
+    "pauseVideo": false
+  },
+  {
+    "id": "ad-002",
+    "start": 5.0,
+    "end": 6.0,
+    "text": "The slide colour stays solid; no new on-screen text.",
+    "audio": "ad-002.opus",
+    "pauseVideo": false
+  }
+]

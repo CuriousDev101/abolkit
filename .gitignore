@@ -13,5 +13,8 @@ data/
 *.sqlite
 *.sqlite-journal
 
+# spike #9 ffmpeg smoke outputs
+spikes/09-ffmpeg/out/
+
 # generated test copies of the Savanna pages
 **/_abol-test-*.html
