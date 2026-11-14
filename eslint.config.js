@@ -21,6 +21,7 @@ export default tseslint.config(
       'spikes/**/.tmp/**',
       '**/_abol-test-*.html',
       'scripts/**',
+      'services/api/scripts/schema.d.ts',
     ],
   },
   js.configs.recommended,
