@@ -117,4 +117,4 @@ Errors: JSON `{ error: { code, message } }`. CORS open for read endpoints; write
 
 ## Deployment
 
-`docker compose up` runs api, worker and storage from a clean clone. Environment variables select providers (`TRANSCRIBER`, `TRANSLATOR`, `TTS`, `STORAGE`). Built bundles are served from the API at `/widget/*` for the script-tag install, and attached to releases for CDN use.
+`docker compose up` runs api, worker and storage from a clean clone. Environment variables select providers (`TRANSCRIBER`, `TRANSLATOR`, `TTS`, `STORAGE`). Default STT is `TRANSCRIBER=mms-http` with `TRANSCRIBER_URL` pointing at the external MMS ASR wrapper (spike #7; model not in this repo). Built bundles are served from the API at `/widget/*` for the script-tag install, and attached to releases for CDN use.

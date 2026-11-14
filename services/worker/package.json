@@ -5,6 +5,9 @@
   "type": "module",
   "main": "src/index.ts",
   "description": "Background worker: ffmpeg, speech-to-text, translation, TTS and offline-pack builder, driven by a job queue.",
+  "scripts": {
+    "transcriber:info": "node --experimental-strip-types src/index.ts"
+  },
   "dependencies": {
     "@abolkit/core": "workspace:*",
     "@abolkit/provider-sdk": "workspace:*"

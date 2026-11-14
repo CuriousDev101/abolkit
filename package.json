@@ -15,5 +15,9 @@
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm build",
     "gh:labels": "bash scripts/gh-labels.sh",
     "gh:issues": "bash scripts/gh-issues.sh"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
   }
 }
