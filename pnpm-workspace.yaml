@@ -2,3 +2,8 @@ packages:
   - 'packages/*'
   - 'services/*'
   - 'apps/*'
+
+# Scalar's Vue entry has a postinstall we do not need: the API serves the
+# prebuilt UMD bundle and does not import the Vue components.
+allowBuilds:
+  vue-demi: false

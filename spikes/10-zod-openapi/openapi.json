@@ -1,0 +1,58 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Abol Kit API",
+    "version": "0.0.0",
+    "description": "HTTP API for Abol Kit. This process does not run speech-to-text. The worker calls a separate MMS ASR service (TRANSCRIBER_URL). No path in this document accepts audio or returns a transcript."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "This API origin. A host page on another origin calls it with CORS."
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [true],
+            "example": true
+          },
+          "service": {
+            "type": "string",
+            "enum": ["abolkit-api"],
+            "example": "abolkit-api"
+          }
+        },
+        "required": ["ok", "service"]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "getHealth",
+        "tags": ["System"],
+        "summary": "Liveness",
+        "description": "Reports that this API process is up. It does not call the speech-to-text service. That service is a separate MMS ASR wrapper reached only by the worker.",
+        "responses": {
+          "200": {
+            "description": "This API process is up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}
