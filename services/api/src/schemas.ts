@@ -8,7 +8,7 @@ export const HealthSchema = z
   })
   .openapi('Health')
 
-/** Error body from docs-internal/architecture.md. Used by the validation hook and #17. */
+/** Error body from docs-internal/architecture.md. */
 export const ErrorBodySchema = z
   .object({
     error: z.object({

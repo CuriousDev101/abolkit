@@ -28,6 +28,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ErrorBody: {
+            error: {
+                /** @example VALIDATION */
+                code: string;
+                /** @example Invalid request */
+                message: string;
+            };
+        };
         Health: {
             /**
              * @example true

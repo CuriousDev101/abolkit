@@ -16,6 +16,8 @@
     "format:check": "prettier --check .",
     "build": "pnpm -r --if-present build",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm build",
+    "dev:api": "pnpm --filter @abolkit/api dev",
+    "smoke:api": "pnpm --filter @abolkit/api smoke",
     "gh:labels": "bash scripts/gh-labels.sh",
     "gh:issues": "bash scripts/gh-issues.sh"
   },

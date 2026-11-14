@@ -1,24 +1,30 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
-import type { Context } from 'hono'
 import { cors } from 'hono/cors'
-import type { ZodError } from 'zod'
 
 import { loadApiConfig } from './config.ts'
 import { embedScript } from './embed.ts'
+import { jsonError, validationHook } from './http.ts'
 import { openApiConfig } from './openapi.ts'
 import { healthRoute } from './routes/health.ts'
 import { loadScalarStandalone } from './scalar-asset.ts'
-import type { ErrorBody } from './schemas.ts'
+import { ErrorBodySchema } from './schemas.ts'
 
 const DOCS_SCRIPT_PATH = '/docs/scalar.js'
 
+/**
+ * Hono + zod-openapi skeleton (#17).
+ * Mounted now: health, OpenAPI, Scalar docs, spike embed script.
+ * Write routes (#24+) will use requireApiKey(config.apiKey).
+ */
 export function createApp(env: Record<string, string | undefined> = process.env) {
   const config = loadApiConfig(env)
   const scalarJs = loadScalarStandalone()
   const app = new OpenAPIHono({ defaultHook: validationHook })
 
-  // Reads are open. Write routes (#17) are not mounted here and will require an API key.
+  app.openAPIRegistry.register('ErrorBody', ErrorBodySchema)
+
+  // Reads are open for embeds and docs. Writes stay off this skeleton.
   app.use('*', readCors(config.corsOrigin))
 
   app.openapi(healthRoute, (c) => {
@@ -55,16 +61,11 @@ export function createApp(env: Record<string, string | undefined> = process.env)
     })
   })
 
-  app.notFound((c) => {
-    return c.json({ error: { code: 'NOT_FOUND', message: 'Not found' } } satisfies ErrorBody, 404)
-  })
+  app.notFound((c) => jsonError(c, 404, 'NOT_FOUND', 'Not found'))
 
   app.onError((err, c) => {
     console.error(err)
-    return c.json(
-      { error: { code: 'INTERNAL', message: 'Internal error' } } satisfies ErrorBody,
-      500,
-    )
+    return jsonError(c, 500, 'INTERNAL', 'Internal error')
   })
 
   return app
@@ -78,16 +79,4 @@ function readCors(origin: string) {
     allowMethods: ['GET', 'HEAD', 'OPTIONS'],
     maxAge: 86_400,
   })
-}
-
-function validationHook(
-  result: { success: true; data: unknown } | { success: false; error: ZodError },
-  c: Context,
-) {
-  if (result.success) return
-  const message = result.error.issues.map((issue) => issue.message).join('; ')
-  return c.json(
-    { error: { code: 'VALIDATION', message: message || 'Invalid request' } } satisfies ErrorBody,
-    400,
-  )
 }
