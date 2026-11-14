@@ -6,6 +6,11 @@
   "description": "Abol Kit: accessible learning-media toolkit (embeddable video player, captions pipeline, job card).",
   "scripts": {
     "gh:labels": "bash scripts/gh-labels.sh",
-    "gh:issues": "bash scripts/gh-issues.sh"
+    "gh:issues": "bash scripts/gh-issues.sh",
+    "typecheck": "echo \"typecheck: add per-package tsconfigs in #1\" && exit 0"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20"
   }
 }
