@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Abol Player lite demo</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: 'Noto Sans', system-ui, sans-serif;
+        background: #e8eee9;
+      }
+      main {
+        max-width: 960px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Abol Kit player (lite, native controls)</h1>
+      <abol-player
+        src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+        captions="../../../samples/lesson-1/en.vtt"
+        descriptions="../../../samples/lesson-1/ad.en.vtt"
+      >
+        <track kind="captions" src="../../../samples/lesson-1/am.vtt" srclang="am" label="አማርኛ" />
+      </abol-player>
+    </main>
+    <script src="../dist/abol-player.lite.js"></script>
+  </body>
+</html>

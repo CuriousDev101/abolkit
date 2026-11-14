@@ -48,7 +48,7 @@ Adjust freely; the order of issue numbers is the order of priority.
 
 ## Budgets (set numbers in #5 and #51, record here)
 
-- Player bundle (gzipped): TBD after #5; current measurements: native + custom UI ~29 KB, Video.js React build ~307 KB (check same-basis gzip).
+- Player bundle (gzipped): `abol-player.js` (Video.js compat skin) 97.6 KB; `abol-player.lite.js` (native controls) 10.1 KB. Earlier spikes: native + custom UI ~29 KB, Video.js React build ~307 KB. See ADR 0001.
 - Offline pack for the demo lesson: report the real number; target well under a few MB for about 10 minutes of audio at 24 kbps Opus.
 - Time to usable on Slow 3G: record in #12.
 

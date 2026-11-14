@@ -7,6 +7,9 @@ coverage
 !.env.example
 *.log
 .DS_Store
+.pnpm-store
+.pnpm-home
+node_modules/.pnpm-store
 
 # npm lockfile — this repo uses pnpm
 package-lock.json

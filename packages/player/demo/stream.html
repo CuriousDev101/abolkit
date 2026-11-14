@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Abol Player: embedded tracks (stream build)</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: 'Noto Sans', system-ui, sans-serif;
+        background: #e8eee9;
+        color: #122;
+      }
+      main {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Embedded captions, audio tracks and quality levels</h1>
+      <p>
+        Nothing but <code>src</code>: the HLS manifest carries several renditions, two audio tracks
+        and subtitles. The quality, audio and captions menus fill themselves, and the transcript is
+        built from the in-manifest subtitles.
+      </p>
+      <abol-player
+        src="https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8"
+        crossorigin="anonymous"
+      ></abol-player>
+    </main>
+    <script src="../dist/abol-player.stream.js"></script>
+  </body>
+</html>
