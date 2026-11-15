@@ -105,7 +105,7 @@ export async function startCaptionWorkers(env: Env, log: Log): Promise<() => Pro
   log({
     event: 'captions.started',
     transcriber: transcriber.id,
-    translator: translator?.id ?? 'none',
+    translator: translator?.label ?? translator?.id ?? 'none',
     sendsDataOffHost: transcriber.sendsDataOffHost || translator?.sendsDataOffHost === true,
     transcribeConcurrency: config.transcribeConcurrency,
     translateConcurrency: config.translateConcurrency,
