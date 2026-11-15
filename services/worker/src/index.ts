@@ -2,7 +2,8 @@
 // Separate process from the API: polls the SQLite DB-backed queue (#25, ADR 0005),
 // runs handlers with a lease, retries failures with backoff.
 // #26: ffmpeg extract (16 kHz mono) + Opus 24 kbps + 240p; sizes logged for the pack report.
-// STT: HTTP client to external MMS wrapper (spike #7 / #27). Model lives in another repo.
+// #27: Transcriber adapter → WebVTT [needsReview]. Default STT is external MMS (mms-http);
+//     model weights live in another repo. Cloud adapters need explicit consent.
 
 import { migrateJobs, openSqlite } from '@abolkit/jobs'
 import { createStorage, createTranscriber, ProviderError } from '@abolkit/provider-sdk'
@@ -20,10 +21,16 @@ export {
   encodeVideo240p,
   runFfmpeg,
   audio16kKey,
+  captionsKey,
   opusAudioKey,
   sourceKey,
   video240pKey,
 } from './ffmpeg/index.ts'
+export {
+  langFromJobParams,
+  markNeedsReview,
+  transcribeStoredAudio,
+} from './stt/index.ts'
 export { createJobRunner, type JobContext, type JobHandler, type JobHandlers } from './runner.ts'
 
 const log = (event: Record<string, unknown>) => console.log(JSON.stringify(event))
@@ -44,6 +51,7 @@ export function printTranscriberInfo(): void {
         transcriber: transcriber.id,
         label: transcriber.label,
         sendsDataOffHost: transcriber.sendsDataOffHost,
+        offHostConsent: config.transcriberOffHostConsent === true,
         url: config.transcriberUrl ?? null,
       }),
     )
@@ -65,8 +73,10 @@ export async function main(env: Record<string, string | undefined> = process.env
   migrateJobs(db)
 
   const storage = createStorage({ storage: worker.storage, env })
+  const transcriber = createTranscriber(worker)
   const handlers = createDefaultHandlers({
     storage,
+    transcriber,
     workDir: worker.workDir,
     ffmpegBin: worker.ffmpegBin,
     log,
@@ -93,6 +103,8 @@ export async function main(env: Record<string, string | undefined> = process.env
     pollIntervalMs: queue.pollIntervalMs,
     leaseSeconds: queue.leaseSeconds,
     storage: storage.id,
+    transcriber: transcriber.id,
+    sendsDataOffHost: transcriber.sendsDataOffHost,
     workDir: worker.workDir,
   })
   await runner.start()

@@ -8,6 +8,7 @@ Keep this folder small (demo clip under about 10 MB) and **rights-cleared**. Rec
 |---|---|---|---|
 | `lesson-1/manifest.json` | Demo lesson manifest | team | no |
 | `lesson-1/*.vtt`, `transcript.html` | EN/AM captions, EN descriptions, transcript | team | no |
+| `lesson-1/machine/*.vtt` | Pre-computed machine STT draft (`needsReview` on every cue; #27) | team | no |
 | flower.mp4 (remote URL in manifest) | Short CC0 demo clip from MDN | MDN / CC0 | no |
 | sign track (same clip) | Stand-in until real ESL is supplied | MDN / CC0 | **yes** (`placeholder: true`) |
 | _(job posting JSON, sample certificate)_ | JobPosting example and Open Badges example | team | no |

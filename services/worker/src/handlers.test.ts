@@ -2,8 +2,9 @@ import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { parseVtt } from '@abolkit/core'
 import { enqueueJob, getJob, migrateJobs, openSqlite } from '@abolkit/jobs'
-import { createLocalDiskStorage } from '@abolkit/provider-sdk'
+import { createLocalDiskStorage, createStubTranscriber } from '@abolkit/provider-sdk'
 import type { DatabaseSync } from 'node:sqlite'
 import { beforeEach, describe, expect, it } from 'vitest'
 
@@ -24,19 +25,26 @@ beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), 'abolkit-handler-'))
 })
 
-describe('transcribe handler (ffmpeg #26)', () => {
-  it('produces extract + renditions and records the size report on the job', async () => {
+describe('transcribe handler (#26 + #27)', () => {
+  it('produces media, runs STT, and stores needsReview captions', async () => {
     const store = createLocalDiskStorage({
       root: join(root, 'storage'),
       signingSecret: 'test-signing-secret',
     })
     await store.put(sourceKey(ASSET), new Uint8Array([9, 9, 9]), 'video/mp4')
 
-    const job = enqueueJob(db, { assetId: ASSET, type: 'transcribe', maxAttempts: 2, now })
+    const job = enqueueJob(db, {
+      assetId: ASSET,
+      type: 'transcribe',
+      params: { language: 'am' },
+      maxAttempts: 2,
+      now,
+    })
     const runner = createJobRunner({
       db,
       handlers: createDefaultHandlers({
         storage: store,
+        transcriber: createStubTranscriber(),
         workDir: join(root, 'work'),
         runFfmpeg: async (args) => {
           await writeFile(args[args.length - 1]!, Buffer.from('x'))
@@ -52,12 +60,23 @@ describe('transcribe handler (ffmpeg #26)', () => {
     const after = await runner.runOnce()
     expect(after?.status).toBe('succeeded')
     expect(after?.result).toMatchObject({
-      stt: 'pending-#27',
       audio16kKey: `assets/${ASSET}/audio/16k-mono.mp3`,
       opusAudioKey: `assets/${ASSET}/renditions/audio.opus`,
       video240pKey: `assets/${ASSET}/renditions/video-240p.mp4`,
+      lang: 'am',
+      captionsKey: `assets/${ASSET}/captions/am.vtt`,
+      cueCount: 1,
+      needsReview: true,
+      transcriber: 'stub',
+      sendsDataOffHost: false,
     })
     const sizes = (getJob(db, job.id)?.result as { sizes?: { totalBytes?: number } } | null)?.sizes
     expect(sizes?.totalBytes).toBeGreaterThan(0)
+
+    const captions = await store.get(`assets/${ASSET}/captions/am.vtt`)
+    expect(captions).not.toBeNull()
+    const cues = parseVtt(new TextDecoder().decode(captions!.bytes))
+    expect(cues).toHaveLength(1)
+    expect(cues[0]?.needsReview).toBe(true)
   })
 })

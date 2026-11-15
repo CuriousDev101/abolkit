@@ -47,7 +47,7 @@ export type ProduceAssetMediaResult = {
 
 /**
  * Download the uploaded source, run spike #9 recipes, upload outputs, log sizes.
- * Does not call STT — that stays in the separate MMS service (#27).
+ * Does not call STT — the Transcriber adapter runs after this (#27).
  */
 export async function produceAssetMedia(
   options: ProduceAssetMediaOptions,

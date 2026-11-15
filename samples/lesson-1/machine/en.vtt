@@ -1,0 +1,16 @@
+WEBVTT
+
+NOTE Pre-computed machine draft for issue #27. Every cue is needsReview until a human edits it.
+NOTE Default engine: mms-http (facebook/mms-1b-all) via external TRANSCRIBER_URL — not run in this monorepo.
+
+1
+00:00:00.000 --> 00:00:02.500 needsReview
+A flower opens in the sun.
+
+2
+00:00:02.500 --> 00:00:05.000 needsReview
+Petals stretch outward slowly.
+
+3
+00:00:05.000 --> 00:00:08.000 needsReview
+This is a short demo clip for Abol Kit.

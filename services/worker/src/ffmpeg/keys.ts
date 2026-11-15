@@ -18,3 +18,9 @@ export function opusAudioKey(assetId: string): string {
 export function video240pKey(assetId: string): string {
   return `assets/${assetId}/renditions/video-240p.mp4`
 }
+
+/** Machine captions from the Transcriber adapter (#27). Always needsReview until a human edits. */
+export function captionsKey(assetId: string, lang: string): string {
+  const safe = lang.trim().toLowerCase() || 'en'
+  return `assets/${assetId}/captions/${safe}.vtt`
+}
