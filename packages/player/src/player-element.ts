@@ -7,8 +7,9 @@ import {
   resolveUiLang,
   t,
 } from '@abolkit/core'
+import { parseGenerateCaptions, watchCaptions } from './caption-api.js'
 import type { LessonConfig } from './config.js'
-import { configFromAttributes, configFromManifest, mergeConfig } from './config.js'
+import { configFromAttributes, configFromManifest, languageName, mergeConfig } from './config.js'
 import type { EngineEvent, MediaEngine } from './engine.js'
 import { createEngine } from './engine/create.js'
 import { isYouTube } from './engine/source.js'
@@ -139,7 +140,16 @@ function markMatches(target: HTMLElement, original: Node, query: string): boolea
 }
 
 export class AbolPlayerElement extends HTMLElement {
-  static observedAttributes = ['src', 'manifest', 'captions', 'sign', 'lang']
+  static observedAttributes = [
+    'src',
+    'manifest',
+    'captions',
+    'captions-lang',
+    'sign',
+    'lang',
+    'caption-api',
+    'generate-captions',
+  ]
 
   #shadow: ShadowRoot
   #engine: MediaEngine | null = null
@@ -348,12 +358,84 @@ export class AbolPlayerElement extends HTMLElement {
       if (this.#settings.transcriptOpen && this.#hasTranscript()) void this.#setTranscriptOpen(true)
       this.#status(null)
       this.#emit('abol:ready', { engine: engine.kind })
+      this.#startCaptionApi(engine, config)
     } catch (err) {
       if (boot !== this.#boots) return
       console.error('[abol-player]', err)
       this.#status('error', true)
       this.#emit('abol:error', { message: err instanceof Error ? err.message : String(err) })
     }
+  }
+
+  /**
+   * Opt-in: with `caption-api` and a valid `generate-captions`, ask the caption API for this video's
+   * transcript and translations, and add each one as a caption track when it is ready.
+   */
+  #startCaptionApi(engine: MediaEngine, config: LessonConfig): void {
+    const api = this.getAttribute('caption-api')
+    const request = parseGenerateCaptions(this.getAttribute('generate-captions'))
+    if (!api || !request || !config.src) return
+    if (!request.valid) {
+      console.warn('[abol-player]', request.reason)
+      return
+    }
+    const controller = new AbortController()
+    const blobs: string[] = []
+    this.#off.push(() => {
+      controller.abort()
+      for (const url of blobs) URL.revokeObjectURL(url)
+    })
+    // Tracks the host supplied win over generated ones in the same language.
+    const have = new Set(
+      config.tracks
+        .filter((tr) => tr.kind === 'captions' || tr.kind === 'subtitles')
+        .map((tr) => tr.lang),
+    )
+    let announced = false
+    watchCaptions({
+      api: new URL(api, document.baseURI).href,
+      videoUrl: config.src,
+      languages: request.languages,
+      // Trust the host's lang / captions-lang when present; otherwise the API assumes English.
+      sourceLanguage:
+        this.getAttribute('lang')?.trim() ||
+        this.getAttribute('captions-lang')?.trim() ||
+        undefined,
+      signal: controller.signal,
+      onStatus: (status) => {
+        if (status === 'processing' && !announced) {
+          announced = true
+          this.#announce(t(this.#lang, 'captionsGenerating'))
+        }
+        this.#emit('abol:captions', { status })
+      },
+      onCaption: (caption, vtt) => {
+        if (have.has(caption.language)) return
+        have.add(caption.language)
+        const src = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }))
+        blobs.push(src)
+        const label = languageName(caption.language)
+        if (!engine.addTrack({ kind: 'captions', src, lang: caption.language, label })) return
+        const preferred = this.#settings.captionsLang
+        if (preferred === caption.language || (preferred !== '' && !this.#showingCaption())) {
+          this.#selectCaption(caption.language)
+        }
+        this.#announce(`${t(this.#lang, 'captionsReady')}: ${label}`)
+        this.#emit('abol:captions', {
+          status: 'caption',
+          lang: caption.language,
+          kind: caption.kind,
+          needsReview: caption.needsReview,
+        })
+      },
+    }).catch((err: unknown) => {
+      if (controller.signal.aborted) return
+      console.warn('[abol-player] Caption API:', err)
+      this.#emit('abol:captions', {
+        status: 'error',
+        message: err instanceof Error ? err.message : String(err),
+      })
+    })
   }
 
   #mountOverlays(engine: MediaEngine, config: LessonConfig): void {

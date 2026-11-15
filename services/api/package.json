@@ -17,6 +17,7 @@
     "spike:smoke": "pnpm smoke"
   },
   "dependencies": {
+    "@abolkit/caption-store": "workspace:*",
     "@abolkit/core": "workspace:*",
     "@abolkit/jobs": "workspace:*",
     "@abolkit/provider-sdk": "workspace:*",
