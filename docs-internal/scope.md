@@ -21,6 +21,14 @@ Track 2, *Accessible learning media*: for learners who are Deaf, hard of hearing
 
 Earns extra: Braille export (.brf); viewer for recorded live sessions with captions and chat log (both P2).
 
+### Braille export (#55) — status
+
+**Experimental exporter shipped (opt-in).** Offline-pack can emit `transcript.am.brf` when `includeBraille: true`, using Liblouis **`ethio-g1.ctb`** (Liblouis 3.12.x / Compose worker packages). Default packs are unchanged.
+
+> **Experimental Amharic Braille output. Linguistic correctness has not yet been independently verified by an Amharic Braille reader.**
+
+Do **not** advertise as validated accessibility support until a human verification record is added under [`spikes/55-braille-brf/RESULT.md`](../spikes/55-braille-brf/RESULT.md). Module notes: [`modules/offline-pack.md`](modules/offline-pack.md).
+
 ## Install levels
 
 Must run inside Savanna and install elsewhere by: **Level 1** script tag, **Level 2** REST API with OpenAPI spec, **Level 3** a standard (we use schema.org/JobPosting and Open Badges 3.0). Target all three; Levels 1 and 2 first.
@@ -46,6 +54,7 @@ Must run inside Savanna and install elsewhere by: **Level 1** script tag, **Leve
 - No full LMS. Hosts are the Savanna static pages and one plain demo page.
 - No promise of Afaan Oromo, Tigrinya or Afar transcripts (feasibility only, #57).
 - Braille, tagged PDF and session viewer only after all P0/P1 work.
+- Do not advertise Amharic `.brf` as verified accessibility until `#55` human verification is recorded (experimental opt-in only — see Braille status above).
 
 ## Assumptions
 

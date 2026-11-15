@@ -8,8 +8,8 @@
 
 name: abolkit
 
-x-backend-env: &backend-env
-  # URL captions path (ADR 0007): Postgres + Redis + MinIO. No SQLite in Compose.
+x-backend-env:
+  &backend-env # URL captions path (ADR 0007): Postgres + Redis + MinIO. No SQLite in Compose.
   POSTGRES_URL: postgres://${POSTGRES_USER:-abolkit}:${POSTGRES_PASSWORD:-abolkit-dev-password}@postgres:5432/${POSTGRES_DB:-abolkit}
   REDIS_URL: redis://redis:6379
   STORAGE_PROVIDER: minio

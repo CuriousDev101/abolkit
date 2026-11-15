@@ -18,7 +18,7 @@ export function start(env: Record<string, string | undefined> = process.env) {
   const publicHost = config.host === '0.0.0.0' ? '127.0.0.1' : config.host
 
   const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {
-    const origin = `http://${config.host === '0.0.0.0' ? '127.0.0.1' : config.host}:${info.port}`
+    const origin = `http://${publicHost}:${info.port}`
     console.log(
       JSON.stringify({
         ok: true,

@@ -125,6 +125,8 @@ describe('offline-pack handler (#35)', () => {
       transcriptFile: 'transcript.html',
       captionFiles: ['captions.en.vtt'],
       descriptionFiles: [],
+      brailleFile: null,
+      brailleExperimental: false,
       videoFile: null,
     })
     const totalBytes = (getJob(db, job.id)?.result as { totalBytes?: number } | null)?.totalBytes

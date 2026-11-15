@@ -77,7 +77,7 @@ export function loadApiConfig(env: Env = process.env as Env): ApiConfig {
 
   return {
     port,
-    host: env.HOST?.trim() || '127.0.0.1',
+    host,
     corsOrigin: env.CORS_ORIGIN ?? '*',
     apiKey: apiKey || undefined,
     databaseUrl: env.DATABASE_URL?.trim() || undefined,

@@ -77,6 +77,7 @@ export function printTranscriberInfo(): void {
         ok: true,
         allowOffHostProviders: config.allowOffHostProviders === true,
         offHostConsent: config.transcriberOffHostConsent === true,
+        translatorOffHostConsent: config.translatorOffHostConsent === true,
         transcriber: {
           id: transcriber.id,
           label: transcriber.label,
@@ -85,11 +86,13 @@ export function printTranscriberInfo(): void {
         },
         workDir: config.workDir,
         ffmpegBin: config.ffmpegBin ?? null,
-        translator: {
-          id: translator.id,
-          label: translator.label,
-          sendsDataOffHost: translator.sendsDataOffHost,
-        },
+        translator: translator
+          ? {
+              id: translator.id,
+              label: translator.label,
+              sendsDataOffHost: translator.sendsDataOffHost,
+            }
+          : { id: 'none', label: 'No translator', sendsDataOffHost: false },
         tts: {
           id: tts.id,
           label: tts.label,
