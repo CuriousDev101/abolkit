@@ -88,11 +88,25 @@ export class CueTrackList extends EventTarget {
   constructor(infos: readonly MediaTrack[], clock: () => number) {
     super()
     this.#clock = clock
-    this.#tracks = infos.map((info) => new CueTrack(info, this))
-    this.#tracks.forEach((track, i) => {
-      Object.defineProperty(this, i, { value: track, enumerable: true })
-      void track.load(infos[i]!.src, this.#abort.signal).then(() => track.tick(this.#clock()))
-    })
+    this.#tracks = []
+    for (const info of infos) this.#push(info)
+  }
+
+  /** Add a track after construction; fires `addtrack` like a TextTrackList. */
+  add(info: MediaTrack): CueTrack {
+    const track = this.#push(info)
+    const event = new Event('addtrack') as Event & { track: CueTrack }
+    event.track = track
+    this.dispatchEvent(event)
+    return track
+  }
+
+  #push(info: MediaTrack): CueTrack {
+    const track = new CueTrack(info, this)
+    Object.defineProperty(this, this.#tracks.length, { value: track, enumerable: true })
+    this.#tracks.push(track)
+    void track.load(info.src, this.#abort.signal).then(() => track.tick(this.#clock()))
+    return track
   }
 
   get length(): number {

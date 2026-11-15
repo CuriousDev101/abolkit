@@ -18,15 +18,15 @@ export function start(env: Record<string, string | undefined> = process.env) {
   const publicHost = config.host === '0.0.0.0' ? '127.0.0.1' : config.host
 
   const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {
+    const origin = `http://${config.host === '0.0.0.0' ? '127.0.0.1' : config.host}:${info.port}`
     console.log(
       JSON.stringify({
         ok: true,
         service: 'abolkit-api',
-        host: config.host,
-        url: `http://${publicHost}:${info.port}`,
-        docs: `http://${publicHost}:${info.port}/docs`,
-        openapi: `http://${publicHost}:${info.port}/openapi.json`,
-        health: `http://${publicHost}:${info.port}/api/health`,
+        url: origin,
+        docs: `${origin}/docs`,
+        openapi: `${origin}/openapi.json`,
+        health: `${origin}/api/health`,
       }),
     )
   })

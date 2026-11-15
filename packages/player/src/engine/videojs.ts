@@ -2,7 +2,7 @@
 // build.mjs rejects any other @videojs/html entry and strips the 50+ Video.js locale packs (English is built in).
 import '@videojs/html/video/player'
 import '@videojs/html/media/youtube-video'
-import type { MediaSource } from '../engine.js'
+import type { MediaSource, MediaTrack } from '../engine.js'
 import { CueTrackList } from './cue-track.js'
 import { buildVideo, NativeEngine, type Playable } from './native.js'
 import { SKIN_TAG } from './skin.js'
@@ -105,6 +105,11 @@ export class VideoJsEngine extends NativeEngine {
 
   override get customTracks(): boolean {
     return !!this.#cueTracks
+  }
+
+  override addTrack(info: MediaTrack): TextTrack | null {
+    if (!this.#cueTracks) return super.addTrack(info)
+    return this.#cueTracks.add(info) as unknown as TextTrack
   }
 
   override whenLoaded(track: TextTrack, handler: () => void): boolean {

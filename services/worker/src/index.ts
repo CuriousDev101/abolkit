@@ -6,6 +6,7 @@
 //     model weights live in another repo. Cloud adapters need explicit consent.
 // #35: offline-pack zip (Opus + transcript HTML + captions + index.html) + size report.
 
+import { captionsEnabled } from '@abolkit/caption-store'
 import { migrateJobs, openSqlite } from '@abolkit/jobs'
 import {
   createStorage,
@@ -15,6 +16,7 @@ import {
   ProviderError,
 } from '@abolkit/provider-sdk'
 
+import { startCaptionWorkers } from './captions/index.ts'
 import { loadQueueConfig, loadWorkerConfig } from './config.ts'
 import { createDefaultHandlers } from './handlers.ts'
 import { createJobRunner } from './runner.ts'
@@ -44,6 +46,17 @@ export {
   type PackSizeReport,
 } from './pack/index.ts'
 export { createJobRunner, type JobContext, type JobHandler, type JobHandlers } from './runner.ts'
+export {
+  createCaptionProcessors,
+  extractAudio,
+  isPermanentError,
+  normalizeLanguage,
+  probeSource,
+  startCaptionWorkers,
+  type CaptionProcessorDeps,
+  type CaptionProcessors,
+  type SourceTools,
+} from './captions/index.ts'
 
 const log = (event: Record<string, unknown>) => console.log(JSON.stringify(event))
 
@@ -96,8 +109,36 @@ export function printTranscriberInfo(): void {
   }
 }
 
-/** Run the job loop until SIGINT/SIGTERM. */
+/**
+ * Run until SIGINT/SIGTERM. Starts the SQLite asset job loop when DATABASE_URL is set and the
+ * URL caption workers (BullMQ) when POSTGRES_URL and REDIS_URL are set.
+ */
 export async function main(env: Record<string, string | undefined> = process.env): Promise<void> {
+  const runAssets = !!env.DATABASE_URL?.trim()
+  const runCaptions = captionsEnabled(env)
+  if (!runAssets && !runCaptions) {
+    throw new Error(
+      'Nothing to run: set DATABASE_URL for asset jobs and/or POSTGRES_URL + REDIS_URL for URL captions',
+    )
+  }
+
+  let stopCaptions: (() => Promise<void>) | undefined
+  if (runCaptions) stopCaptions = await startCaptionWorkers(env, log)
+
+  if (!runAssets) {
+    await new Promise<void>((resolve) => {
+      const stop = (signal: string) => {
+        log({ event: 'worker.stopping', signal })
+        resolve()
+      }
+      process.once('SIGINT', () => stop('SIGINT'))
+      process.once('SIGTERM', () => stop('SIGTERM'))
+    })
+    await stopCaptions?.()
+    log({ event: 'worker.stopped' })
+    return
+  }
+
   const queue = loadQueueConfig(env)
   const worker = loadWorkerConfig(env)
   const db = openSqlite(queue.databaseUrl)
@@ -140,6 +181,7 @@ export async function main(env: Record<string, string | undefined> = process.env
   })
   await runner.start()
   db.close()
+  await stopCaptions?.()
   log({ event: 'worker.stopped' })
 }
 

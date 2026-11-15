@@ -12,9 +12,11 @@
     "transcriber:info": "node --experimental-strip-types --env-file-if-exists=.env src/index.ts --info"
   },
   "dependencies": {
+    "@abolkit/caption-store": "workspace:*",
     "@abolkit/core": "workspace:*",
     "@abolkit/jobs": "workspace:*",
-    "@abolkit/provider-sdk": "workspace:*"
+    "@abolkit/provider-sdk": "workspace:*",
+    "bullmq": "6.7.6"
   },
   "devDependencies": {
     "vitest": "^5.1.0"

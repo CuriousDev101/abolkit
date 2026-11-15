@@ -16,6 +16,22 @@ export interface ProviderInfo {
 export interface Transcriber extends ProviderInfo {
   /** audioPath: 16 kHz mono MP3 produced by the worker (ffmpeg spike #9). */
   transcribe(audioPath: string, opts: { lang: LangCode; signal?: AbortSignal }): Promise<Cue[]>
+  /**
+   * Providers that can detect the spoken language implement this; `lang` is then optional.
+   * Callers without a known language use `transcribeWithDetails`, which falls back to `transcribe`.
+   */
+  transcribeDetailed?(
+    audioPath: string,
+    opts: { lang?: LangCode; signal?: AbortSignal },
+  ): Promise<TranscriptionResult>
+}
+
+export interface TranscriptionResult {
+  cues: Cue[]
+  /** Spoken language the provider used or detected. */
+  language?: LangCode
+  /** Provider's own id for the transcript (e.g. the AssemblyAI transcript id). */
+  providerRef?: string
 }
 
 export interface Translator extends ProviderInfo {
@@ -58,13 +74,10 @@ export interface ProviderConfig {
   /** Base URL for mms-http, e.g. http://mms-stt:8000 */
   transcriberUrl?: string
   /**
-   * Required before creating an off-host transcriber (`cloud`).
-   * Maps to `TRANSCRIBER_OFF_HOST_CONSENT=true` (ADR 0003 / #27).
+   * Required before creating an off-host transcriber (`cloud`, `assemblyai`).
+   * Maps to TRANSCRIBER_OFF_HOST_CONSENT=true (ADR 0003).
    */
   transcriberOffHostConsent?: boolean
-  /**
-   * Explicit opt-in before translator/TTS (and other) adapters with `sendsDataOffHost: true`
-   * may be constructed. Maps to env `ALLOW_OFF_HOST_PROVIDERS=true`.
-   */
-  allowOffHostProviders?: boolean
+  /** Required before creating an off-host translator (`gemini`). TRANSLATOR_OFF_HOST_CONSENT=true. */
+  translatorOffHostConsent?: boolean
 }

@@ -1,5 +1,6 @@
 // API process config. Speech-to-text is not configured here: the worker calls the
-// external MMS wrapper (services/worker, TRANSCRIBER_URL).
+// external MMS wrapper (services/worker, TRANSCRIBER_URL). URL caption settings
+// (POSTGRES_URL, REDIS_URL, CAPTION_*, RATE_LIMIT_*) are read by @abolkit/caption-store.
 
 import { storageConfigFromEnv } from '@abolkit/provider-sdk'
 
@@ -20,10 +21,7 @@ const DEFAULT_ALLOWED_MIME = [
 
 export type ApiConfig = {
   port: number
-  /**
-   * Listen address. Default `127.0.0.1` for local `pnpm dev`.
-   * Compose sets `HOST=0.0.0.0` so the published port is reachable.
-   */
+  /** Bind address. `127.0.0.1` by default; `0.0.0.0` in a container. */
   host: string
   /** `*` or one origin. Read routes stay open so a host page can call them. */
   corsOrigin: string
@@ -32,8 +30,11 @@ export type ApiConfig = {
    * Empty means writes must refuse until configured.
    */
   apiKey: string | undefined
-  /** Absolute or relative SQLite URL/path for asset metadata. */
-  databaseUrl: string
+  /**
+   * Absolute or relative SQLite URL/path for legacy asset uploads (ADR 0005).
+   * Empty: asset routes are off; URL captions use Postgres instead (ADR 0007).
+   */
+  databaseUrl: string | undefined
   /** `local-disk` (default for no-Docker) or `minio` (Compose). */
   storageProvider: string
   /** Origin embedded in local-disk signed URLs. */
@@ -76,10 +77,10 @@ export function loadApiConfig(env: Env = process.env as Env): ApiConfig {
 
   return {
     port,
-    host,
+    host: env.HOST?.trim() || '127.0.0.1',
     corsOrigin: env.CORS_ORIGIN ?? '*',
     apiKey: apiKey || undefined,
-    databaseUrl: env.DATABASE_URL?.trim() || 'file:./data/abolkit.sqlite',
+    databaseUrl: env.DATABASE_URL?.trim() || undefined,
     storageProvider: storageConfigFromEnv(env).storage,
     publicBaseUrl: env.PUBLIC_BASE_URL?.trim() || undefined,
     assetMaxBytes,
