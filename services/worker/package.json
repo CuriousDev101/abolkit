@@ -6,10 +6,17 @@
   "main": "src/index.ts",
   "description": "Background worker: ffmpeg, speech-to-text, translation, TTS and offline-pack builder, driven by a job queue.",
   "scripts": {
-    "transcriber:info": "node --experimental-strip-types src/index.ts"
+    "dev": "node --experimental-strip-types --env-file-if-exists=.env --watch src/index.ts",
+    "start": "node --experimental-strip-types --env-file-if-exists=.env src/index.ts",
+    "test": "vitest run",
+    "transcriber:info": "node --experimental-strip-types --env-file-if-exists=.env src/index.ts --info"
   },
   "dependencies": {
     "@abolkit/core": "workspace:*",
+    "@abolkit/jobs": "workspace:*",
     "@abolkit/provider-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^5.1.0"
   }
 }

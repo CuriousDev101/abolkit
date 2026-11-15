@@ -9,6 +9,19 @@ export function jsonError(c: Context, status: ContentfulStatusCode, code: string
   return c.json({ error: { code, message } } satisfies ErrorBody, status)
 }
 
+/** Thrown from route handlers; app.onError renders it with jsonError. */
+export class HttpError extends Error {
+  readonly status: ContentfulStatusCode
+  readonly code: string
+
+  constructor(status: ContentfulStatusCode, code: string, message: string) {
+    super(message)
+    this.name = 'HttpError'
+    this.status = status
+    this.code = code
+  }
+}
+
 /** Shared Zod validation failure → 400 VALIDATION. */
 export function validationHook(
   result: { success: true; data: unknown } | { success: false; error: ZodError },

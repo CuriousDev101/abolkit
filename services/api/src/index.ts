@@ -1,7 +1,7 @@
-// API entry (#17 + #24): health, assets upload/metadata, signed downloads,
-// /openapi.json, Scalar at /docs, CORS, JSON errors.
-// STT is not this process. The worker calls the external MMS wrapper.
-// Next: jobs (#25+), gated with requireApiKey.
+// API entry (#17 + #24 + #25): health, assets upload/metadata, signed downloads,
+// job create/status, /openapi.json, Scalar at /docs, CORS, JSON errors.
+// STT is not this process. The API only queues jobs; services/worker runs them
+// and calls the external MMS wrapper.
 
 import { serve } from '@hono/node-server'
 
