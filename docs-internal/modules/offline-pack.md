@@ -32,7 +32,12 @@ Storage layout:
 | `assets/{assetId}/renditions/audio.opus` | Input (required) |
 | `assets/{assetId}/captions/{lang}.vtt` | Input (at least one lang) |
 | `assets/{assetId}/transcript.html` | Reused if present; otherwise generated and stored |
+| `assets/{assetId}/descriptions/{lang}.vtt` | Optional visual / AD descriptions folded into transcript HTML (#54) |
 | `assets/{assetId}/packs/offline.zip` | Output zip |
+
+### Accessible HTML (#54)
+
+Generated `index.html` / `transcript.html` use semantic structure (`main`, `header`, `nav`, `section`, `footer`), document `lang`, and meaningful titles. Visual descriptions come from description VTT cues when present. Still images are included only when a non-placeholder `alt` is supplied; decorative images use `alt=""`. Experimental PDF: `bash scripts/html-to-pdf.sh path/to/transcript.html`.
 
 ### Size report
 

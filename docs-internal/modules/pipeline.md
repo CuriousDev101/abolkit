@@ -29,7 +29,7 @@ upload ─► asset ─► job: extract audio (ffmpeg, 16 kHz mono)
 - **Offline pack (#35):** the `offline-pack` job zips `lesson.opus`, `transcript.html`, caption VTTs and a no-JS `index.html` into `assets/{id}/packs/offline.zip`. Job result includes `totalBytes` / `sizes` for the pitch and docs ([offline-pack](offline-pack.md)). Requires Opus (#26) and at least one caption track. Optional `params.includeVideo` adds `lesson-240p.mp4`.
 - **ffmpeg recipes** (spike #9): extract audio for STT; `libopus` at about 24 kbps; 240p H.264 rendition; AD mix with `adelay`/`amix` and ducking.
 - **Demo safety:** pre-compute the demo lesson and commit results to `samples/`; live runs are a bonus, never a dependency.
-- **Documents (R6):** accessible HTML first (semantic headings, alt text, `lang`); tagged PDF only as stretch (#54) via Chromium print-to-PDF plus a checker; image descriptions drafted by a model are reviewed by a human.
+- **Documents (R6 / #54):** accessible HTML first in the offline-pack transcript/index (`services/worker/src/pack/html.ts`): semantic landmarks, heading hierarchy, `lang`, caption + visual-description lists, figure `alt` only from real metadata (never invented). Optional description WebVTT at `assets/{id}/descriptions/{lang}.vtt`. Chromium print-to-PDF is experimental (`scripts/html-to-pdf.sh`); Chromium 137 may set `Tagged: yes`, but PAC/PDF/UA is unverified — see `spikes/54-tagged-html-pdf/RESULT.md`. Do not claim PDF/UA without a checker.
 
 ## Done when
 
