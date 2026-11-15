@@ -236,7 +236,12 @@
       </header>
 
       <main class="stage" id="stage">
-        <abol-job-card id="hero-card" heading-level="2" src="./fixtures/job.json"></abol-job-card>
+        <abol-job-card
+          id="hero-card"
+          heading-level="2"
+          src="./fixtures/job.json"
+          audio-summary-api="http://127.0.0.1:8787"
+        ></abol-job-card>
       </main>
 
       <section class="tools" aria-labelledby="tools-h">
@@ -260,11 +265,12 @@
       <section class="more" aria-labelledby="more-h">
         <h2 id="more-h">More postings</h2>
         <div class="stack">
-          <abol-job-card heading-level="3">
+          <abol-job-card heading-level="3" audio-summary-api="http://127.0.0.1:8787">
             <script type="application/ld+json">
               {
                 "@context": "https://schema.org",
                 "@type": "JobPosting",
+                "@id": "job-junior-data-quality-analyst",
                 "inLanguage": "en",
                 "title": "Junior Data Quality Analyst",
                 "description": "Review education and graduate placement records for accuracy across partner campuses in Addis Ababa and Hawassa.\n\n• Check weekly spreadsheets and explain findings in clear language.\n• Verify structured job data with the accessibility team.\n\nTraining is provided in your first month.\n\nGraduates from computer science, information systems, or statistics are encouraged to apply.",
@@ -342,11 +348,12 @@
             </script>
           </abol-job-card>
 
-          <abol-job-card heading-level="3">
+          <abol-job-card heading-level="3" audio-summary-api="http://127.0.0.1:8787">
             <script type="application/ld+json">
               {
                 "@context": "https://schema.org",
                 "@type": "JobPosting",
+                "@id": "job-braille-caption-production-assistant",
                 "title": "Braille & Caption Production Assistant",
                 "description": "Prepare reviewed Amharic and English caption files and tactile study handouts for university courses.",
                 "datePosted": "2026-10-01",
@@ -488,7 +495,12 @@
       })
 
       document.addEventListener('abol:summary-play', (event) => {
-        logEvent(event.detail.playing ? `Summary playing (${event.detail.src})` : 'Summary paused')
+        const title = event.detail.job?.title ?? 'this role'
+        logEvent(
+          event.detail.playing
+            ? `Playing audio summary for “${title}”.`
+            : `Paused audio summary for “${title}”.`,
+        )
       })
 
       window.addEventListener('resize', checkOverflow)

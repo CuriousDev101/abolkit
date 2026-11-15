@@ -6,8 +6,8 @@
   "main": "src/index.ts",
   "description": "Hono + zod-openapi REST API: assets, jobs, lessons/cues, offline packs, credentials. Serves the OpenAPI spec and docs.",
   "scripts": {
-    "dev": "node --experimental-strip-types --env-file-if-exists=.env --watch src/index.ts",
-    "start": "node --experimental-strip-types --env-file-if-exists=.env src/index.ts",
+    "dev": "node --experimental-strip-types --env-file-if-exists=../../.env --watch src/index.ts",
+    "start": "node --experimental-strip-types --env-file-if-exists=../../.env src/index.ts",
     "test": "vitest run",
     "openapi:write": "node --experimental-strip-types scripts/write-openapi.ts",
     "client:generate": "node --experimental-strip-types scripts/write-openapi.ts && openapi-typescript ../../spikes/10-zod-openapi/openapi.json -o scripts/schema.d.ts",

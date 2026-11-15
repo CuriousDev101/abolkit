@@ -1,16 +1,19 @@
 import { migrateJobs, openSqlite } from '@abolkit/jobs'
 import type { DatabaseSync } from 'node:sqlite'
 
+import { migrateJobAudioSummaries } from './job-audio-summaries.ts'
+
 export { sqlitePathFromUrl } from '@abolkit/jobs'
 
 /**
  * Open (and migrate) the SQLite file shared with the worker: asset metadata
- * plus the DB-backed job queue (ADR 0005).
+ * plus the DB-backed job queue (ADR 0005) and job-card audio summaries.
  */
 export function openDatabase(databaseUrl: string): DatabaseSync {
   const db = openSqlite(databaseUrl)
   migrate(db)
   migrateJobs(db)
+  migrateJobAudioSummaries(db)
   return db
 }
 

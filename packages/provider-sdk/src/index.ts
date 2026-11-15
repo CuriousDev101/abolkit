@@ -29,7 +29,7 @@ export {
   translatorConfigFromEnv,
   type TranslatorSelection,
 } from './create-translator.ts'
-export { createTts, type CreateTtsOptions } from './create-tts.ts'
+export { createTts, ttsConfigFromEnv, type CreateTtsOptions } from './create-tts.ts'
 
 export {
   assemblyAiConfigFromEnv,
@@ -60,6 +60,11 @@ export { createCloudTranslatorSkeleton } from './translators/cloud.ts'
 export { createRecordedClipsTts, type RecordedClipsTtsOptions } from './tts/recorded-clips.ts'
 export { createStubTts } from './tts/stub.ts'
 export { createCloudTtsSkeleton } from './tts/cloud.ts'
+export {
+  assemblyAiTtsConfigFromEnv,
+  createAssemblyAiTts,
+  type AssemblyAiTtsOptions,
+} from './tts/assemblyai.ts'
 
 export {
   createStorage,

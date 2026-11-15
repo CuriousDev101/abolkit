@@ -67,7 +67,7 @@ export interface ProviderConfig {
   transcriber: string
   /** Default: 'none' (identity). Also: 'stub'. Cloud ids require consent. */
   translator: string
-  /** Default: 'recorded-clips' (local files). Also: 'stub'. Cloud ids require consent. */
+  /** Default: 'recorded-clips' (local files). Also: 'stub', `assemblyai`. Cloud ids require consent. */
   tts: string
   /** Compose/demo default: 'minio' (mandatory, ADR 0005). Use 'local-disk' for tests / no-Docker. 'r2' later. */
   storage: string
@@ -80,6 +80,11 @@ export interface ProviderConfig {
   transcriberOffHostConsent?: boolean
   /** Required before creating an off-host translator (`gemini`). TRANSLATOR_OFF_HOST_CONSENT=true. */
   translatorOffHostConsent?: boolean
+  /**
+   * Required before creating an off-host TTS (`assemblyai`). Maps to TTS_OFF_HOST_CONSENT=true.
+   * Defaults on when unset (same idea as TRANSCRIBER_OFF_HOST_CONSENT for URL captions).
+   */
+  ttsOffHostConsent?: boolean
   /**
    * Explicit opt-in before TTS (and other) adapters with `sendsDataOffHost: true`
    * may be constructed. Maps to env `ALLOW_OFF_HOST_PROVIDERS=true`.
