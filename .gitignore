@@ -18,6 +18,9 @@ package-lock.json
 .tools/
 .pnpm-store/
 
+# hhehwgeyuweeturgtuwgru
+
+
 # spike local envs and caches (never commit)
 spikes/**/.venv/
 spikes/**/.venv*/
