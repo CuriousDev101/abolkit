@@ -3,6 +3,7 @@ import type { Storage } from '@abolkit/provider-sdk'
 
 import {
   captionsKey,
+  descriptionsKey,
   offlinePackKey,
   opusAudioKey,
   transcriptKey,
@@ -11,10 +12,12 @@ import {
 import type { Logger } from '../runner.ts'
 import {
   captionFileName,
+  descriptionFileName,
   labelForLang,
   renderIndexHtml,
   renderTranscriptHtml,
   type PackCaptionTrack,
+  type PackDescriptionTrack,
 } from './html.ts'
 import { buildZip, type ZipEntry } from './zip.ts'
 
@@ -63,6 +66,7 @@ export type BuildOfflinePackResult = JsonObject & {
   audioFile: string
   transcriptFile: string
   captionFiles: string[]
+  descriptionFiles: string[]
   videoFile: string | null
   sizes: PackSizeReport
   totalBytes: number
@@ -155,12 +159,26 @@ export async function buildOfflinePack(
     )
   }
 
+  const descriptions: PackDescriptionTrack[] = []
+  for (const code of langs) {
+    throwIfAborted(signal)
+    const object = await storage.get(descriptionsKey(assetId, code))
+    if (!object) continue
+    const vtt = new TextDecoder().decode(object.bytes)
+    descriptions.push({
+      lang: code,
+      label: labelForLang(code),
+      fileName: descriptionFileName(code),
+      vtt,
+    })
+  }
+
   progress?.(40)
 
   const storedTranscript = await storage.get(transcriptObjKey)
   const transcriptHtml = storedTranscript
     ? new TextDecoder().decode(storedTranscript.bytes)
-    : renderTranscriptHtml({ title, captions })
+    : renderTranscriptHtml({ title, lang, captions, descriptions })
 
   // Persist generated transcript so #28 / lesson APIs can reuse it.
   if (!storedTranscript) {
@@ -191,6 +209,7 @@ export async function buildOfflinePack(
     title,
     lang,
     captions,
+    descriptions,
     includeVideo: videoBytes != null,
   })
 
@@ -201,6 +220,10 @@ export async function buildOfflinePack(
     ...captions.map((c) => ({
       name: c.fileName,
       data: new TextEncoder().encode(c.vtt),
+    })),
+    ...descriptions.map((d) => ({
+      name: d.fileName,
+      data: new TextEncoder().encode(d.vtt),
     })),
   ]
   if (videoBytes) {
@@ -240,6 +263,7 @@ export async function buildOfflinePack(
     audioFile: 'lesson.opus',
     transcriptFile: 'transcript.html',
     captionFiles: captions.map((c) => c.fileName),
+    descriptionFiles: descriptions.map((d) => d.fileName),
     videoFile: videoBytes ? 'lesson-240p.mp4' : null,
     sizes,
     totalBytes: sizes.zipBytes,

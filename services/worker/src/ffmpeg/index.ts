@@ -1,6 +1,7 @@
 export {
   audio16kKey,
   captionsKey,
+  descriptionsKey,
   offlinePackKey,
   opusAudioKey,
   sourceKey,

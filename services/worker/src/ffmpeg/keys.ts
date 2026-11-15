@@ -25,6 +25,12 @@ export function captionsKey(assetId: string, lang: string): string {
   return `assets/${assetId}/captions/${safe}.vtt`
 }
 
+/** Audio / visual description WebVTT (#23 / #54 image descriptions in HTML). */
+export function descriptionsKey(assetId: string, lang: string): string {
+  const safe = lang.trim().toLowerCase() || 'en'
+  return `assets/${assetId}/descriptions/${safe}.vtt`
+}
+
 /** Optional pre-built accessible transcript (#28 / pack). */
 export function transcriptKey(assetId: string): string {
   return `assets/${assetId}/transcript.html`
