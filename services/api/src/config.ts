@@ -20,6 +20,11 @@ const DEFAULT_ALLOWED_MIME = [
 
 export type ApiConfig = {
   port: number
+  /**
+   * Listen address. Default `127.0.0.1` for local `pnpm dev`.
+   * Compose sets `HOST=0.0.0.0` so the published port is reachable.
+   */
+  host: string
   /** `*` or one origin. Read routes stay open so a host page can call them. */
   corsOrigin: string
   /**
@@ -67,8 +72,11 @@ export function loadApiConfig(env: Env = process.env as Env): ApiConfig {
     .map((part) => part.trim())
     .filter(Boolean) ?? [...DEFAULT_ALLOWED_MIME]
 
+  const host = env.HOST?.trim() || '127.0.0.1'
+
   return {
     port,
+    host,
     corsOrigin: env.CORS_ORIGIN ?? '*',
     apiKey: apiKey || undefined,
     databaseUrl: env.DATABASE_URL?.trim() || 'file:./data/abolkit.sqlite',

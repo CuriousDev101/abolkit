@@ -15,16 +15,18 @@ export { requireApiKey } from './middleware/api-key.ts'
 export function start(env: Record<string, string | undefined> = process.env) {
   const config = loadApiConfig(env)
   const app = createApp(env)
+  const publicHost = config.host === '0.0.0.0' ? '127.0.0.1' : config.host
 
-  const server = serve({ fetch: app.fetch, port: config.port, hostname: '127.0.0.1' }, (info) => {
+  const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {
     console.log(
       JSON.stringify({
         ok: true,
         service: 'abolkit-api',
-        url: `http://127.0.0.1:${info.port}`,
-        docs: `http://127.0.0.1:${info.port}/docs`,
-        openapi: `http://127.0.0.1:${info.port}/openapi.json`,
-        health: `http://127.0.0.1:${info.port}/api/health`,
+        host: config.host,
+        url: `http://${publicHost}:${info.port}`,
+        docs: `http://${publicHost}:${info.port}/docs`,
+        openapi: `http://${publicHost}:${info.port}/openapi.json`,
+        health: `http://${publicHost}:${info.port}/api/health`,
       }),
     )
   })

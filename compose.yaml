@@ -1,0 +1,131 @@
+# Abol Kit local stack (#43, ADR 0005).
+# From a clean clone:
+#   cp .env.example .env
+#   docker compose up --build
+#
+# Services: MinIO (object storage) + API + worker + one-shot sample seed.
+# No Postgres / Redis — SQLite on a shared volume backs assets + the job queue.
+
+name: abolkit
+
+x-app-env:
+  &app-env # Always bind all interfaces inside containers (ignore host .env HOST=127.0.0.1).
+  HOST: 0.0.0.0
+  PORT: ${PORT:-8787}
+  API_KEY: ${API_KEY:-dev-api-key-change-me}
+  PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8787}
+  CORS_ORIGIN: ${CORS_ORIGIN:-*}
+  DATABASE_URL: ${DATABASE_URL:-file:/data/abolkit.sqlite}
+  STORAGE_PROVIDER: minio
+  MINIO_ENDPOINT: minio:9000
+  MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-abolkit}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-change-me}
+  MINIO_BUCKET: ${MINIO_BUCKET:-abolkit-media}
+  MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+  MINIO_ENSURE_BUCKET: ${MINIO_ENSURE_BUCKET:-true}
+  ASSET_MAX_BYTES: ${ASSET_MAX_BYTES:-104857600}
+  ASSET_RETENTION_DAYS: ${ASSET_RETENTION_DAYS:-7}
+  SIGNED_URL_TTL_SECONDS: ${SIGNED_URL_TTL_SECONDS:-3600}
+  JOB_MAX_ATTEMPTS: ${JOB_MAX_ATTEMPTS:-3}
+  JOB_POLL_INTERVAL_MS: ${JOB_POLL_INTERVAL_MS:-1500}
+  JOB_LEASE_SECONDS: ${JOB_LEASE_SECONDS:-120}
+  JOB_RETRY_BASE_MS: ${JOB_RETRY_BASE_MS:-2000}
+  JOB_RETRY_MAX_MS: ${JOB_RETRY_MAX_MS:-60000}
+  # Compose default: no external MMS service required (ADR 0003 / spike #7).
+  TRANSCRIBER: ${TRANSCRIBER:-stub}
+  TRANSCRIBER_URL: ${TRANSCRIBER_URL:-}
+  TRANSCRIBER_OFF_HOST_CONSENT: ${TRANSCRIBER_OFF_HOST_CONSENT:-false}
+  TRANSLATOR: ${TRANSLATOR:-none}
+  TTS: ${TTS:-recorded-clips}
+  ALLOW_OFF_HOST_PROVIDERS: ${ALLOW_OFF_HOST_PROVIDERS:-false}
+
+services:
+  minio:
+    # Official `minio/minio` is preferred when Docker Hub allows it.
+    # Default image is a MinIO-compatible build that pulls reliably in restricted registries.
+    image: ${MINIO_IMAGE:-insectai/minio:latest}
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-abolkit}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-change-me}
+    ports:
+      - '${MINIO_PORT:-9000}:9000'
+      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:9000/minio/health/live']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    environment:
+      <<: *app-env
+    ports:
+      - '${PORT:-8787}:8787'
+    volumes:
+      - sqlite-data:/data
+    depends_on:
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:8787/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: worker
+    environment:
+      <<: *app-env
+      FFMPEG_BIN: /usr/local/bin/ffmpeg
+      WORKER_WORK_DIR: /tmp/abolkit-worker
+    volumes:
+      - sqlite-data:/data
+    depends_on:
+      minio:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: seed
+    environment:
+      <<: *app-env
+      SAMPLES_DIR: /app/samples/lesson-1
+      ASSET_RETENTION_DAYS: '365'
+    volumes:
+      - sqlite-data:/data
+    depends_on:
+      minio:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    restart: 'no'
+
+volumes:
+  sqlite-data:
+  minio-data:
