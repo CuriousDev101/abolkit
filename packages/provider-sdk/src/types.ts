@@ -44,9 +44,14 @@ export interface Storage extends ProviderInfo {
 
 /** Chosen at deploy time from environment/config. Defaults must work with no accounts and no network. */
 export interface ProviderConfig {
-  /** Default after #7: 'mms-http'. Also: 'stub' (no network), 'cloud' (consent required). */
+  /**
+   * Default after #7: 'mms-http' (self-hosted wrapper). Use 'stub' for no network.
+   * Off-host id `cloud` requires `transcriberOffHostConsent`.
+   */
   transcriber: string
+  /** Default: 'none' (identity). Also: 'stub'. Cloud ids require consent. */
   translator: string
+  /** Default: 'recorded-clips' (local files). Also: 'stub'. Cloud ids require consent. */
   tts: string
   /** Compose/demo default: 'minio' (mandatory, ADR 0005). Use 'local-disk' for tests / no-Docker. 'r2' later. */
   storage: string
@@ -54,7 +59,12 @@ export interface ProviderConfig {
   transcriberUrl?: string
   /**
    * Required before creating an off-host transcriber (`cloud`).
-   * Maps to TRANSCRIBER_OFF_HOST_CONSENT=true (ADR 0003).
+   * Maps to `TRANSCRIBER_OFF_HOST_CONSENT=true` (ADR 0003 / #27).
    */
   transcriberOffHostConsent?: boolean
+  /**
+   * Explicit opt-in before translator/TTS (and other) adapters with `sendsDataOffHost: true`
+   * may be constructed. Maps to env `ALLOW_OFF_HOST_PROVIDERS=true`.
+   */
+  allowOffHostProviders?: boolean
 }

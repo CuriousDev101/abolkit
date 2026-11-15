@@ -6,7 +6,13 @@
 //     model weights live in another repo. Cloud adapters need explicit consent.
 
 import { migrateJobs, openSqlite } from '@abolkit/jobs'
-import { createStorage, createTranscriber, ProviderError } from '@abolkit/provider-sdk'
+import {
+  createStorage,
+  createTranscriber,
+  createTranslator,
+  createTts,
+  ProviderError,
+} from '@abolkit/provider-sdk'
 
 import { loadQueueConfig, loadWorkerConfig } from './config.ts'
 import { createDefaultHandlers } from './handlers.ts'
@@ -36,19 +42,38 @@ export function createWorkerTranscriber(env: Record<string, string | undefined> 
   return createTranscriber(config)
 }
 
-/** Dev helper: resolve transcriber and print which backend will be used. */
+/** Dev helper: resolve providers and print which backends will be used (`--info`). */
 export function printTranscriberInfo(): void {
   try {
     const config = loadWorkerConfig()
     const transcriber = createTranscriber(config)
+    const translator = createTranslator(config)
+    const tts = createTts(config)
     console.log(
       JSON.stringify({
         ok: true,
-        transcriber: transcriber.id,
-        label: transcriber.label,
-        sendsDataOffHost: transcriber.sendsDataOffHost,
+        allowOffHostProviders: config.allowOffHostProviders === true,
         offHostConsent: config.transcriberOffHostConsent === true,
-        url: config.transcriberUrl ?? null,
+        transcriber: {
+          id: transcriber.id,
+          label: transcriber.label,
+          sendsDataOffHost: transcriber.sendsDataOffHost,
+          url: config.transcriberUrl ?? null,
+        },
+        workDir: config.workDir,
+        ffmpegBin: config.ffmpegBin ?? null,
+        translator: {
+          id: translator.id,
+          label: translator.label,
+          sendsDataOffHost: translator.sendsDataOffHost,
+        },
+        tts: {
+          id: tts.id,
+          label: tts.label,
+          sendsDataOffHost: tts.sendsDataOffHost,
+          languages: tts.languages(),
+        },
+        storage: config.storage,
       }),
     )
   } catch (err: unknown) {
