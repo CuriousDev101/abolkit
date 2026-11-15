@@ -1,0 +1,24 @@
+{
+  "name": "@abolkit/caption-store",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "description": "Captions by video URL (ADR 0007): Postgres records for videos, captions and translations, the BullMQ caption queue on Redis, the Redis caption cache and the per-IP rate limit. Shared by the API and the worker.",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "bullmq": "6.7.6",
+    "ioredis": "6.0.0",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1",
+    "vitest": "^5.1.0"
+  }
+}

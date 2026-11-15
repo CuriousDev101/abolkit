@@ -9,6 +9,8 @@ onlyBuiltDependencies:
 # prebuilt UMD bundle and does not import the Vue components.
 allowBuilds:
   vue-demi: false
+  # Optional native speed-up for BullMQ's msgpackr; it falls back to plain JS.
+  msgpackr-extract: false
   # tsx (and other tools) need esbuild's postinstall binary
   esbuild: true
 minimumReleaseAgeExclude:

@@ -36,19 +36,37 @@ describe('createTranscriber', () => {
     expect(t.sendsDataOffHost).toBe(true)
   })
 
-  it('has no assemblyai alias', () => {
+  it('refuses assemblyai without off-host consent', () => {
+    expect(() =>
+      createTranscriber({ transcriber: 'assemblyai', assemblyAi: { apiKey: 'k' } }),
+    ).toThrow(/consent/i)
+  })
+
+  it('requires ASSEMBLYAI_API_KEY for assemblyai', () => {
     expect(() =>
       createTranscriber({ transcriber: 'assemblyai', transcriberOffHostConsent: true }),
-    ).toThrow(/Unknown transcriber/)
+    ).toThrow(/ASSEMBLYAI_API_KEY/)
+  })
+
+  it('builds assemblyai after consent with a key', () => {
+    const t = createTranscriber(
+      transcriberConfigFromEnv({
+        TRANSCRIBER: 'assemblyai',
+        TRANSCRIBER_OFF_HOST_CONSENT: 'true',
+        ASSEMBLYAI_API_KEY: 'k',
+      }),
+    )
+    expect(t.id).toBe('assemblyai')
+    expect(t.sendsDataOffHost).toBe(true)
   })
 })
 
 describe('transcriberConfigFromEnv', () => {
-  it('defaults to mms-http with consent off', () => {
+  it('defaults to mms-http with consent on (URL captions deploy)', () => {
     expect(transcriberConfigFromEnv({})).toEqual({
       transcriber: 'mms-http',
       transcriberUrl: undefined,
-      transcriberOffHostConsent: false,
+      transcriberOffHostConsent: true,
     })
   })
 
@@ -59,5 +77,12 @@ describe('transcriberConfigFromEnv', () => {
         TRANSCRIBER_OFF_HOST_CONSENT: 'true',
       }),
     ).toMatchObject({ transcriber: 'cloud', transcriberOffHostConsent: true })
+    expect(
+      transcriberConfigFromEnv({
+        TRANSCRIBER: 'assemblyai',
+        TRANSCRIBER_OFF_HOST_CONSENT: 'false',
+        ASSEMBLYAI_API_KEY: 'k',
+      }),
+    ).toMatchObject({ transcriber: 'assemblyai', transcriberOffHostConsent: false })
   })
 })

@@ -6,6 +6,8 @@ import { cors } from 'hono/cors'
 import type { DatabaseSync } from 'node:sqlite'
 
 import { AssetServiceError, createAssetService, type AssetService } from './assets/service.ts'
+import { isCaptionPath, registerCaptionRoutes } from './captions/register.ts'
+import { createCaptionBackend, type CaptionBackend } from './captions/service.ts'
 import { loadApiConfig, type ApiConfig } from './config.ts'
 import { getAssetById, isExpired } from './db/assets.ts'
 import { openDatabase } from './db/sqlite.ts'
@@ -28,6 +30,8 @@ export type CreateAppOptions = {
   /** Injected in tests. */
   db?: DatabaseSync
   storage?: Storage
+  /** URL captions (ADR 0007). Defaults to one built from POSTGRES_URL / REDIS_URL; `null` turns them off. */
+  captions?: CaptionBackend | null
 }
 
 /**
@@ -37,7 +41,9 @@ export type CreateAppOptions = {
 export function createApp(options: CreateAppOptions | Record<string, string | undefined> = {}) {
   const env = isEnvMap(options) ? options : (options.env ?? process.env)
   const config = loadApiConfig(env)
-  const db = (!isEnvMap(options) && options.db) || openDatabase(config.databaseUrl)
+  const injectedDb = !isEnvMap(options) ? options.db : undefined
+  const db =
+    injectedDb ?? (config.databaseUrl ? openDatabase(config.databaseUrl) : undefined)
   const storage =
     (!isEnvMap(options) && options.storage) ||
     createStorage({
@@ -45,7 +51,11 @@ export function createApp(options: CreateAppOptions | Record<string, string | un
       env: config.env,
       publicBaseUrl: config.publicBaseUrl,
     })
-  const assets = createAssetService({ db, storage, config })
+  const assets = db ? createAssetService({ db, storage, config }) : null
+  const captions =
+    !isEnvMap(options) && options.captions !== undefined
+      ? options.captions
+      : createCaptionBackend(env)
 
   const scalarJs = loadScalarStandalone()
   const app = new OpenAPIHono({ defaultHook: validationHook })
@@ -64,9 +74,10 @@ export function createApp(options: CreateAppOptions | Record<string, string | un
 
   app.use('*', apiCors(config.corsOrigin))
 
-  // Writes (upload, job create, later caption puts) need the API key. Reads stay public.
+  // Writes (upload, job create) need the API key. Reads stay public, and so do the URL caption
+  // endpoints, which are rate limited and host allow-listed instead.
   app.use('/api/*', async (c, next) => {
-    if (!WRITE_METHODS.has(c.req.method)) return next()
+    if (!WRITE_METHODS.has(c.req.method) || isCaptionPath(c.req.path)) return next()
     return requireApiKey(config.apiKey)(c, next)
   })
 
@@ -76,6 +87,7 @@ export function createApp(options: CreateAppOptions | Record<string, string | un
 
   registerAssetRoutes(app, config, assets, storage)
   registerJobRoutes(app, config, db)
+  registerCaptionRoutes(app, captions, config.publicBaseUrl)
 
   app.doc31('/openapi.json', openApiConfig)
 
@@ -123,9 +135,20 @@ export type ApiApp = ReturnType<typeof createApp>
 function registerAssetRoutes(
   app: OpenAPIHono,
   config: ApiConfig,
-  assets: AssetService,
+  assets: AssetService | null,
   storage: Storage,
 ) {
+  const needAssets = (): AssetService => {
+    if (!assets) {
+      throw new HttpError(
+        503,
+        'ASSETS_DISABLED',
+        'Asset uploads need DATABASE_URL. URL captions use POSTGRES_URL and REDIS_URL instead.',
+      )
+    }
+    return assets
+  }
+
   app.openapi(createAssetRoute, async (c) => {
     const body = await c.req.parseBody({ all: true })
     const filePart = body.file
@@ -144,7 +167,7 @@ function registerAssetRoutes(
     }
 
     const data = new Uint8Array(await filePart.arrayBuffer())
-    const created = await assets.upload(
+    const created = await needAssets().upload(
       {
         data,
         mime: filePart.type || 'application/octet-stream',
@@ -158,7 +181,7 @@ function registerAssetRoutes(
 
   app.openapi(getAssetRoute, async (c) => {
     const { id } = c.req.valid('param')
-    const asset = await assets.get(id)
+    const asset = await needAssets().get(id)
     return c.json(asset, 200)
   })
 
@@ -183,12 +206,24 @@ function registerAssetRoutes(
   })
 }
 
-function registerJobRoutes(app: OpenAPIHono, config: ApiConfig, db: DatabaseSync) {
+function registerJobRoutes(app: OpenAPIHono, config: ApiConfig, db: DatabaseSync | undefined) {
+  const needDb = (): DatabaseSync => {
+    if (!db) {
+      throw new HttpError(
+        503,
+        'ASSETS_DISABLED',
+        'Asset jobs need DATABASE_URL. URL caption jobs use /api/captions/* instead.',
+      )
+    }
+    return db
+  }
+
   app.openapi(createAssetJobRoute, (c) => {
     const { id } = c.req.valid('param')
     const { type, params } = c.req.valid('json')
+    const database = needDb()
 
-    const asset = getAssetById(db, id)
+    const asset = getAssetById(database, id)
     if (!asset) {
       throw new HttpError(404, 'NOT_FOUND', 'Asset not found')
     }
@@ -196,14 +231,19 @@ function registerJobRoutes(app: OpenAPIHono, config: ApiConfig, db: DatabaseSync
       throw new HttpError(410, 'GONE', 'Asset retention has expired')
     }
 
-    const job = enqueueJob(db, { assetId: id, type, params, maxAttempts: config.jobMaxAttempts })
+    const job = enqueueJob(database, {
+      assetId: id,
+      type,
+      params,
+      maxAttempts: config.jobMaxAttempts,
+    })
     c.header('Location', `/api/jobs/${job.id}`)
     return c.json(toJobBody(job), 202)
   })
 
   app.openapi(getJobRoute, (c) => {
     const { id } = c.req.valid('param')
-    const job = getJob(db, id)
+    const job = getJob(needDb(), id)
     if (!job) {
       throw new HttpError(404, 'NOT_FOUND', 'Job not found')
     }
@@ -240,7 +280,8 @@ function isEnvMap(
     value !== null &&
     !('env' in value) &&
     !('db' in value) &&
-    !('storage' in value)
+    !('storage' in value) &&
+    !('captions' in value)
   )
 }
 

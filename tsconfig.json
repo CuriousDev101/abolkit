@@ -3,6 +3,7 @@
   "compilerOptions": {
     "types": ["node"],
     "paths": {
+      "@abolkit/caption-store": ["./packages/caption-store/src/index.ts"],
       "@abolkit/core": ["./packages/core/src/index.ts"],
       "@abolkit/jobs": ["./packages/jobs/src/index.ts"],
       "@abolkit/provider-sdk": ["./packages/provider-sdk/src/index.ts"]

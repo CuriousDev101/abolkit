@@ -1,4 +1,4 @@
-import type { EngineEvent, MediaEngine, MediaSource } from '../engine.js'
+import type { EngineEvent, MediaEngine, MediaSource, MediaTrack } from '../engine.js'
 
 /** What an engine drives: a <video>, or a Video.js media element (e.g. <youtube-video>) that mirrors its API. */
 export type Playable = Pick<
@@ -24,16 +24,18 @@ export function buildVideo(source: MediaSource): HTMLVideoElement {
   if (source.crossOrigin != null) video.crossOrigin = source.crossOrigin
   if (source.poster) video.poster = source.poster
   video.src = source.src
-  for (const info of source.tracks ?? []) {
-    const track = document.createElement('track')
-    track.kind = info.kind
-    track.src = info.src
-    track.srclang = info.lang
-    track.label = info.label
-    track.default = info.default === true
-    video.append(track)
-  }
+  for (const info of source.tracks ?? []) video.append(trackElement(info))
   return video
+}
+
+export function trackElement(info: MediaTrack): HTMLTrackElement {
+  const track = document.createElement('track')
+  track.kind = info.kind
+  track.src = info.src
+  track.srclang = info.lang
+  track.label = info.label
+  track.default = info.default === true
+  return track
 }
 
 /** Native `<video controls>` engine: no Video.js cost, used by the lite build and as a fallback. */
@@ -131,6 +133,14 @@ export class NativeEngine implements MediaEngine {
 
   get customTracks(): boolean {
     return false
+  }
+
+  addTrack(info: MediaTrack): TextTrack | null {
+    const media = this.media
+    if (!(media instanceof HTMLMediaElement)) return null
+    const element = trackElement(info)
+    media.append(element)
+    return element.track
   }
 
   whenLoaded(track: TextTrack, handler: () => void): boolean {

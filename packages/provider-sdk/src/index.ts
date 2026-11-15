@@ -8,6 +8,7 @@ export type {
   ProviderInfo,
   Storage,
   Transcriber,
+  TranscriptionResult,
   Translator,
   Tts,
 } from './types.ts'
@@ -15,9 +16,29 @@ export type {
 export { ProviderError } from './errors.ts'
 export {
   createTranscriber,
+  transcribeWithDetails,
   transcriberConfigFromEnv,
   type TranscriberSelection,
 } from './create-transcriber.ts'
+export {
+  createTranslator,
+  translatorConfigFromEnv,
+  type TranslatorSelection,
+} from './create-translator.ts'
+export {
+  assemblyAiConfigFromEnv,
+  createAssemblyAiTranscriber,
+  type AssemblyAiOptions,
+  type AssemblyAiParams,
+} from './transcribers/assemblyai.ts'
+export {
+  createGeminiTranslator,
+  DEFAULT_GEMINI_MODEL,
+  geminiConfigFromEnv,
+  type GeminiTranslatorOptions,
+} from './translators/gemini.ts'
+export { createStubTranslator } from './translators/stub.ts'
+export { languagePromptName, withTranslatedText } from './translators/cue-text.ts'
 export {
   checkMmsHttpHealth,
   createMmsHttpTranscriber,
