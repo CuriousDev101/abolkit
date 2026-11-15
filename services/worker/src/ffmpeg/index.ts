@@ -1,4 +1,12 @@
-export { audio16kKey, captionsKey, opusAudioKey, sourceKey, video240pKey } from './keys.ts'
+export {
+  audio16kKey,
+  captionsKey,
+  offlinePackKey,
+  opusAudioKey,
+  sourceKey,
+  transcriptKey,
+  video240pKey,
+} from './keys.ts'
 export { encodeOpus24k, encodeVideo240p, extract16kMono, type RecipeOptions } from './recipes.ts'
 export {
   produceAssetMedia,
