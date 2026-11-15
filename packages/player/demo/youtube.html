@@ -22,19 +22,15 @@
     <main>
       <h1>YouTube source</h1>
       <p>
-        Video.js's <code>&lt;youtube-video&gt;</code> plays the video. Our captions, transcript,
-        audio description and sign window come from the host's files and follow the YouTube clock.
-        YouTube's own captions (if the video has any) appear in the CC menu once playback starts.
+        Playback is the YouTube video. Captions and the transcript come from the caption API, not from sample
+        files.
       </p>
       <abol-player
-        src="https://www.youtube.com/watch?v=aqz-KE-bpKQ"
-        captions="../../../samples/lesson-1/en.vtt"
-        descriptions="../../../samples/lesson-1/ad.en.vtt"
-        sign="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
-        sign-placeholder
-      >
-        <track kind="captions" src="../../../samples/lesson-1/am.vtt" srclang="am" label="አማርኛ" />
-      </abol-player>
+        src="https://youtu.be/5um9-i2Ta7w"
+        lang="en"
+        caption-api="http://localhost:8787"
+        generate-captions="am om ti aa"
+      ></abol-player>
     </main>
     <script src="../dist/abol-player.js"></script>
   </body>

@@ -14,47 +14,46 @@
       main {
         max-width: 960px;
         margin: 2rem auto;
-        padding: 0 1rem;
+        padding: 0 1rem 3rem;
       }
       abol-player {
         margin-block: 1rem 2.5rem;
+      }
+      p {
+        max-width: 65ch;
       }
     </style>
   </head>
   <body>
     <main>
       <h1>Abol Kit player</h1>
-
-      <h2>Attributes only</h2>
-      <abol-player
-        src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
-        lang="en"
-        captions="../../../samples/lesson-1/en.vtt"
-        descriptions="../../../samples/lesson-1/ad.en.vtt"
-        sign="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
-        sign-placeholder
-      >
-        <track kind="captions" src="../../../samples/lesson-1/am.vtt" srclang="am" label="አማርኛ" />
-      </abol-player>
-
-      <h2>Generate captions from the API</h2>
       <p>
-        Needs <code>docker compose up</code> and keys in <code>.env</code>. The player only calls the API when both
-        attributes are set.
+        Both players use a real video and ask the caption API for an English transcript plus Amharic, Afaan
+        Oromo, Tigrinya, and Afar. Captions appear as each language finishes.
       </p>
+
+      <h2>YouTube</h2>
       <abol-player
-        src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+        src="https://youtu.be/5um9-i2Ta7w"
         lang="en"
         caption-api="http://localhost:8787"
         generate-captions="am om ti aa"
-        sign="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
-        sign-placeholder
       ></abol-player>
 
-      <h2>From a lesson manifest</h2>
       <abol-player
-        manifest="../../../samples/lesson-1/manifest.json"
-        style="--abol-accent: #7a3cff"
+        src="https://youtu.be/mHrABR-IhxM?si=MtGLK4F4IL8b8Bmz"
+        lang="en"
+        caption-api="http://localhost:8787"
+        generate-captions="am om ti aa"
+      ></abol-player>
+
+      <h2>Obama weekly address</h2>
+      <p>The Obama White House, “Weekly Address: Restoring Opportunity for All” (2 min 35 s).</p>
+      <abol-player
+        src="https://www.youtube.com/watch?v=7XL0tfJn6QI"
+        lang="en"
+        caption-api="http://localhost:8787"
+        generate-captions="am om ti aa"
       ></abol-player>
     </main>
     <script src="../dist/abol-player.js"></script>

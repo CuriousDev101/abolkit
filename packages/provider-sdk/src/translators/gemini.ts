@@ -14,6 +14,9 @@ export interface GeminiTranslatorOptions {
   /** Cues per request. Each batch is translated in order so nearby lines give context. */
   batchSize?: number
   temperature?: number
+  /** Extra tries after a 429 or 503. Gemini 3.8 Flash often answers 503 while it is busy. */
+  retryLimit?: number
+  sleep?: (ms: number, signal?: AbortSignal) => Promise<void>
   fetch?: typeof fetch
 }
 
@@ -54,7 +57,9 @@ export function createGeminiTranslator(options: GeminiTranslatorOptions): Transl
   const model = options.model?.trim() || DEFAULT_GEMINI_MODEL
   const baseUrl = (options.baseUrl?.trim() || DEFAULT_BASE_URL).replace(/\/$/, '')
   const batchSize = Math.max(1, Math.trunc(options.batchSize ?? 60))
+  const retryLimit = Math.max(0, Math.trunc(options.retryLimit ?? 4))
   const fetchFn = options.fetch ?? globalThis.fetch
+  const sleep = options.sleep ?? abortableSleep
 
   async function translateBatch(
     lines: string[],
@@ -84,16 +89,21 @@ export function createGeminiTranslator(options: GeminiTranslatorOptions): Transl
       },
     }
 
+    const timeout = AbortSignal.timeout(45_000)
+    const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout
     let res: Response
     try {
       res = await fetchFn(`${baseUrl}/models/${encodeURIComponent(model)}:generateContent`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
         body: JSON.stringify(body),
-        signal,
+        signal: requestSignal,
       })
     } catch (err) {
       if (signal?.aborted) throw err
+      if (timeout.aborted) {
+        throw new ProviderError('TIMEOUT', 'Gemini did not respond within 45 s', 503)
+      }
       const message = err instanceof Error ? err.message : String(err)
       throw new ProviderError('UNREACHABLE', `Gemini unreachable: ${message}`)
     }
@@ -158,6 +168,28 @@ export function createGeminiTranslator(options: GeminiTranslatorOptions): Transl
     return out as string[]
   }
 
+  async function translateBatchWithRetry(
+    lines: string[],
+    from: string,
+    to: string,
+    signal?: AbortSignal,
+  ): Promise<string[]> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await translateBatch(lines, from, to, signal)
+      } catch (error) {
+        const retryable =
+          error instanceof ProviderError &&
+          (error.status === 429 ||
+            error.status === 503 ||
+            error.code === 'UNREACHABLE' ||
+            error.code === 'TIMEOUT')
+        if (!retryable || attempt >= retryLimit) throw error
+        await sleep(2_000 * 2 ** attempt, signal)
+      }
+    }
+  }
+
   return {
     id: 'gemini',
     label: `Gemini (${model}, cloud)`,
@@ -166,7 +198,7 @@ export function createGeminiTranslator(options: GeminiTranslatorOptions): Transl
       const texts: string[] = []
       for (let at = 0; at < cues.length; at += batchSize) {
         const batch = cues.slice(at, at + batchSize).map((cue) => cue.text)
-        texts.push(...(await translateBatch(batch, opts.from, opts.to, opts.signal)))
+        texts.push(...(await translateBatchWithRetry(batch, opts.from, opts.to, opts.signal)))
       }
       return withTranslatedText(cues, texts)
     },
@@ -189,4 +221,19 @@ export function geminiConfigFromEnv(env: Env): Omit<GeminiTranslatorOptions, 'fe
     batchSize: number('GEMINI_BATCH_SIZE'),
     temperature: number('GEMINI_TEMPERATURE'),
   }
+}
+
+function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(signal.reason)
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, ms)
+    const onAbort = () => {
+      clearTimeout(timer)
+      reject(signal?.reason)
+    }
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
 }
