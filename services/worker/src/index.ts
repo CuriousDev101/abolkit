@@ -4,6 +4,7 @@
 // #26: ffmpeg extract (16 kHz mono) + Opus 24 kbps + 240p; sizes logged for the pack report.
 // #27: Transcriber adapter → WebVTT [needsReview]. Default STT is external MMS (mms-http);
 //     model weights live in another repo. Cloud adapters need explicit consent.
+// #35: offline-pack zip (Opus + transcript HTML + captions + index.html) + size report.
 
 import { migrateJobs, openSqlite } from '@abolkit/jobs'
 import {
@@ -33,6 +34,15 @@ export {
   video240pKey,
 } from './ffmpeg/index.ts'
 export { langFromJobParams, markNeedsReview, transcribeStoredAudio } from './stt/index.ts'
+export {
+  buildOfflinePack,
+  buildZip,
+  packParamsFromJob,
+  renderIndexHtml,
+  renderTranscriptHtml,
+  type BuildOfflinePackResult,
+  type PackSizeReport,
+} from './pack/index.ts'
 export { createJobRunner, type JobContext, type JobHandler, type JobHandlers } from './runner.ts'
 
 const log = (event: Record<string, unknown>) => console.log(JSON.stringify(event))
