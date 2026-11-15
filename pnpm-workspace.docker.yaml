@@ -1,0 +1,13 @@
+# Backend-only workspace for Docker images (api + worker).
+# Copied over pnpm-workspace.yaml inside the image so we do not ship apps stubs.
+packages:
+  - 'packages/*'
+  - 'services/*'
+
+onlyBuiltDependencies:
+  - esbuild
+
+allowBuilds:
+  vue-demi: false
+  msgpackr-extract: false
+  esbuild: true

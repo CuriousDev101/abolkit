@@ -29,72 +29,84 @@ docs-internal/   scope, architecture, ownership, plan, modules, conformance, dec
 scripts/    gh-labels.sh, gh-issues.sh
 ```
 
-## Local development (Docker) — issue #43
+## Local development (Docker) — ADR 0007 captions
 
-One command starts **MinIO** (object storage), the **API**, the **worker**, and loads **sample lesson data** into storage.
+Default Compose ([`docker-compose.yml`](docker-compose.yml)) starts **Postgres**, **Redis**, **MinIO**, the **API**, and the **worker** for URL caption generation (YouTube → AssemblyAI → Gemini).
 
 ### Prerequisites
 
 - Docker Engine with **Compose V2** (`docker compose version`)
-- Ports free: `8787` (API), `9000` (MinIO), `9001` (MinIO console)
+- A `.env` file (copy from `.env.example`) with secrets and `ASSEMBLYAI_API_KEY` / `GEMINI_API_KEY`
+- Ports free on localhost: `8787` (API), `5432`, `6379`, `9000`/`9001` (MinIO)
 
-### Quick start
+### Quick start (local — default)
 
 ```bash
 git clone https://github.com/CuriousDev101/abolkit.git
 cd abolkit
 cp .env.example .env
+# Edit .env: API_KEY, POSTGRES_PASSWORD, MINIO_SECRET_KEY, ASSEMBLYAI_API_KEY, GEMINI_API_KEY
 docker compose up --build
 ```
 
-Compose uses safe local defaults from [`compose.yaml`](compose.yaml). Editing `.env` is optional unless you want to override keys or ports.
+Uses [`Dockerfile.dev`](Dockerfile.dev) + source bind mounts (`--watch`).
+
+### Production / EC2
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Uses [`Dockerfile`](Dockerfile): prod deps only, source baked into the image.
+
+| | Local (default) | Production |
+|---|---|---|
+| Command | `docker compose up --build` | `docker compose -f docker-compose.prod.yml up -d --build` |
+| Dockerfile | `Dockerfile.dev` | `Dockerfile` |
+| Process | `node --watch …` | `node …` (no watch) |
+| Source | bind-mounted | copied into the image |
+
+There are **no weak password defaults in Compose** — missing secrets fail fast. Change every `change-me` value before sharing the host.
+
+Legacy SQLite + seed stack (ADR 0005): `docker compose -f compose.sqlite.yaml up --build`
 
 ### Access
 
 | What | URL |
 |---|---|
-| API health | http://localhost:8787/api/health |
-| OpenAPI docs (Scalar) | http://localhost:8787/docs |
-| OpenAPI JSON | http://localhost:8787/openapi.json |
-| Demo asset (seeded) | http://localhost:8787/api/assets/00000000-0000-4000-8000-000000000001 |
-| MinIO S3 API | http://localhost:9000 |
-| MinIO console | http://localhost:9001 |
+| API health | http://127.0.0.1:8787/api/health |
+| OpenAPI docs (Scalar) | http://127.0.0.1:8787/docs |
+| OpenAPI JSON | http://127.0.0.1:8787/openapi.json |
+| MinIO console | http://127.0.0.1:9001 |
 
-Default write API key (change in `.env` if you share the stack): `dev-api-key-change-me`  
-Header: `X-API-Key: dev-api-key-change-me`
+Write routes (assets/jobs): header `X-API-Key` matching `API_KEY` in `.env`.  
+Caption generate/status routes stay public for the embeddable player (rate limited).
 
-Default MinIO login: user `abolkit` / password `change-me` (must be ≥8 characters).
-
-Compose sets `TRANSCRIBER=stub` so the worker runs without an external MMS container. To point at a real wrapper, set `TRANSCRIBER=mms-http` and `TRANSCRIBER_URL` in the environment.
+API is bound to **127.0.0.1** only — put Caddy/Nginx on the host for public HTTPS.
 
 ### Logs and status
 
 ```bash
 docker compose ps
-docker compose logs -f api worker seed
+docker compose logs -f api worker
 ```
-
-The `seed` service runs once, prints `seed.completed` or `seed.skipped`, then exits. Re-running Compose does **not** duplicate the demo asset.
 
 ### Stop and reset
 
 ```bash
-# Stop containers; keep uploaded media + SQLite
-docker compose down
-
-# Full reset (delete MinIO + SQLite volumes)
-docker compose down -v
+docker compose down          # keep volumes
+docker compose down -v       # wipe Postgres / Redis / MinIO data
 ```
 
 ### Troubleshooting
 
 | Problem | What to try |
 |---|---|
-| `docker: 'compose' is not a docker command` | Install the [Compose V2 plugin](https://docs.docker.com/compose/install/), or use a Compose-compatible binary that understands `compose.yaml`. |
-| API not reachable on `:8787` | Confirm `HOST=0.0.0.0` inside the api container (`docker compose exec api printenv HOST`). |
-| MinIO unhealthy / API waiting | Check `MINIO_SECRET_KEY` is at least 8 characters; run `docker compose logs minio`. If `minio/minio` will not pull, keep the default `MINIO_IMAGE` (or set `MINIO_IMAGE=insectai/minio:latest`). |
-| Seed failed | Ensure api health is green first; `docker compose logs seed`. Re-run with `docker compose up seed`. |
-| Want a clean DB | `docker compose down -v` then `docker compose up --build`. |
+| `docker: 'compose' is not a docker command` | Install the [Compose V2 plugin](https://docs.docker.com/compose/install/). |
+| Compose errors about unset `API_KEY` / passwords | Copy `.env.example` → `.env` and fill required values. |
+| API not on `:8787` | Confirm publish is `127.0.0.1:8787` (`docker compose ps`). |
+| MinIO unhealthy | `MINIO_SECRET_KEY` must be ≥8 characters; `docker compose logs minio`. |
+| Worker `BAD_CONFIG` | Set `ASSEMBLYAI_API_KEY` and `GEMINI_API_KEY` in `.env`, recreate worker. |
 
 ### Without Docker
 
@@ -103,7 +115,7 @@ pnpm install
 cp .env.example .env
 # Set STORAGE_PROVIDER=local-disk and STORAGE_SIGNING_SECRET in .env
 pnpm dev:api      # terminal 1
-pnpm dev:worker   # terminal 2 — same DATABASE_URL / storage root
+pnpm dev:worker   # terminal 2
 ```
 
 ## Start here (contributors)
@@ -114,4 +126,4 @@ pnpm dev:worker   # terminal 2 — same DATABASE_URL / storage root
 
 ## Status
 
-Compose stack (`api` + `worker` + MinIO + sample seed) is the supported local Level-2 path. Package names (`@abolkit/*`) are working names (see ADR 0002).
+Default Compose path is URL captions (Postgres + Redis + MinIO + api + worker). Package names (`@abolkit/*`) are working names (see ADR 0002).

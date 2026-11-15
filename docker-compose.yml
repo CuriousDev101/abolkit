@@ -1,37 +1,45 @@
-# Abol Kit backend: API + worker with Postgres, Redis and MinIO (ADR 0005, ADR 0007).
+# Local development (ADR 0007) — default Compose file.
+# Hot-reload API/worker via Dockerfile.dev + source bind mounts.
 #
-#   cp .env.example .env      # then set the secrets and provider keys
-#   docker compose up -d --build
+#   cp .env.example .env
+#   docker compose up --build
 #
-# API: http://localhost:8787 (docs at /docs). MinIO console: http://localhost:9001.
-# Postgres, Redis and the MinIO API are published on 127.0.0.1 only, for local debugging.
+# Production / EC2:
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Legacy SQLite stack: docker compose -f compose.sqlite.yaml up --build
 
 name: abolkit
 
 x-backend-env:
-  &backend-env # URL captions path (ADR 0007): Postgres + Redis + MinIO. No SQLite in Compose.
-  POSTGRES_URL: postgres://${POSTGRES_USER:-abolkit}:${POSTGRES_PASSWORD:-abolkit-dev-password}@postgres:5432/${POSTGRES_DB:-abolkit}
+  &backend-env
+  POSTGRES_URL: postgres://${POSTGRES_USER:-abolkit}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-abolkit}
   REDIS_URL: redis://redis:6379
   STORAGE_PROVIDER: minio
   MINIO_ENDPOINT: minio:9000
   MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
-  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-abolkit}
-  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-abolkit-dev-secret}
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
   MINIO_BUCKET: ${MINIO_BUCKET:-abolkit-media}
-  MINIO_USE_SSL: 'false'
+  MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+  API_KEY: ${API_KEY:?Set API_KEY in .env}
+  PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://127.0.0.1:8787}
+  CORS_ORIGIN: ${CORS_ORIGIN:-*}
   CAPTION_ALLOWED_HOSTS: ${CAPTION_ALLOWED_HOSTS:-*}
   TRANSCRIBER: ${TRANSCRIBER:-assemblyai}
   TRANSCRIBER_OFF_HOST_CONSENT: ${TRANSCRIBER_OFF_HOST_CONSENT:-true}
   TRANSLATOR: ${TRANSLATOR:-gemini}
   TRANSLATOR_OFF_HOST_CONSENT: ${TRANSLATOR_OFF_HOST_CONSENT:-true}
   GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+  CAPTION_TRANSCRIBE_CONCURRENCY: ${CAPTION_TRANSCRIBE_CONCURRENCY:-1}
+  CAPTION_TRANSLATE_CONCURRENCY: ${CAPTION_TRANSLATE_CONCURRENCY:-2}
 
 x-backend: &backend
   build: .
   restart: unless-stopped
   env_file:
     - path: .env
-      required: false
+      required: true
   depends_on:
     postgres:
       condition: service_healthy
@@ -46,7 +54,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-abolkit}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-abolkit-dev-password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-abolkit}
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -61,7 +69,6 @@ services:
   redis:
     image: redis:8-alpine
     restart: unless-stopped
-    # BullMQ needs noeviction; cached captions expire through their TTL instead.
     command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
     volumes:
       - redis-data:/data
@@ -74,13 +81,12 @@ services:
       retries: 20
 
   minio:
-    # Official MinIO images are no longer published; this is the community-maintained build.
     image: ${MINIO_IMAGE:-pgsty/minio:RELEASE.2026-08-04T00-00-00Z}
     restart: unless-stopped
     command: ['server', '/data', '--console-address', ':9001']
     environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-abolkit}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-abolkit-dev-secret}
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
     volumes:
       - minio-data:/data
     ports:
@@ -96,22 +102,37 @@ services:
     <<: *backend
     build:
       context: .
+      dockerfile: Dockerfile.dev
       target: api
     environment:
       <<: *backend-env
       HOST: 0.0.0.0
       PORT: '8787'
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8787}
+      NODE_ENV: development
     ports:
-      - ${API_PORT:-8787}:8787
+      - 127.0.0.1:${API_PORT:-8787}:8787
+    volumes:
+      - ./packages/core:/app/packages/core
+      - ./packages/caption-store:/app/packages/caption-store
+      - ./packages/jobs:/app/packages/jobs
+      - ./packages/provider-sdk:/app/packages/provider-sdk
+      - ./services/api:/app/services/api
 
   worker:
     <<: *backend
     build:
       context: .
+      dockerfile: Dockerfile.dev
       target: worker
     environment:
       <<: *backend-env
+      NODE_ENV: development
+    volumes:
+      - ./packages/core:/app/packages/core
+      - ./packages/caption-store:/app/packages/caption-store
+      - ./packages/jobs:/app/packages/jobs
+      - ./packages/provider-sdk:/app/packages/provider-sdk
+      - ./services/worker:/app/services/worker
 
 volumes:
   postgres-data:
