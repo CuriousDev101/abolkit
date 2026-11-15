@@ -73,6 +73,8 @@ export function loadApiConfig(env: Env = process.env as Env): ApiConfig {
     .map((part) => part.trim())
     .filter(Boolean) ?? [...DEFAULT_ALLOWED_MIME]
 
+  const host = env.HOST?.trim() || '127.0.0.1'
+
   return {
     port,
     host: env.HOST?.trim() || '127.0.0.1',

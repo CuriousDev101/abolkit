@@ -80,3 +80,55 @@ describe('transcribe handler (#26 + #27)', () => {
     expect(cues[0]?.needsReview).toBe(true)
   })
 })
+
+describe('offline-pack handler (#35)', () => {
+  it('builds a zip and stores totalBytes on the job result', async () => {
+    const store = createLocalDiskStorage({
+      root: join(root, 'storage'),
+      signingSecret: 'test-signing-secret',
+    })
+    await store.put(
+      `assets/${ASSET}/renditions/audio.opus`,
+      new Uint8Array([1, 2, 3]),
+      'audio/opus',
+    )
+    await store.put(
+      `assets/${ASSET}/captions/en.vtt`,
+      new TextEncoder().encode('WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nHello\n'),
+      'text/vtt',
+    )
+
+    const job = enqueueJob(db, {
+      assetId: ASSET,
+      type: 'offline-pack',
+      params: { title: 'Pack demo', lang: 'en', langs: ['en'] },
+      maxAttempts: 2,
+      now,
+    })
+    const runner = createJobRunner({
+      db,
+      handlers: createDefaultHandlers({
+        storage: store,
+        log: () => {},
+      }),
+      leaseSeconds: 60,
+      pollIntervalMs: 10,
+      clock: () => now,
+      log: () => {},
+    })
+
+    const after = await runner.runOnce()
+    expect(after?.status).toBe('succeeded')
+    expect(after?.result).toMatchObject({
+      packKey: `assets/${ASSET}/packs/offline.zip`,
+      audioFile: 'lesson.opus',
+      transcriptFile: 'transcript.html',
+      captionFiles: ['captions.en.vtt'],
+      descriptionFiles: [],
+      videoFile: null,
+    })
+    const totalBytes = (getJob(db, job.id)?.result as { totalBytes?: number } | null)?.totalBytes
+    expect(totalBytes).toBeGreaterThan(0)
+    expect(await store.get(`assets/${ASSET}/packs/offline.zip`)).not.toBeNull()
+  })
+})

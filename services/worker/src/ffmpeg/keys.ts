@@ -24,3 +24,22 @@ export function captionsKey(assetId: string, lang: string): string {
   const safe = lang.trim().toLowerCase() || 'en'
   return `assets/${assetId}/captions/${safe}.vtt`
 }
+
+/** Audio / visual description WebVTT (#23 / #54 image descriptions in HTML). */
+export function descriptionsKey(assetId: string, lang: string): string {
+  const safe = lang.trim().toLowerCase() || 'en'
+  return `assets/${assetId}/descriptions/${safe}.vtt`
+}
+
+/** Optional pre-built accessible transcript (#28 / pack). */
+export function transcriptKey(assetId: string): string {
+  return `assets/${assetId}/transcript.html`
+}
+
+/**
+ * Offline pack zip (#35).
+ * Asset-scoped for the worker job; ADR also lists lessons/{id}/packs/offline.zip for lesson APIs.
+ */
+export function offlinePackKey(assetId: string): string {
+  return `assets/${assetId}/packs/offline.zip`
+}

@@ -26,9 +26,10 @@ upload ─► asset ─► job: extract audio (ffmpeg, 16 kHz mono)
 - **Jobs:** id, type, status (`queued|running|succeeded|failed`), progress, error, result links. Retry with backoff. Worker is a separate process/container. Queue choice per [ADR 0005](../decisions/0005-storage-queue-db-defaults.md).
 - **Providers:** only through `@abolkit/provider-sdk` ([ADR 0003](../decisions/0003-providers-and-privacy.md)). Config selects `TRANSCRIBER`, `TRANSLATOR`, `TTS`, `STORAGE`. Compose uses **MinIO** (mandatory) + SQLite DB-backed queue ([ADR 0005](../decisions/0005-storage-queue-db-defaults.md)); STT/TTS defaults stay self-hosted / offline.
 - **Transcription (#27):** the `transcribe` job runs ffmpeg, then the configured `Transcriber`, and stores WebVTT at `assets/{id}/captions/{lang}.vtt`. Every cue is forced to `needsReview`. `params.language` accepts `en` (default) or `am`; anything else fails without retry. `TRANSCRIBER=cloud` is off by default and refuses to start unless `TRANSCRIBER_OFF_HOST_CONSENT=true`. Only unreachable or 5xx provider errors are retried.
+- **Offline pack (#35):** the `offline-pack` job zips `lesson.opus`, `transcript.html`, caption VTTs and a no-JS `index.html` into `assets/{id}/packs/offline.zip`. Job result includes `totalBytes` / `sizes` for the pitch and docs ([offline-pack](offline-pack.md)). Requires Opus (#26) and at least one caption track. Optional `params.includeVideo` adds `lesson-240p.mp4`.
 - **ffmpeg recipes** (spike #9): extract audio for STT; `libopus` at about 24 kbps; 240p H.264 rendition; AD mix with `adelay`/`amix` and ducking.
 - **Demo safety:** pre-compute the demo lesson and commit results to `samples/`; live runs are a bonus, never a dependency.
-- **Documents (R6):** accessible HTML first (semantic headings, alt text, `lang`); tagged PDF only as stretch (#54) via Chromium print-to-PDF plus a checker; image descriptions drafted by a model are reviewed by a human.
+- **Documents (R6 / #54):** accessible HTML first in the offline-pack transcript/index (`services/worker/src/pack/html.ts`): semantic landmarks, heading hierarchy, `lang`, caption + visual-description lists, figure `alt` only from real metadata (never invented). Optional description WebVTT at `assets/{id}/descriptions/{lang}.vtt`. Chromium print-to-PDF is experimental (`scripts/html-to-pdf.sh`); Chromium 137 may set `Tagged: yes`, but PAC/PDF/UA is unverified — see `spikes/54-tagged-html-pdf/RESULT.md`. Do not claim PDF/UA without a checker.
 
 ## Done when
 
@@ -44,4 +45,4 @@ Weak Amharic STT/translation; slow CPU transcription; model download size in Doc
 
 ## Open questions
 
-Which self-hosted STT and TTS are good enough on Amharic (spikes #7, #8)? Do we need translation at all if captions are human-supplied?
+STT default settled in spike #7 (`mms-http`). TTS default settled in spike #8 (`recorded-clips` + text AD fallback). Do we need translation at all if captions are human-supplied?

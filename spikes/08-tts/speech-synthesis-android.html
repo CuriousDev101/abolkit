@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Spike #8 — speechSynthesis Amharic check</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #e8eee9;
+        --fg: #14201a;
+        --accent: #0b5f3a;
+        --card: #f7faf7;
+        --line: #c5d0c7;
+      }
+      body {
+        margin: 0;
+        font-family: 'Noto Sans Ethiopic', 'Noto Sans', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        line-height: 1.45;
+      }
+      main {
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 1.25rem 1rem 3rem;
+      }
+      h1 {
+        font-size: 1.35rem;
+        margin: 0 0 0.5rem;
+      }
+      p {
+        margin: 0.5rem 0 1rem;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin: 1rem 0 0.35rem;
+      }
+      textarea,
+      select,
+      button {
+        font: inherit;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      textarea,
+      select {
+        padding: 0.65rem 0.75rem;
+        border: 1px solid var(--line);
+        border-radius: 0.4rem;
+        background: var(--card);
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
+      .row button {
+        width: auto;
+        flex: 1 1 8rem;
+        padding: 0.7rem 0.9rem;
+        border: 0;
+        border-radius: 0.4rem;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 600;
+      }
+      .row button.secondary {
+        background: #2c3a33;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: #121a16;
+        color: #e8eee9;
+        padding: 0.85rem;
+        border-radius: 0.4rem;
+        font-size: 0.8rem;
+        min-height: 8rem;
+      }
+      .hint {
+        font-size: 0.9rem;
+        opacity: 0.85;
+      }
+      .ok {
+        color: #0b5f3a;
+        font-weight: 700;
+      }
+      .bad {
+        color: #8a1f11;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Spike #8 — Amharic on-device TTS</h1>
+      <p class="hint">
+        Open this file on a <strong>cheap Android phone</strong> (Chrome or Firefox). Tap the
+        buttons with your finger (speech needs a user gesture). Copy the log into
+        <code>spikes/08-tts/notes/android-log.md</code>.
+      </p>
+
+      <label for="text">Sample Amharic text</label>
+      <textarea id="text" rows="3" dir="auto">ሰላም። ይህ የድምጽ መግለጫ ሙከራ ነው።</textarea>
+
+      <label for="voice">Voice (local preferred)</label>
+      <select id="voice"></select>
+
+      <div class="row">
+        <button type="button" id="list">List voices</button>
+        <button type="button" id="speak" class="secondary">Speak</button>
+        <button type="button" id="stop" class="secondary">Stop</button>
+      </div>
+
+      <p id="summary" class="hint" aria-live="polite"></p>
+      <label for="log">Device log (copy this)</label>
+      <pre id="log" aria-live="polite">Tap “List voices”.</pre>
+    </main>
+    <script>
+      const textEl = document.getElementById('text')
+      const voiceEl = document.getElementById('voice')
+      const logEl = document.getElementById('log')
+      const summaryEl = document.getElementById('summary')
+
+      function ua() {
+        return {
+          userAgent: navigator.userAgent,
+          language: navigator.language,
+          languages: navigator.languages,
+          platform: navigator.platform,
+        }
+      }
+
+      function allVoices() {
+        return speechSynthesis.getVoices() || []
+      }
+
+      function isAmharicish(v) {
+        const lang = (v.lang || '').toLowerCase()
+        const name = (v.name || '').toLowerCase()
+        return (
+          lang.startsWith('am') ||
+          lang.includes('ethi') ||
+          name.includes('amharic') ||
+          name.includes('አማርኛ')
+        )
+      }
+
+      function refreshVoices() {
+        const voices = allVoices()
+        voiceEl.replaceChildren()
+        const preferred = voices.filter((v) => v.localService && isAmharicish(v))
+        const rest = voices.filter((v) => !preferred.includes(v))
+        const ordered = [...preferred, ...rest]
+        for (const v of ordered) {
+          const opt = document.createElement('option')
+          opt.value = String(voices.indexOf(v))
+          opt.textContent = `${v.name} · ${v.lang}${v.localService ? ' · local' : ' · remote?'}`
+          voiceEl.appendChild(opt)
+        }
+        if (!ordered.length) {
+          const opt = document.createElement('option')
+          opt.textContent = '(no voices returned yet)'
+          voiceEl.appendChild(opt)
+        }
+
+        const am = voices.filter(isAmharicish)
+        const localAm = am.filter((v) => v.localService)
+        summaryEl.innerHTML = localAm.length
+          ? `<span class="ok">Local Amharic-capable voice found (${localAm.length}).</span>`
+          : am.length
+            ? `<span class="bad">Amharic-tagged voice found but not localService.</span>`
+            : `<span class="bad">No Amharic voice on this device.</span>`
+
+        const lines = [
+          `time: ${new Date().toISOString()}`,
+          `ua: ${JSON.stringify(ua(), null, 2)}`,
+          `voiceCount: ${voices.length}`,
+          `amharicish: ${am.map((v) => `${v.name}|${v.lang}|local=${v.localService}`).join('; ') || '(none)'}`,
+          `all:`,
+          ...voices.map(
+            (v, i) =>
+              `  [${i}] ${v.name} | lang=${v.lang} | local=${v.localService} | default=${v.default}`,
+          ),
+        ]
+        logEl.textContent = lines.join('\n')
+      }
+
+      document.getElementById('list').addEventListener('click', () => {
+        refreshVoices()
+        // Some Android builds populate voices only after getVoices + voiceschanged.
+        speechSynthesis.getVoices()
+        refreshVoices()
+      })
+
+      document.getElementById('speak').addEventListener('click', () => {
+        const voices = allVoices()
+        if (!voices.length) {
+          refreshVoices()
+        }
+        const idx = Number(voiceEl.value)
+        const voice = allVoices()[idx]
+        speechSynthesis.cancel()
+        const u = new SpeechSynthesisUtterance(textEl.value)
+        if (voice) {
+          u.voice = voice
+          u.lang = voice.lang || 'am-ET'
+        } else {
+          u.lang = 'am-ET'
+        }
+        const started = performance.now()
+        u.onstart = () => {
+          logEl.textContent += `\nspeak start (+${(performance.now() - started).toFixed(0)}ms)`
+        }
+        u.onend = () => {
+          logEl.textContent += `\nspeak end (+${(performance.now() - started).toFixed(0)}ms)`
+        }
+        u.onerror = (e) => {
+          logEl.textContent += `\nspeak error: ${e.error || e.type}`
+        }
+        speechSynthesis.speak(u)
+      })
+
+      document.getElementById('stop').addEventListener('click', () => speechSynthesis.cancel())
+
+      speechSynthesis.addEventListener('voiceschanged', refreshVoices)
+      refreshVoices()
+    </script>
+  </body>
+</html>

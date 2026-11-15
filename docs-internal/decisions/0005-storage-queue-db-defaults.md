@@ -166,7 +166,8 @@ Object key layout:
 | `assets/{assetId}/renditions/video-240p.mp4` | Light video rendition |
 | `lessons/{lessonId}/captions/{lang}.vtt` | Caption WebVTT |
 | `lessons/{lessonId}/descriptions/{lang}.vtt` | Description tracks |
-| `lessons/{lessonId}/packs/offline.zip` | Offline pack |
+| `assets/{assetId}/packs/offline.zip` | Offline pack from the `offline-pack` worker job (#35) |
+| `lessons/{lessonId}/packs/offline.zip` | Offline pack when served via lesson APIs (may alias the asset key) |
 
 Signed downloads use `Storage.signedUrl(key, ttlSeconds)`: MinIO presign in Compose; local-disk HMAC route when `STORAGE_PROVIDER=local-disk`.
 

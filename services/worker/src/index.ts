@@ -4,10 +4,17 @@
 // #26: ffmpeg extract (16 kHz mono) + Opus 24 kbps + 240p; sizes logged for the pack report.
 // #27: Transcriber adapter → WebVTT [needsReview]. Default STT is external MMS (mms-http);
 //     model weights live in another repo. Cloud adapters need explicit consent.
+// #35: offline-pack zip (Opus + transcript HTML + captions + index.html) + size report.
 
 import { captionsEnabled } from '@abolkit/caption-store'
 import { migrateJobs, openSqlite } from '@abolkit/jobs'
-import { createStorage, createTranscriber, ProviderError } from '@abolkit/provider-sdk'
+import {
+  createStorage,
+  createTranscriber,
+  createTranslator,
+  createTts,
+  ProviderError,
+} from '@abolkit/provider-sdk'
 
 import { startCaptionWorkers } from './captions/index.ts'
 import { loadQueueConfig, loadWorkerConfig } from './config.ts'
@@ -29,6 +36,15 @@ export {
   video240pKey,
 } from './ffmpeg/index.ts'
 export { langFromJobParams, markNeedsReview, transcribeStoredAudio } from './stt/index.ts'
+export {
+  buildOfflinePack,
+  buildZip,
+  packParamsFromJob,
+  renderIndexHtml,
+  renderTranscriptHtml,
+  type BuildOfflinePackResult,
+  type PackSizeReport,
+} from './pack/index.ts'
 export { createJobRunner, type JobContext, type JobHandler, type JobHandlers } from './runner.ts'
 export {
   createCaptionProcessors,
@@ -49,19 +65,38 @@ export function createWorkerTranscriber(env: Record<string, string | undefined> 
   return createTranscriber(config)
 }
 
-/** Dev helper: resolve transcriber and print which backend will be used. */
+/** Dev helper: resolve providers and print which backends will be used (`--info`). */
 export function printTranscriberInfo(): void {
   try {
     const config = loadWorkerConfig()
     const transcriber = createTranscriber(config)
+    const translator = createTranslator(config)
+    const tts = createTts(config)
     console.log(
       JSON.stringify({
         ok: true,
-        transcriber: transcriber.id,
-        label: transcriber.label,
-        sendsDataOffHost: transcriber.sendsDataOffHost,
+        allowOffHostProviders: config.allowOffHostProviders === true,
         offHostConsent: config.transcriberOffHostConsent === true,
-        url: config.transcriberUrl ?? null,
+        transcriber: {
+          id: transcriber.id,
+          label: transcriber.label,
+          sendsDataOffHost: transcriber.sendsDataOffHost,
+          url: config.transcriberUrl ?? null,
+        },
+        workDir: config.workDir,
+        ffmpegBin: config.ffmpegBin ?? null,
+        translator: {
+          id: translator.id,
+          label: translator.label,
+          sendsDataOffHost: translator.sendsDataOffHost,
+        },
+        tts: {
+          id: tts.id,
+          label: tts.label,
+          sendsDataOffHost: tts.sendsDataOffHost,
+          languages: tts.languages(),
+        },
+        storage: config.storage,
       }),
     )
   } catch (err: unknown) {
