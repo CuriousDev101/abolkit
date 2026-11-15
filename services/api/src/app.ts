@@ -1,3 +1,4 @@
+import { enqueueJob, getJob, type Job } from '@abolkit/jobs'
 import { createStorage, verifyLocalDiskSignedUrl, type Storage } from '@abolkit/provider-sdk'
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
@@ -6,18 +7,21 @@ import type { DatabaseSync } from 'node:sqlite'
 
 import { AssetServiceError, createAssetService, type AssetService } from './assets/service.ts'
 import { loadApiConfig, type ApiConfig } from './config.ts'
+import { getAssetById, isExpired } from './db/assets.ts'
 import { openDatabase } from './db/sqlite.ts'
 import { embedScript } from './embed.ts'
-import { jsonError, validationHook } from './http.ts'
+import { HttpError, jsonError, validationHook } from './http.ts'
 import { requireApiKey } from './middleware/api-key.ts'
 import { openApiConfig } from './openapi.ts'
 import { createAssetRoute, getAssetRoute } from './routes/assets.ts'
 import { healthRoute } from './routes/health.ts'
+import { createAssetJobRoute, getJobRoute } from './routes/jobs.ts'
 import { getStorageObjectRoute } from './routes/storage-object.ts'
 import { loadScalarStandalone } from './scalar-asset.ts'
-import { ErrorBodySchema } from './schemas.ts'
+import { ErrorBodySchema, type JobBody } from './schemas.ts'
 
 const DOCS_SCRIPT_PATH = '/docs/scalar.js'
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
 export type CreateAppOptions = {
   env?: Record<string, string | undefined>
@@ -27,8 +31,8 @@ export type CreateAppOptions = {
 }
 
 /**
- * Hono + zod-openapi API (#17 skeleton + #24 assets/storage).
- * POST /api/assets uses requireApiKey; GET metadata and signed downloads stay open.
+ * Hono + zod-openapi API (#17 skeleton, #24 assets/storage, #25 jobs).
+ * Writes under /api use requireApiKey; GET metadata, job status and signed downloads stay open.
  */
 export function createApp(options: CreateAppOptions | Record<string, string | undefined> = {}) {
   const env = isEnvMap(options) ? options : (options.env ?? process.env)
@@ -60,9 +64,9 @@ export function createApp(options: CreateAppOptions | Record<string, string | un
 
   app.use('*', apiCors(config.corsOrigin))
 
-  // Only the upload write needs the API key. GET /api/assets/:id stays public.
-  app.use('/api/assets', async (c, next) => {
-    if (c.req.method !== 'POST') return next()
+  // Writes (upload, job create, later caption puts) need the API key. Reads stay public.
+  app.use('/api/*', async (c, next) => {
+    if (!WRITE_METHODS.has(c.req.method)) return next()
     return requireApiKey(config.apiKey)(c, next)
   })
 
@@ -71,6 +75,7 @@ export function createApp(options: CreateAppOptions | Record<string, string | un
   })
 
   registerAssetRoutes(app, config, assets, storage)
+  registerJobRoutes(app, config, db)
 
   app.doc31('/openapi.json', openApiConfig)
 
@@ -103,7 +108,7 @@ export function createApp(options: CreateAppOptions | Record<string, string | un
   app.notFound((c) => jsonError(c, 404, 'NOT_FOUND', 'Not found'))
 
   app.onError((err, c) => {
-    if (err instanceof AssetServiceError) {
+    if (err instanceof AssetServiceError || err instanceof HttpError) {
       return jsonError(c, err.status, err.code, err.message)
     }
     console.error(err)
@@ -176,6 +181,55 @@ function registerAssetRoutes(
       'X-Content-Type-Options': 'nosniff',
     })
   })
+}
+
+function registerJobRoutes(app: OpenAPIHono, config: ApiConfig, db: DatabaseSync) {
+  app.openapi(createAssetJobRoute, (c) => {
+    const { id } = c.req.valid('param')
+    const { type, params } = c.req.valid('json')
+
+    const asset = getAssetById(db, id)
+    if (!asset) {
+      throw new HttpError(404, 'NOT_FOUND', 'Asset not found')
+    }
+    if (isExpired(asset)) {
+      throw new HttpError(410, 'GONE', 'Asset retention has expired')
+    }
+
+    const job = enqueueJob(db, { assetId: id, type, params, maxAttempts: config.jobMaxAttempts })
+    c.header('Location', `/api/jobs/${job.id}`)
+    return c.json(toJobBody(job), 202)
+  })
+
+  app.openapi(getJobRoute, (c) => {
+    const { id } = c.req.valid('param')
+    const job = getJob(db, id)
+    if (!job) {
+      throw new HttpError(404, 'NOT_FOUND', 'Job not found')
+    }
+    c.header('Cache-Control', 'no-store')
+    return c.json(toJobBody(job), 200)
+  })
+}
+
+function toJobBody(job: Job): JobBody {
+  return {
+    id: job.id,
+    assetId: job.assetId,
+    type: job.type,
+    status: job.status,
+    progress: job.progress,
+    attempts: job.attempts,
+    maxAttempts: job.maxAttempts,
+    error: job.error,
+    params: job.params,
+    result: job.result,
+    nextAttemptAt: job.status === 'queued' ? job.runAfter : null,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+    startedAt: job.startedAt,
+    finishedAt: job.finishedAt,
+  }
 }
 
 function isEnvMap(

@@ -1,3 +1,4 @@
+import { JOB_STATUSES, JOB_TYPES } from '@abolkit/jobs'
 import { z } from '@hono/zod-openapi'
 
 /** Liveness of this API process. Does not probe the external STT service. */
@@ -65,7 +66,66 @@ export const AssetSchema = z
   })
   .openapi('Asset')
 
+export const JobIdParamSchema = z.object({
+  id: z
+    .string()
+    .uuid()
+    .openapi({
+      param: { name: 'id', in: 'path' },
+      example: '22222222-2222-4222-8222-222222222222',
+    }),
+})
+
+export const JobTypeSchema = z.enum(JOB_TYPES).openapi('JobType', { example: 'transcribe' })
+
+export const JobStatusSchema = z.enum(JOB_STATUSES).openapi('JobStatus', { example: 'queued' })
+
+export const JobCreateBodySchema = z
+  .object({
+    type: JobTypeSchema,
+    params: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .openapi({
+        description: 'Type-specific options passed to the worker handler.',
+        example: { language: 'am' },
+      }),
+  })
+  .openapi('JobCreateBody')
+
+export const JobSchema = z
+  .object({
+    id: z.string().uuid(),
+    assetId: z.string().uuid(),
+    type: JobTypeSchema,
+    status: JobStatusSchema,
+    progress: z.number().int().min(0).max(100).openapi({ example: 0 }),
+    attempts: z.number().int().nonnegative().openapi({
+      description: 'Attempts started so far, including a running one.',
+      example: 0,
+    }),
+    maxAttempts: z.number().int().positive().openapi({ example: 3 }),
+    error: z.string().nullable().openapi({
+      description: 'Last failure. Kept while a retry is queued.',
+      example: null,
+    }),
+    params: z.record(z.string(), z.unknown()),
+    result: z.record(z.string(), z.unknown()).nullable().openapi({
+      description: 'Handler output (storage keys, links) once succeeded.',
+      example: null,
+    }),
+    nextAttemptAt: z.string().datetime().nullable().openapi({
+      description: 'When a queued job may next run (retry backoff). Null unless queued.',
+    }),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+    startedAt: z.string().datetime().nullable(),
+    finishedAt: z.string().datetime().nullable(),
+  })
+  .openapi('Job')
+
 export type Health = z.infer<typeof HealthSchema>
 export type ErrorBody = z.infer<typeof ErrorBodySchema>
 export type Asset = z.infer<typeof AssetSchema>
 export type AssetCreated = z.infer<typeof AssetCreatedSchema>
+export type JobBody = z.infer<typeof JobSchema>
