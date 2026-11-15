@@ -41,6 +41,8 @@ export type ApiConfig = {
   assetRetentionDays: number
   /** TTL for downloadUrl on GET /api/assets/:id. */
   signedUrlTtlSeconds: number
+  /** Attempts (first run + retries) stored on each new job. */
+  jobMaxAttempts: number
   /** Raw env forwarded to createStorage. */
   env: Env
 }
@@ -59,6 +61,7 @@ export function loadApiConfig(env: Env = process.env as Env): ApiConfig {
     3600,
     'SIGNED_URL_TTL_SECONDS',
   )
+  const jobMaxAttempts = parsePositiveInt(env.JOB_MAX_ATTEMPTS, 3, 'JOB_MAX_ATTEMPTS')
 
   const allowed = env.ASSET_ALLOWED_MIME?.split(',')
     .map((part) => part.trim())
@@ -75,6 +78,7 @@ export function loadApiConfig(env: Env = process.env as Env): ApiConfig {
     assetAllowedMime: allowed,
     assetRetentionDays,
     signedUrlTtlSeconds,
+    jobMaxAttempts,
     env,
   }
 }

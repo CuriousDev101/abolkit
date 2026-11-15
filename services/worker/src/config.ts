@@ -2,6 +2,42 @@ import { providerConfigFromEnv, type ProviderConfig } from '@abolkit/provider-sd
 
 type Env = Record<string, string | undefined>
 
-export function loadWorkerConfig(env: Env = process.env as Env): ProviderConfig {
+export type WorkerProviderConfig = ProviderConfig
+
+export function loadWorkerConfig(env: Env = process.env as Env): WorkerProviderConfig {
   return providerConfigFromEnv(env)
+}
+
+export type QueueConfig = {
+  /** Must be the same SQLite file the API writes (ADR 0005). */
+  databaseUrl: string
+  pollIntervalMs: number
+  leaseSeconds: number
+  retryBaseMs: number
+  retryMaxMs: number
+}
+
+export function loadQueueConfig(env: Env = process.env as Env): QueueConfig {
+  const databaseUrl = env.DATABASE_URL?.trim()
+  if (!databaseUrl) {
+    throw new Error(
+      'DATABASE_URL is required and must point at the API SQLite file (e.g. file:../api/data/abolkit.sqlite)',
+    )
+  }
+  return {
+    databaseUrl,
+    pollIntervalMs: parsePositiveInt(env.JOB_POLL_INTERVAL_MS, 1500, 'JOB_POLL_INTERVAL_MS'),
+    leaseSeconds: parsePositiveInt(env.JOB_LEASE_SECONDS, 120, 'JOB_LEASE_SECONDS'),
+    retryBaseMs: parsePositiveInt(env.JOB_RETRY_BASE_MS, 2000, 'JOB_RETRY_BASE_MS'),
+    retryMaxMs: parsePositiveInt(env.JOB_RETRY_MAX_MS, 60_000, 'JOB_RETRY_MAX_MS'),
+  }
+}
+
+function parsePositiveInt(raw: string | undefined, fallback: number, name: string): number {
+  if (raw == null || raw.trim() === '') return fallback
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new Error(`${name} must be a positive integer, got ${raw}`)
+  }
+  return n
 }

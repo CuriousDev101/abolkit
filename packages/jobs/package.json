@@ -1,0 +1,18 @@
+{
+  "name": "@abolkit/jobs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "description": "SQLite DB-backed job queue (ADR 0005) shared by the API and the worker: schema, enqueue, claim with lease, progress, retry with backoff.",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "vitest": "^5.1.0"
+  }
+}
