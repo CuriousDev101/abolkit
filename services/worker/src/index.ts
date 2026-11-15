@@ -7,6 +7,7 @@
 
 import { migrateJobs, openSqlite } from '@abolkit/jobs'
 import {
+  createStorage,
   createTranscriber,
   createTranslator,
   createTts,
@@ -52,12 +53,15 @@ export function printTranscriberInfo(): void {
       JSON.stringify({
         ok: true,
         allowOffHostProviders: config.allowOffHostProviders === true,
+        offHostConsent: config.transcriberOffHostConsent === true,
         transcriber: {
           id: transcriber.id,
           label: transcriber.label,
           sendsDataOffHost: transcriber.sendsDataOffHost,
           url: config.transcriberUrl ?? null,
         },
+        workDir: config.workDir,
+        ffmpegBin: config.ffmpegBin ?? null,
         translator: {
           id: translator.id,
           label: translator.label,

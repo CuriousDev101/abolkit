@@ -1,4 +1,6 @@
 import type { ProviderConfig } from './types.ts'
+import { transcriberConfigFromEnv } from './create-transcriber.ts'
+import { storageConfigFromEnv } from './storage/create-storage.ts'
 
 type Env = Record<string, string | undefined>
 
@@ -8,11 +10,10 @@ type Env = Record<string, string | undefined>
  */
 export function providerConfigFromEnv(env: Env = process.env): ProviderConfig {
   return {
-    transcriber: env.TRANSCRIBER?.trim() || 'mms-http',
+    ...transcriberConfigFromEnv(env),
+    ...storageConfigFromEnv(env),
     translator: env.TRANSLATOR?.trim() || 'none',
     tts: env.TTS?.trim() || 'recorded-clips',
-    storage: env.STORAGE_PROVIDER?.trim() || env.STORAGE?.trim() || 'local-disk',
-    transcriberUrl: env.TRANSCRIBER_URL?.trim() || undefined,
     allowOffHostProviders: parseBool(env.ALLOW_OFF_HOST_PROVIDERS, false),
   }
 }

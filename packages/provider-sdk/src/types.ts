@@ -46,7 +46,7 @@ export interface Storage extends ProviderInfo {
 export interface ProviderConfig {
   /**
    * Default after #7: 'mms-http' (self-hosted wrapper). Use 'stub' for no network.
-   * Off-host ids (e.g. 'assemblyai') require `allowOffHostProviders`.
+   * Off-host id `cloud` requires `transcriberOffHostConsent`.
    */
   transcriber: string
   /** Default: 'none' (identity). Also: 'stub'. Cloud ids require consent. */
@@ -58,8 +58,13 @@ export interface ProviderConfig {
   /** Base URL for mms-http, e.g. http://mms-stt:8000 */
   transcriberUrl?: string
   /**
-   * Explicit opt-in before any adapter with `sendsDataOffHost: true` may be constructed.
-   * Maps to env `ALLOW_OFF_HOST_PROVIDERS=true`.
+   * Required before creating an off-host transcriber (`cloud`).
+   * Maps to `TRANSCRIBER_OFF_HOST_CONSENT=true` (ADR 0003 / #27).
+   */
+  transcriberOffHostConsent?: boolean
+  /**
+   * Explicit opt-in before translator/TTS (and other) adapters with `sendsDataOffHost: true`
+   * may be constructed. Maps to env `ALLOW_OFF_HOST_PROVIDERS=true`.
    */
   allowOffHostProviders?: boolean
 }

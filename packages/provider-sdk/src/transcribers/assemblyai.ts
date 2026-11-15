@@ -3,7 +3,8 @@ import type { Transcriber } from '../types.ts'
 
 /**
  * Optional cloud STT skeleton (ADR 0003 / spike #7).
- * Off by default; `createTranscriber` requires `allowOffHostProviders` before returning this.
+ * Legacy skeleton export. Prefer `createCloudStubTranscriber` / `TRANSCRIBER=cloud`
+ * with `transcriberOffHostConsent`. Not selectable via `createTranscriber`.
  */
 export function createAssemblyAiTranscriberSkeleton(): Transcriber {
   return {

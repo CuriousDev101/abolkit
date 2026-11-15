@@ -17,7 +17,11 @@ export { ProviderError } from './errors.ts'
 export { assertOffHostAllowed } from './consent.ts'
 export { providerConfigFromEnv } from './provider-config.ts'
 
-export { createTranscriber, transcriberConfigFromEnv } from './create-transcriber.ts'
+export {
+  createTranscriber,
+  transcriberConfigFromEnv,
+  type TranscriberSelection,
+} from './create-transcriber.ts'
 export { createTranslator } from './create-translator.ts'
 export { createTts, type CreateTtsOptions } from './create-tts.ts'
 
@@ -28,6 +32,7 @@ export {
   type MmsTranscribeResponse,
 } from './transcribers/mms-http.ts'
 export { createStubTranscriber } from './transcribers/stub.ts'
+export { createCloudStubTranscriber } from './transcribers/cloud-stub.ts'
 export { createAssemblyAiTranscriberSkeleton } from './transcribers/assemblyai.ts'
 
 export { createNoneTranslator } from './translators/none.ts'
