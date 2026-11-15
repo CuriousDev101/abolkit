@@ -7,7 +7,11 @@ import {
   resolveUiLang,
   t,
 } from '@abolkit/core'
-import { parseGenerateCaptions, watchCaptions } from './caption-api.js'
+import {
+  parseGenerateCaptions,
+  watchCaptions,
+  type CaptionStatus,
+} from './caption-api.js'
 import type { LessonConfig } from './config.js'
 import { configFromAttributes, configFromManifest, languageName, mergeConfig } from './config.js'
 import type { EngineEvent, MediaEngine } from './engine.js'
@@ -47,11 +51,19 @@ const TEMPLATE = `
     <div class="stage" part="stage"></div>
     <aside class="transcript" id="abol-tr" part="transcript" aria-labelledby="abol-tr-h" hidden>
       <header class="tr-head">
-        <h2 id="abol-tr-h" data-l="transcript"></h2>
+        <div class="tr-head-text">
+          <h2 id="abol-tr-h" data-l="transcript"></h2>
+          <span class="tr-lang" hidden></span>
+        </div>
         <button type="button" class="tr-close" data-a="transcript" data-la="hideTranscript">${CLOSE_ICON}</button>
       </header>
       <div class="tr-search" role="search">
-        <input type="search" class="tr-query" data-la="searchTranscript" autocomplete="off" spellcheck="false" />
+        <label class="tr-search-field">
+          <span class="tr-search-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 14 14"><circle cx="6" cy="6" r="4.25" stroke="currentColor" stroke-width="1.5"/><path stroke="currentColor" stroke-linecap="round" stroke-width="1.5" d="m9.5 9.5 2.75 2.75"/></svg>
+          </span>
+          <input type="search" class="tr-query" data-la="searchTranscript" autocomplete="off" spellcheck="false" />
+        </label>
         <span class="tr-count" aria-live="polite"></span>
       </div>
       <div class="tr-body"></div>
@@ -67,6 +79,10 @@ const TEMPLATE = `
 </div>`
 
 const OVERLAYS = `
+<div class="caption-jobs" role="status" aria-live="polite" hidden>
+  <span class="caption-jobs-title"></span>
+  <ul class="caption-jobs-list"></ul>
+</div>
 <div class="captions" aria-hidden="true"><span class="cue" hidden></span></div>
 <div class="sign" role="group" hidden>
   <div class="sign-bar">
@@ -403,18 +419,23 @@ export class AbolPlayerElement extends HTMLElement {
         undefined,
       signal: controller.signal,
       onStatus: (status) => {
-        if (status === 'processing' && !announced) {
+        this.#renderCaptionJobs(status, request.languages)
+        if (status.status === 'processing' && !announced) {
           announced = true
           this.#announce(t(this.#lang, 'captionsGenerating'))
         }
-        this.#emit('abol:captions', { status })
+        this.#emit('abol:captions', {
+          status: status.status,
+          jobs: status.jobs,
+          languages: status.captions.map((c) => c.language),
+        })
       },
       onCaption: (caption, vtt) => {
         if (have.has(caption.language)) return
         have.add(caption.language)
         const src = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }))
         blobs.push(src)
-        const label = languageName(caption.language)
+        const label = languageName(caption.language, this.#lang)
         if (!engine.addTrack({ kind: 'captions', src, lang: caption.language, label })) return
         const preferred = this.#settings.captionsLang
         if (preferred === caption.language || (preferred !== '' && !this.#showingCaption())) {
@@ -428,14 +449,19 @@ export class AbolPlayerElement extends HTMLElement {
           needsReview: caption.needsReview,
         })
       },
-    }).catch((err: unknown) => {
-      if (controller.signal.aborted) return
-      console.warn('[abol-player] Caption API:', err)
-      this.#emit('abol:captions', {
-        status: 'error',
-        message: err instanceof Error ? err.message : String(err),
-      })
     })
+      .catch((err: unknown) => {
+        if (controller.signal.aborted) return
+        console.warn('[abol-player] Caption API:', err)
+        this.#renderCaptionJobsError(err instanceof Error ? err.message : String(err))
+        this.#emit('abol:captions', {
+          status: 'error',
+          message: err instanceof Error ? err.message : String(err),
+        })
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) this.#hideCaptionJobsSoon()
+      })
   }
 
   #mountOverlays(engine: MediaEngine, config: LessonConfig): void {
@@ -632,15 +658,17 @@ export class AbolPlayerElement extends HTMLElement {
   #refreshAvailability(): void {
     const config = this.#config
     const captions = this.#captionTracks()
+    // YouTube / CueTrack: our abol-option-group owns the list. Hide Video.js's media-captions-radio-group so
+    // Off/English are not listed twice (YouTube-native + host/API tracks).
+    const useCustomCaptions = !!this.#engine?.customTracks && captions.length > 0
     const available: Partial<Record<OptionKey | 'captionTrack', boolean>> = {
       adMode: !!this.#descTrack(),
       signVisible: !!config?.sign,
       audioOnly: !!config?.audio,
-      captionTrack: !!this.#engine?.customTracks && captions.length > 0,
+      captionTrack: useCustomCaptions,
     }
-    // Caption style only applies to captions we draw; without any, the captions menu keeps just Video.js's tracks.
-    for (const { key, group } of OPTIONS)
-      if (group === 'caption') available[key] = captions.length > 0
+    // Caption style controls the cue overlay we draw — always offer it (YouTube-style Options).
+    for (const { key, group } of OPTIONS) if (group === 'caption') available[key] = true
     type Group = HTMLElement & {
       unavailable: boolean
       setChoices?(choices: Array<[string, string]>): void
@@ -650,16 +678,31 @@ export class AbolPlayerElement extends HTMLElement {
       for (const group of this.#all<Group>(`abol-option-group[data-opt="${key}"]`))
         group.unavailable = !ok
       for (const label of this.#all(`label:has(> [data-s="${key}"])`)) label.hidden = !ok
+      for (const item of this.#all(`media-menu-item[data-page="abol-opt-${key}"]`))
+        item.hidden = !ok
     }
-    if (available.captionTrack) {
-      const choices: Array<[string, string]> = [
-        ['', t(this.#lang, 'off')],
-        ...captions.map((tr): [string, string] => [tr.language, tr.label || tr.language]),
-      ]
-      for (const group of this.#all<Group>('abol-option-group[data-opt="captionTrack"]'))
-        group.setChoices?.(choices)
-      this.#reflectCaptions()
+    for (const item of this.#all('media-menu-item[data-page="abol-page-caption"]'))
+      item.hidden = false
+    for (const sep of this.#all('#abol-captions-menu .abol-captions-sep'))
+      sep.hidden = !useCustomCaptions
+    for (const menu of this.#all<HTMLElement>('#abol-captions-menu'))
+      menu.toggleAttribute('data-abol-custom-captions', useCustomCaptions)
+    for (const group of this.#all<Group>('abol-option-group[data-opt="captionTrack"]')) {
+      // Template starts hidden; show only while we own the track list (CSS also gates on the menu flag).
+      group.hidden = !useCustomCaptions
+      if (useCustomCaptions) {
+        const trackLabel = (tr: TextTrack) => {
+          const raw = tr.label?.trim()
+          if (raw && raw.toLowerCase() !== tr.language.toLowerCase()) return raw
+          return languageName(tr.language, this.#lang) || tr.language || raw || ''
+        }
+        group.setChoices?.([
+          ['', t(this.#lang, 'off')],
+          ...captions.map((tr): [string, string] => [tr.language, trackLabel(tr)]),
+        ])
+      }
     }
+    if (useCustomCaptions) this.#reflectCaptions()
     for (const node of this.#all(toggles('transcript'))) node.hidden = !this.#hasTranscript()
     for (const node of this.#all(toggles('sign'))) node.hidden = !config?.sign
   }
@@ -1073,6 +1116,10 @@ export class AbolPlayerElement extends HTMLElement {
     this.#trItems = items
     this.#trActive = null
     this.#q('.tr-search').hidden = !items.length
+    const badge = this.#q<HTMLElement>('.tr-lang')
+    const label = languageName(lang, this.#lang)
+    badge.hidden = !items.length || !label
+    badge.textContent = label
     this.#search(this.#trQuery)
     this.#syncTranscript(true)
   }
@@ -1327,6 +1374,115 @@ export class AbolPlayerElement extends HTMLElement {
     const live = this.#q('.sr')
     live.textContent = ''
     requestAnimationFrame(() => (live.textContent = message))
+  }
+
+  /** Live multi-language caption job strip while the API is generating tracks. */
+  #renderCaptionJobs(status: CaptionStatus, wanted: string[]): void {
+    const panel = this.#layers?.querySelector<HTMLElement>('.caption-jobs')
+    if (!panel) return
+    const title = panel.querySelector('.caption-jobs-title')
+    const list = panel.querySelector('.caption-jobs-list')
+    if (!title || !list) return
+
+    const jobs = status.jobs.filter(
+      (job) =>
+        job.type === 'transcribe' ||
+        (job.type === 'translate' && job.language && wanted.includes(job.language)),
+    )
+    const active = jobs.filter((job) => job.status === 'queued' || job.status === 'running')
+    const failed = jobs.filter((job) => job.status === 'failed')
+    const readyLangs = new Set(status.captions.map((c) => c.language))
+
+    if (status.status === 'ready' && active.length === 0) {
+      panel.hidden = true
+      panel.removeAttribute('data-state')
+      return
+    }
+
+    panel.hidden = false
+    panel.dataset.state =
+      status.status === 'failed' || (failed.length > 0 && active.length === 0)
+        ? 'failed'
+        : 'processing'
+
+    if (panel.dataset.state === 'failed') {
+      title.textContent = t(this.#lang, 'captionsFailed')
+    } else if (jobs.some((j) => j.type === 'transcribe' && j.status !== 'succeeded')) {
+      title.textContent = t(this.#lang, 'captionsTranscribing')
+    } else if (active.some((j) => j.type === 'translate')) {
+      title.textContent = t(this.#lang, 'captionsTranslating')
+    } else {
+      title.textContent = t(this.#lang, 'captionsGenerating')
+    }
+
+    const rows: Array<{ lang: string; state: string; progress?: number }> = []
+    const transcriptJob = jobs.find((j) => j.type === 'transcribe')
+    if (transcriptJob && transcriptJob.status !== 'succeeded') {
+      rows.push({
+        lang: t(this.#lang, 'captionsProgress'),
+        state: transcriptJob.status,
+        progress: transcriptJob.progress,
+      })
+    }
+    for (const lang of wanted) {
+      if (readyLangs.has(lang)) {
+        rows.push({ lang: languageName(lang, this.#lang), state: 'succeeded' })
+        continue
+      }
+      const job = jobs.find((j) => j.type === 'translate' && j.language === lang)
+      rows.push({
+        lang: languageName(lang, this.#lang),
+        state: job?.status ?? (status.status === 'processing' ? 'queued' : 'failed'),
+        progress: job?.progress,
+      })
+    }
+
+    list.replaceChildren(
+      ...rows.map((row) => {
+        const li = document.createElement('li')
+        li.dataset.state = row.state
+        const name = document.createElement('span')
+        name.className = 'caption-jobs-lang'
+        name.textContent = row.lang
+        const meta = document.createElement('span')
+        meta.className = 'caption-jobs-meta'
+        meta.textContent =
+          row.state === 'succeeded'
+            ? t(this.#lang, 'captionsReady')
+            : row.state === 'failed'
+              ? t(this.#lang, 'captionsFailed')
+              : row.state === 'running'
+                ? `${t(this.#lang, 'captionsGenerating')}${row.progress != null ? ` ${row.progress}%` : ''}`
+                : t(this.#lang, 'captionsQueued')
+        li.append(name, meta)
+        return li
+      }),
+    )
+  }
+
+  #renderCaptionJobsError(message: string): void {
+    const panel = this.#layers?.querySelector<HTMLElement>('.caption-jobs')
+    if (!panel) return
+    panel.hidden = false
+    panel.dataset.state = 'failed'
+    const title = panel.querySelector('.caption-jobs-title')
+    const list = panel.querySelector('.caption-jobs-list')
+    if (title) title.textContent = t(this.#lang, 'captionsFailed')
+    if (list) {
+      list.replaceChildren()
+      const li = document.createElement('li')
+      li.dataset.state = 'failed'
+      li.textContent = message
+      list.append(li)
+    }
+  }
+
+  #hideCaptionJobsSoon(): void {
+    const panel = this.#layers?.querySelector<HTMLElement>('.caption-jobs')
+    if (!panel || panel.dataset.state === 'failed') return
+    window.setTimeout(() => {
+      if (panel.dataset.state !== 'failed') panel.hidden = true
+    }, 2500)
   }
 
   #status(key: UiStringKey | null, failed = false): void {
