@@ -107,6 +107,13 @@ describe('job runner', () => {
     expect(after?.error).toMatch(/not implemented/)
   })
 
+  it('transcribe stays unimplemented until storage and transcriber are wired', async () => {
+    enqueueJob(db, { assetId: ASSET, type: 'transcribe', maxAttempts: 1, now })
+    const after = await runner(createDefaultHandlers()).runOnce()
+    expect(after?.status).toBe('failed')
+    expect(after?.error).toMatch(/#27/)
+  })
+
   it('start() polls until stop()', async () => {
     const job = enqueueJob(db, { assetId: ASSET, type: 'transcribe', maxAttempts: 1, now })
     const r = runner({ transcribe: async () => ({ ok: true }) })

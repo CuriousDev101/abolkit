@@ -1,9 +1,12 @@
 import { JobError, JOB_TYPES, type JobType } from '@abolkit/jobs'
+import type { Storage, Transcriber } from '@abolkit/provider-sdk'
 
-import type { JobHandler, JobHandlers } from './runner.ts'
+import { produceAssetMedia, type RunFfmpeg } from './ffmpeg/index.ts'
+import type { JobHandler, JobHandlers, Logger } from './runner.ts'
+import { langFromJobParams, transcribeStoredAudio } from './stt/index.ts'
 
 const PLANNED_IN: Record<JobType, string> = {
-  transcribe: '#26 (ffmpeg) and #27 (STT)',
+  transcribe: '#27 (STT via provider adapter)',
   translate: 'a later pipeline issue',
   'describe-tts': 'a later pipeline issue',
   'offline-pack': 'a later pipeline issue',
@@ -17,10 +20,71 @@ function notImplemented(type: JobType): JobHandler {
   }
 }
 
+export type HandlerDeps = {
+  /** Required for ffmpeg extract + renditions (#26) and caption upload (#27). */
+  storage?: Storage
+  /** Required for STT (#27). Models stay outside this process. */
+  transcriber?: Transcriber
+  workDir?: string
+  ffmpegBin?: string
+  runFfmpeg?: RunFfmpeg
+  log?: Logger
+}
+
 /**
- * Every job type has a handler so no job sits queued forever. Real handlers
- * replace these entries as the pipeline issues land.
+ * Every job type has a handler so no job sits queued forever.
+ * #26: ffmpeg extract + Opus + 240p.
+ * #27: Transcriber adapter → WebVTT cues marked needsReview.
  */
-export function createDefaultHandlers(): JobHandlers {
-  return Object.fromEntries(JOB_TYPES.map((type) => [type, notImplemented(type)])) as JobHandlers
+export function createDefaultHandlers(deps: HandlerDeps = {}): JobHandlers {
+  const handlers = Object.fromEntries(
+    JOB_TYPES.map((type) => [type, notImplemented(type)]),
+  ) as JobHandlers
+
+  if (deps.storage && deps.transcriber) {
+    const storage = deps.storage
+    const transcriber = deps.transcriber
+    handlers.transcribe = async (job, ctx) => {
+      const media = await produceAssetMedia({
+        storage,
+        assetId: job.assetId,
+        workDir: deps.workDir,
+        signal: ctx.signal,
+        progress: (value) => ctx.progress(Math.min(70, Math.round(value * 0.7))),
+        bin: deps.ffmpegBin,
+        run: deps.runFfmpeg,
+        log: deps.log,
+      })
+
+      const lang = langFromJobParams(job.params)
+      const stt = await transcribeStoredAudio({
+        storage,
+        transcriber,
+        assetId: job.assetId,
+        lang,
+        audioObjectKey: media.audio16kKey,
+        workDir: deps.workDir,
+        signal: ctx.signal,
+        progress: ctx.progress,
+        log: deps.log,
+      })
+
+      ctx.progress(100)
+
+      return {
+        audio16kKey: media.audio16kKey,
+        opusAudioKey: media.opusAudioKey,
+        video240pKey: media.video240pKey,
+        sizes: media.sizes,
+        lang: stt.lang,
+        captionsKey: stt.captionsKey,
+        cueCount: stt.cueCount,
+        needsReview: true,
+        transcriber: stt.transcriber,
+        sendsDataOffHost: stt.sendsDataOffHost,
+      }
+    }
+  }
+
+  return handlers
 }
