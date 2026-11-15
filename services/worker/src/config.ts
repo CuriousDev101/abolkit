@@ -1,18 +1,32 @@
-import { transcriberConfigFromEnv, type ProviderConfig } from '@abolkit/provider-sdk'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+import {
+  storageConfigFromEnv,
+  transcriberConfigFromEnv,
+  type ProviderConfig,
+} from '@abolkit/provider-sdk'
 
 type Env = Record<string, string | undefined>
 
 export type WorkerProviderConfig = Pick<
   ProviderConfig,
   'transcriber' | 'transcriberUrl' | 'translator' | 'tts' | 'storage'
->
+> & {
+  /** Temp parent dir for ffmpeg work folders. */
+  workDir: string
+  /** Optional absolute path to the ffmpeg binary. */
+  ffmpegBin: string | undefined
+}
 
 export function loadWorkerConfig(env: Env = process.env as Env): WorkerProviderConfig {
   return {
     ...transcriberConfigFromEnv(env),
+    ...storageConfigFromEnv(env),
     translator: env.TRANSLATOR ?? 'none',
     tts: env.TTS ?? 'recorded-clips',
-    storage: env.STORAGE ?? 'local-disk',
+    workDir: env.WORKER_WORK_DIR?.trim() || join(tmpdir(), 'abolkit-worker'),
+    ffmpegBin: env.FFMPEG_BIN?.trim() || undefined,
   }
 }
 
