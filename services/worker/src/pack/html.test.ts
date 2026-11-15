@@ -153,4 +153,18 @@ describe('accessible HTML (#54)', () => {
     expect(index.toLowerCase()).not.toMatch(/<script/)
     expect(transcript.toLowerCase()).not.toMatch(/<script/)
   })
+
+  it('links experimental BRF when brailleFileName is set', () => {
+    const index = renderIndexHtml({
+      title: 'T',
+      lang: 'en',
+      captions,
+      includeVideo: false,
+      brailleFileName: 'transcript.am.brf',
+    })
+    expect(index).toContain('href="transcript.am.brf"')
+    expect(index).toContain('not independently verified')
+    const plain = renderIndexHtml({ title: 'T', lang: 'en', captions, includeVideo: false })
+    expect(plain).not.toContain('transcript.am.brf')
+  })
 })

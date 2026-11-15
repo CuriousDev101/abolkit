@@ -55,6 +55,8 @@ export function createDefaultHandlers(deps: HandlerDeps = {}): JobHandlers {
         lang: params.lang,
         langs: params.langs,
         includeVideo: params.includeVideo,
+        includeBraille: params.includeBraille,
+        brailleTable: params.brailleTable,
         signal: ctx.signal,
         progress: ctx.progress,
         log: deps.log,

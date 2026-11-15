@@ -57,6 +57,8 @@ Hello
     expect(result.transcriptFile).toBe('transcript.html')
     expect(result.captionFiles).toEqual(['captions.en.vtt', 'captions.am.vtt'])
     expect(result.videoFile).toBeNull()
+    expect(result.brailleFile).toBeNull()
+    expect(result.brailleExperimental).toBe(false)
     expect(result.totalBytes).toBe(result.sizes.zipBytes)
     expect(result.sizes.zipBytes).toBeGreaterThan(0)
     expect(result.sizes.files.map((f) => f.name)).toEqual([
@@ -86,6 +88,51 @@ Hello
     await expect(buildOfflinePack({ storage: store, assetId: ASSET })).rejects.toThrow(
       /Opus audio not found/,
     )
+  })
+
+  it('includes experimental Amharic BRF when includeBraille is set', async () => {
+    const store = createLocalDiskStorage({
+      root: join(root, 'storage'),
+      signingSecret: 'test-signing-secret',
+    })
+    await store.put(opusAudioKey(ASSET), new Uint8Array([1]), 'audio/opus')
+    await store.put(
+      captionsKey(ASSET, 'en'),
+      new TextEncoder().encode('WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nHi\n'),
+      'text/vtt',
+    )
+    await store.put(
+      captionsKey(ASSET, 'am'),
+      new TextEncoder().encode('WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nሰላም\n'),
+      'text/vtt',
+    )
+
+    const result = await buildOfflinePack({
+      storage: store,
+      assetId: ASSET,
+      langs: ['en', 'am'],
+      includeBraille: true,
+      brailleTranslateFn: async (text) => `X:${text}`,
+    })
+    expect(result.brailleFile).toBe('transcript.am.brf')
+    expect(result.brailleExperimental).toBe(true)
+    expect(result.sizes.files.some((f) => f.name === 'transcript.am.brf')).toBe(true)
+  })
+
+  it('leaves Braille out by default so existing packs stay unchanged', async () => {
+    const store = createLocalDiskStorage({
+      root: join(root, 'storage'),
+      signingSecret: 'test-signing-secret',
+    })
+    await store.put(opusAudioKey(ASSET), new Uint8Array([1]), 'audio/opus')
+    await store.put(
+      captionsKey(ASSET, 'en'),
+      new TextEncoder().encode('WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nHi\n'),
+      'text/vtt',
+    )
+    const result = await buildOfflinePack({ storage: store, assetId: ASSET, langs: ['en'] })
+    expect(result.brailleFile).toBeNull()
+    expect(result.brailleExperimental).toBe(false)
   })
 
   it('includes optional 240p when requested', async () => {

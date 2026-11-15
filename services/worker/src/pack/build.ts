@@ -10,6 +10,7 @@ import {
   video240pKey,
 } from '../ffmpeg/keys.ts'
 import type { Logger } from '../runner.ts'
+import { BrailleExportError, exportBrfFromVtt } from './braille/index.ts'
 import {
   captionFileName,
   descriptionFileName,
@@ -50,11 +51,21 @@ export type BuildOfflinePackOptions = {
   langs?: string[]
   /** Include optional 240p video (larger pack). Default false. */
   includeVideo?: boolean
+  /**
+   * Experimental Amharic `.brf` export (#55). Default false.
+   * Requires Liblouis (`ethio-g1.ctb`) in the worker environment.
+   * Linguistic correctness has not been independently verified.
+   */
+  includeBraille?: boolean
+  /** Liblouis table for Braille (default ethio-g1.ctb). */
+  brailleTable?: string
   /** Override storage object keys when testing. */
   opusObjectKey?: string
   videoObjectKey?: string
   transcriptObjectKey?: string
   packObjectKey?: string
+  /** Injected Braille translator for tests. */
+  brailleTranslateFn?: (text: string, table: string) => Promise<string>
   signal?: AbortSignal
   progress?: (value: number) => void
   log?: Logger
@@ -67,6 +78,8 @@ export type BuildOfflinePackResult = JsonObject & {
   transcriptFile: string
   captionFiles: string[]
   descriptionFiles: string[]
+  brailleFile: string | null
+  brailleExperimental: boolean
   videoFile: string | null
   sizes: PackSizeReport
   totalBytes: number
@@ -97,12 +110,16 @@ export function packParamsFromJob(params: JsonObject): {
   lang?: string
   langs?: string[]
   includeVideo: boolean
+  includeBraille: boolean
+  brailleTable?: string
 } {
   return {
     title: typeof params.title === 'string' ? params.title : undefined,
     lang: typeof params.lang === 'string' ? params.lang : undefined,
     langs: asStringList(params.langs) ?? asStringList(params.languages),
     includeVideo: asBool(params.includeVideo, false),
+    includeBraille: asBool(params.includeBraille, false),
+    brailleTable: typeof params.brailleTable === 'string' ? params.brailleTable : undefined,
   }
 }
 
@@ -120,6 +137,7 @@ export async function buildOfflinePack(
     l.trim().toLowerCase(),
   )
   const includeVideo = options.includeVideo === true
+  const includeBraille = options.includeBraille === true
   const opusKey = options.opusObjectKey ?? opusAudioKey(assetId)
   const videoKey = options.videoObjectKey ?? video240pKey(assetId)
   const transcriptObjKey = options.transcriptObjectKey ?? transcriptKey(assetId)
@@ -205,12 +223,55 @@ export async function buildOfflinePack(
 
   progress?.(65)
 
+  let brailleFile: string | null = null
+  let brailleBytes: Uint8Array | null = null
+  if (includeBraille) {
+    const am = captions.find((c) => c.lang === 'am')
+    if (!am) {
+      throw new JobError(
+        'includeBraille requires an Amharic caption track (assets/.../captions/am.vtt).',
+        { retryable: false },
+      )
+    }
+    try {
+      const brf = await exportBrfFromVtt({
+        vtt: am.vtt,
+        title,
+        table: options.brailleTable,
+        translateFn: options.brailleTranslateFn,
+        signal,
+      })
+      brailleFile = 'transcript.am.brf'
+      brailleBytes = brf.bytes
+      log?.({
+        event: 'offline-pack.braille',
+        assetId,
+        file: brailleFile,
+        cueCount: brf.cueCount,
+        table: brf.table,
+        experimental: true,
+        verificationPending: true,
+        warning:
+          'Experimental Amharic Braille output. Linguistic correctness has not yet been independently verified by an Amharic Braille reader.',
+      })
+    } catch (err) {
+      if (err instanceof BrailleExportError) {
+        throw new JobError(`Braille export failed (${err.code}): ${err.message}`, {
+          retryable: false,
+          cause: err,
+        })
+      }
+      throw err
+    }
+  }
+
   const indexHtml = renderIndexHtml({
     title,
     lang,
     captions,
     descriptions,
     includeVideo: videoBytes != null,
+    brailleFileName: brailleFile ?? undefined,
   })
 
   const entries: ZipEntry[] = [
@@ -228,6 +289,9 @@ export async function buildOfflinePack(
   ]
   if (videoBytes) {
     entries.push({ name: 'lesson-240p.mp4', data: videoBytes })
+  }
+  if (brailleFile && brailleBytes) {
+    entries.push({ name: brailleFile, data: brailleBytes })
   }
 
   throwIfAborted(signal)
@@ -264,6 +328,8 @@ export async function buildOfflinePack(
     transcriptFile: 'transcript.html',
     captionFiles: captions.map((c) => c.fileName),
     descriptionFiles: descriptions.map((d) => d.fileName),
+    brailleFile,
+    brailleExperimental: includeBraille,
     videoFile: videoBytes ? 'lesson-240p.mp4' : null,
     sizes,
     totalBytes: sizes.zipBytes,

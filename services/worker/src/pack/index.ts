@@ -1,4 +1,19 @@
 export {
+  BrailleExportError,
+  DEFAULT_BRF_LAYOUT,
+  ETHIO_G1_TABLE,
+  encodeBrf,
+  exportBrfFromVtt,
+  formatBrf,
+  probeLiblouis,
+  translateToBraille,
+  wrapBrailleLine,
+  type BrfLayoutOptions,
+  type ExportBrfFromVttOptions,
+  type ExportBrfResult,
+  type TranslateBrailleOptions,
+} from './braille/index.ts'
+export {
   buildOfflinePack,
   packParamsFromJob,
   type BuildOfflinePackOptions,

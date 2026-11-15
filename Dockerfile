@@ -37,6 +37,12 @@ FROM base AS worker
 COPY --from=ffmpeg /ffmpeg /usr/local/bin/ffmpeg
 COPY --from=ffmpeg /ffprobe /usr/local/bin/ffprobe
 RUN ffmpeg -version | head -n 1
+# Optional Amharic Braille export (#55): Liblouis + ethio-g1.ctb via python3-louis.
+# Offline-pack Braille stays off unless job params set includeBraille=true.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 python3-louis liblouis-data \
+  && rm -rf /var/lib/apt/lists/* \
+  && python3 -c "import louis; print(louis.version())"
 ENV NODE_ENV=production
 ENV FFMPEG_BIN=/usr/local/bin/ffmpeg
 CMD ["pnpm", "--filter", "@abolkit/worker", "start"]

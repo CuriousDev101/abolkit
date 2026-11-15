@@ -44,6 +44,8 @@ export type PackPageOptions = {
   videoFileName?: string
   audioFileName?: string
   transcriptFileName?: string
+  /** Experimental Amharic BRF filename when included in the pack. */
+  brailleFileName?: string
 }
 
 export type TranscriptHtmlOptions = {
@@ -161,6 +163,10 @@ export function renderIndexHtml(options: PackPageOptions): string {
     )
     .join('\n')
 
+  const brailleLink = options.brailleFileName
+    ? `          <li><a href="${escapeHtml(options.brailleFileName)}">Experimental Amharic Braille transcript (${escapeHtml(options.brailleFileName)})</a> — not independently verified</li>`
+    : ''
+
   const videoBlock = options.includeVideo
     ? `
     <section aria-labelledby="video-heading">
@@ -212,6 +218,7 @@ export function renderIndexHtml(options: PackPageOptions): string {
         <li><a href="${escapeHtml(transcript)}">Accessible transcript</a></li>
 ${captionLinks}
 ${descriptionLinks}
+${brailleLink}
         <li><a href="${escapeHtml(audio)}">Download lesson audio (${escapeHtml(audio)})</a></li>
       </ul>
     </nav>
