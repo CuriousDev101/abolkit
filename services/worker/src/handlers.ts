@@ -1,11 +1,12 @@
 import { JobError, JOB_TYPES, type JobType } from '@abolkit/jobs'
-import type { Storage } from '@abolkit/provider-sdk'
+import type { Storage, Transcriber } from '@abolkit/provider-sdk'
 
 import { produceAssetMedia, type RunFfmpeg } from './ffmpeg/index.ts'
 import type { JobHandler, JobHandlers, Logger } from './runner.ts'
+import { langFromJobParams, transcribeStoredAudio } from './stt/index.ts'
 
 const PLANNED_IN: Record<JobType, string> = {
-  transcribe: '#27 (STT via external MMS)',
+  transcribe: '#27 (STT via provider adapter)',
   translate: 'a later pipeline issue',
   'describe-tts': 'a later pipeline issue',
   'offline-pack': 'a later pipeline issue',
@@ -20,8 +21,10 @@ function notImplemented(type: JobType): JobHandler {
 }
 
 export type HandlerDeps = {
-  /** Required to run ffmpeg extraction + renditions (#26). */
+  /** Required for ffmpeg extract + renditions (#26) and caption upload (#27). */
   storage?: Storage
+  /** Required for STT (#27). Models stay outside this process. */
+  transcriber?: Transcriber
   workDir?: string
   ffmpegBin?: string
   runFfmpeg?: RunFfmpeg
@@ -30,36 +33,55 @@ export type HandlerDeps = {
 
 /**
  * Every job type has a handler so no job sits queued forever.
- * #26 wires ffmpeg into `transcribe` (extract + Opus + 240p, size report).
- * STT itself stays in the separate MMS service and lands in #27.
+ * #26: ffmpeg extract + Opus + 240p.
+ * #27: Transcriber adapter → WebVTT cues marked needsReview.
  */
 export function createDefaultHandlers(deps: HandlerDeps = {}): JobHandlers {
   const handlers = Object.fromEntries(
     JOB_TYPES.map((type) => [type, notImplemented(type)]),
   ) as JobHandlers
 
-  if (deps.storage) {
+  if (deps.storage && deps.transcriber) {
     const storage = deps.storage
+    const transcriber = deps.transcriber
     handlers.transcribe = async (job, ctx) => {
-      const result = await produceAssetMedia({
+      const media = await produceAssetMedia({
         storage,
         assetId: job.assetId,
         workDir: deps.workDir,
         signal: ctx.signal,
-        progress: ctx.progress,
+        progress: (value) => ctx.progress(Math.min(70, Math.round(value * 0.7))),
         bin: deps.ffmpegBin,
         run: deps.runFfmpeg,
         log: deps.log,
       })
 
+      const lang = langFromJobParams(job.params)
+      const stt = await transcribeStoredAudio({
+        storage,
+        transcriber,
+        assetId: job.assetId,
+        lang,
+        audioObjectKey: media.audio16kKey,
+        workDir: deps.workDir,
+        signal: ctx.signal,
+        progress: ctx.progress,
+        log: deps.log,
+      })
+
+      ctx.progress(100)
+
       return {
-        // Media ready for #27 STT (external service) and for the offline pack.
-        audio16kKey: result.audio16kKey,
-        opusAudioKey: result.opusAudioKey,
-        video240pKey: result.video240pKey,
-        sizes: result.sizes,
-        // Explicit so operators know transcription is the next issue.
-        stt: 'pending-#27',
+        audio16kKey: media.audio16kKey,
+        opusAudioKey: media.opusAudioKey,
+        video240pKey: media.video240pKey,
+        sizes: media.sizes,
+        lang: stt.lang,
+        captionsKey: stt.captionsKey,
+        cueCount: stt.cueCount,
+        needsReview: true,
+        transcriber: stt.transcriber,
+        sendsDataOffHost: stt.sendsDataOffHost,
       }
     }
   }

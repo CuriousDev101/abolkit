@@ -5,9 +5,15 @@
   "type": "module",
   "main": "src/index.ts",
   "description": "Adapter interfaces for speech-to-text, translation, text-to-speech and storage. Default adapters are self-hosted/local; cloud adapters are optional.",
+  "scripts": {
+    "test": "vitest run"
+  },
   "dependencies": {
     "@abolkit/core": "workspace:*",
     "@aws-sdk/client-s3": "3.1169.0",
     "@aws-sdk/s3-request-presigner": "3.1169.0"
+  },
+  "devDependencies": {
+    "vitest": "^5.1.0"
   }
 }

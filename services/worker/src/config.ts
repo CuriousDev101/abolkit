@@ -11,7 +11,7 @@ type Env = Record<string, string | undefined>
 
 export type WorkerProviderConfig = Pick<
   ProviderConfig,
-  'transcriber' | 'transcriberUrl' | 'translator' | 'tts' | 'storage'
+  'transcriber' | 'transcriberUrl' | 'transcriberOffHostConsent' | 'translator' | 'tts' | 'storage'
 > & {
   /** Temp parent dir for ffmpeg work folders. */
   workDir: string

@@ -13,7 +13,11 @@ export type {
 } from './types.ts'
 
 export { ProviderError } from './errors.ts'
-export { createTranscriber, transcriberConfigFromEnv } from './create-transcriber.ts'
+export {
+  createTranscriber,
+  transcriberConfigFromEnv,
+  type TranscriberSelection,
+} from './create-transcriber.ts'
 export {
   checkMmsHttpHealth,
   createMmsHttpTranscriber,
@@ -21,6 +25,7 @@ export {
   type MmsTranscribeResponse,
 } from './transcribers/mms-http.ts'
 export { createStubTranscriber } from './transcribers/stub.ts'
+export { createCloudStubTranscriber } from './transcribers/cloud-stub.ts'
 export {
   createStorage,
   storageConfigFromEnv,

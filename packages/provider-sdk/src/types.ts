@@ -44,7 +44,7 @@ export interface Storage extends ProviderInfo {
 
 /** Chosen at deploy time from environment/config. Defaults must work with no accounts and no network. */
 export interface ProviderConfig {
-  /** Default after #7: 'mms-http'. Also: 'stub' (no network). */
+  /** Default after #7: 'mms-http'. Also: 'stub' (no network), 'cloud' (consent required). */
   transcriber: string
   translator: string
   tts: string
@@ -52,4 +52,9 @@ export interface ProviderConfig {
   storage: string
   /** Base URL for mms-http, e.g. http://mms-stt:8000 */
   transcriberUrl?: string
+  /**
+   * Required before creating an off-host transcriber (`cloud`).
+   * Maps to TRANSCRIBER_OFF_HOST_CONSENT=true (ADR 0003).
+   */
+  transcriberOffHostConsent?: boolean
 }
