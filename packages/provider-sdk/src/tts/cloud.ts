@@ -16,7 +16,7 @@ export function createCloudTtsSkeleton(): Tts {
     async synthesize() {
       throw new ProviderError(
         'NOT_IMPLEMENTED',
-        'Cloud TTS is a skeleton only. Use TTS=recorded-clips or stub until spike #8 / worker TTS lands.',
+        'Cloud TTS is a skeleton only. Default remains TTS=recorded-clips (spike #8). Requires ALLOW_OFF_HOST_PROVIDERS.',
       )
     },
   }

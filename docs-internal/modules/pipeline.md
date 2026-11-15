@@ -43,4 +43,4 @@ Weak Amharic STT/translation; slow CPU transcription; model download size in Doc
 
 ## Open questions
 
-Which self-hosted STT and TTS are good enough on Amharic (spikes #7, #8)? Do we need translation at all if captions are human-supplied?
+STT default settled in spike #7 (`mms-http`). TTS default settled in spike #8 (`recorded-clips` + text AD fallback). Do we need translation at all if captions are human-supplied?

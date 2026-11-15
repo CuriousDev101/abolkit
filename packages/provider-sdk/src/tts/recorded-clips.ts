@@ -10,8 +10,8 @@ export type RecordedClipsTtsOptions = {
 }
 
 /**
- * Default TTS: play host-local recorded clips (no cloud voice, ADR 0003 / spike #8).
- * Synthesis is a skeleton until clip packing (#28) wires real files.
+ * Default TTS after spike #8: host-local **human recorded** clips (ADR 0003).
+ * No cloud voice; no MMS weights in-process. Clip lookup lands with AD packing (#32 / #28).
  */
 export function createRecordedClipsTts(options: RecordedClipsTtsOptions = {}): Tts {
   const clipsRoot = options.clipsRoot?.trim()
