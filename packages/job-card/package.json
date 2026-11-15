@@ -4,5 +4,24 @@
   "private": true,
   "type": "module",
   "main": "src/index.ts",
-  "description": "<abol-job-card>: accessible job card with schema.org/JobPosting data and an audio summary."
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "description": "<abol-job-card>: accessible job card with schema.org/JobPosting data and an audio summary.",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@abolkit/core": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "vitest": "^5.1.0"
+  },
+  "files": [
+    "dist",
+    "src"
+  ]
 }

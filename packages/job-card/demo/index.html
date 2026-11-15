@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Abol — job card</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600;7..72,700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #16201b;
+        --muted: #45574c;
+        --sage: #d7e4db;
+        --paper: #eef5f0;
+        --leaf: #0b6e4f;
+        --focus: #ffbf47;
+        --rule: #b7c8bc;
+        --abol-accent: #0b6e4f;
+        --abol-bg: #e8f0ea;
+        --abol-fg: #16201b;
+        --abol-radius: 10px;
+        --abol-focus: #ffbf47;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        font-family: 'Source Sans 3', 'Noto Sans Ethiopic', 'Noto Sans', system-ui, sans-serif;
+        line-height: 1.5;
+        background:
+          radial-gradient(90% 60% at 12% -10%, color-mix(in srgb, var(--leaf) 18%, transparent), transparent 55%),
+          radial-gradient(70% 50% at 100% 0%, color-mix(in srgb, var(--focus) 16%, transparent), transparent 45%),
+          linear-gradient(165deg, #cfdcd3 0%, var(--sage) 38%, var(--paper) 100%);
+        background-attachment: fixed;
+      }
+
+      .page {
+        max-width: 52rem;
+        margin: 0 auto;
+        padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 1.75rem) 4rem;
+      }
+
+      .hero {
+        margin-bottom: 1.75rem;
+      }
+
+      .brand {
+        margin: 0 0 0.45rem;
+        font-family: Literata, 'Noto Serif Ethiopic', Georgia, serif;
+        font-size: clamp(2.4rem, 6vw, 3.4rem);
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1.05;
+      }
+
+      .brand span[lang='am'] {
+        color: var(--leaf);
+        margin-inline-end: 0.35rem;
+      }
+
+      .hero p {
+        margin: 0;
+        max-width: 36ch;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+
+      .stage {
+        position: relative;
+        min-width: 0;
+      }
+
+      abol-job-card {
+        display: block;
+        width: 100%;
+        max-width: 46rem;
+      }
+
+      .tools {
+        margin-top: 2.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--rule);
+      }
+
+      .tools h2 {
+        margin: 0 0 0.85rem;
+        font-family: Literata, Georgia, serif;
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
+
+      .tool-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.85rem;
+      }
+
+      .tool-row button,
+      .tools label {
+        font: inherit;
+        min-height: 44px;
+        min-width: 44px;
+      }
+
+      .tool-row button {
+        padding: 0.4rem 0.9rem;
+        border: 1.5px solid color-mix(in srgb, var(--ink) 35%, transparent);
+        border-radius: 8px;
+        background: color-mix(in srgb, #fff 70%, var(--paper));
+        color: var(--ink);
+        font-weight: 650;
+        cursor: pointer;
+      }
+
+      .tool-row button[aria-pressed='true'] {
+        background: var(--leaf);
+        border-color: #084f39;
+        color: #fff;
+      }
+
+      .tools label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-inline-end: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .report,
+      .log {
+        margin: 0.85rem 0 0;
+        padding: 0.7rem 0.85rem;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: color-mix(in srgb, #fff 55%, var(--paper));
+        font-size: 0.92rem;
+      }
+
+      .log {
+        list-style: none;
+        padding-left: 0.85rem;
+      }
+
+      .log li {
+        margin: 0.25rem 0;
+      }
+
+      .more {
+        margin-top: 3rem;
+      }
+
+      .more h2 {
+        margin: 0 0 1rem;
+        font-family: Literata, Georgia, serif;
+        font-size: 1.25rem;
+      }
+
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      :focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+        box-shadow: 0 0 0 2px #0b0c0c;
+      }
+
+      body[data-surface='night'] {
+        color-scheme: dark;
+        --ink: #f4f7f5;
+        --muted: #b6c2bb;
+        --sage: #121a16;
+        --paper: #0c110e;
+        --rule: #2b3730;
+        --abol-bg: #0f1412;
+        --abol-fg: #f4f7f5;
+        background:
+          radial-gradient(80% 50% at 10% 0%, color-mix(in srgb, var(--leaf) 22%, transparent), transparent 50%),
+          linear-gradient(180deg, #0a0f0c, #121a16);
+      }
+
+      body[data-surface='night'] .tool-row button {
+        background: #141c18;
+        border-color: #6c7c73;
+        color: var(--ink);
+      }
+
+      body[data-surface='night'] .tool-row button[aria-pressed='true'] {
+        background: var(--leaf);
+        color: #fff;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <h1 class="brand"><span lang="am">አቦል</span>Abol</h1>
+        <p>Clear job notices for graduates — readable at 200% zoom, with JobPosting JSON-LD built in.</p>
+      </header>
+
+      <main class="stage" id="stage">
+        <abol-job-card id="hero-card" heading-level="2" src="./fixtures/job.json"></abol-job-card>
+      </main>
+
+      <section class="tools" aria-labelledby="tools-h">
+        <h2 id="tools-h">Check the card</h2>
+        <div class="tool-row" role="group" aria-label="Zoom preview">
+          <button type="button" data-zoom="1" aria-pressed="true">100%</button>
+          <button type="button" data-zoom="2" aria-pressed="false">200% zoom</button>
+          <button type="button" data-width="320" aria-pressed="false">320px reflow</button>
+        </div>
+        <label><input type="checkbox" id="toggle-spacing" /> Text spacing</label>
+        <label><input type="checkbox" id="toggle-ethiopic" /> Ethiopian calendar</label>
+        <label><input type="checkbox" id="toggle-night" /> Night surface</label>
+        <p class="report" id="overflow-report" role="status" aria-live="polite">Checking horizontal scroll…</p>
+        <ol class="log" id="event-list" role="log" aria-live="polite">
+          <li>Apply or listen on a card to see events here.</li>
+        </ol>
+      </section>
+
+      <section class="more" aria-labelledby="more-h">
+        <h2 id="more-h">More postings</h2>
+        <div class="stack">
+          <abol-job-card heading-level="3">
+            <script type="application/ld+json">
+              {
+                "@context": "https://schema.org",
+                "@type": "JobPosting",
+                "inLanguage": "en",
+                "title": "Junior Data Quality Analyst",
+                "description": "Review education and graduate placement records for accuracy across partner campuses in Addis Ababa and Hawassa.\n\n• Check weekly spreadsheets and explain findings in clear language.\n• Verify structured job data with the accessibility team.\n\nTraining is provided in your first month.\n\nGraduates from computer science, information systems, or statistics are encouraged to apply.",
+                "datePosted": "2026-11-12",
+                "validThrough": "2026-11-19T23:59:59+03:00",
+                "employmentType": ["FULL_TIME", "INTERN"],
+                "hiringOrganization": {
+                  "@type": "Organization",
+                  "name": "Blue Nile Learning Services",
+                  "sameAs": "https://example.org/blue-nile-learning"
+                },
+                "jobLocation": [
+                  {
+                    "@type": "Place",
+                    "address": {
+                      "@type": "PostalAddress",
+                      "addressLocality": "Addis Ababa",
+                      "addressCountry": "ET"
+                    }
+                  },
+                  {
+                    "@type": "Place",
+                    "address": {
+                      "@type": "PostalAddress",
+                      "addressLocality": "Hawassa",
+                      "addressCountry": "ET"
+                    }
+                  }
+                ],
+                "baseSalary": {
+                  "@type": "MonetaryAmount",
+                  "currency": "ETB",
+                  "value": {
+                    "@type": "QuantitativeValue",
+                    "minValue": 20000,
+                    "maxValue": 26000,
+                    "unitText": "MONTH"
+                  }
+                },
+                "url": "https://example.org/jobs/junior-data-quality-analyst/apply"
+              }
+            </script>
+          </abol-job-card>
+
+          <abol-job-card lang="am-ET" heading-level="3">
+            <script type="application/ld+json">
+              {
+                "@context": "https://schema.org",
+                "@type": "JobPosting",
+                "inLanguage": "am-ET",
+                "title": "ጀማሪ የሶፍትዌር ሙከራ ባለሙያ",
+                "description": "የድር እና የሞባይል መተግበሪያዎችን ተደራሽነት ይፈትሻሉ። ያገኙትን ችግር በግልጽ ቃላት ይመዘግባሉ።\n\nለሙከራ መሣሪያዎቹ ሥልጠና ይሰጣል።",
+                "datePosted": "2026-11-15",
+                "validThrough": "2026-12-30T23:59:59+03:00",
+                "employmentType": "FULL_TIME",
+                "jobLocationType": "TELECOMMUTE",
+                "applicantLocationRequirements": { "@type": "Country", "name": "ET" },
+                "hiringOrganization": {
+                  "@type": "Organization",
+                  "name": "ሲዳማ ዲጂታል ሶሉሽንስ",
+                  "sameAs": "https://example.org/sidama-digital"
+                },
+                "baseSalary": {
+                  "@type": "MonetaryAmount",
+                  "currency": "ETB",
+                  "value": {
+                    "@type": "QuantitativeValue",
+                    "minValue": 22000,
+                    "maxValue": 28000,
+                    "unitText": "MONTH"
+                  }
+                },
+                "url": "https://example.org/jobs/junior-software-tester/apply"
+              }
+            </script>
+          </abol-job-card>
+
+          <abol-job-card heading-level="3">
+            <script type="application/ld+json">
+              {
+                "@context": "https://schema.org",
+                "@type": "JobPosting",
+                "title": "Braille & Caption Production Assistant",
+                "description": "Prepare reviewed Amharic and English caption files and tactile study handouts for university courses.",
+                "datePosted": "2026-10-01",
+                "validThrough": "2026-11-01",
+                "employmentType": "PART_TIME",
+                "hiringOrganization": {
+                  "@type": "Organization",
+                  "name": "Addis Ababa University Library",
+                  "sameAs": "https://example.org/aau-library-jobs"
+                },
+                "jobLocation": {
+                  "@type": "Place",
+                  "address": {
+                    "@type": "PostalAddress",
+                    "addressLocality": "Addis Ababa",
+                    "addressCountry": "ET"
+                  }
+                }
+              }
+            </script>
+          </abol-job-card>
+        </div>
+      </section>
+    </div>
+
+    <script src="../dist/abol-job-card.js"></script>
+    <script>
+      const stage = document.getElementById('stage')
+      const report = document.getElementById('overflow-report')
+      const eventList = document.getElementById('event-list')
+      let zoomFactor = 1
+      let lock320 = false
+      let firstEvent = true
+      let spacingStyle = null
+
+      const SPACING = `
+        * { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; }
+        p { margin-block-end: 2em !important; }
+      `
+
+      function applyLayout() {
+        if (zoomFactor === 2) {
+          stage.style.maxWidth = lock320 ? '160px' : '23rem'
+          stage.style.zoom = '2'
+        } else {
+          stage.style.zoom = ''
+          stage.style.maxWidth = lock320 ? '320px' : ''
+        }
+        requestAnimationFrame(checkOverflow)
+      }
+
+      function checkOverflow() {
+        let maxDelta = 0
+        document.querySelectorAll('abol-job-card').forEach((card) => {
+          const rootEl = card.shadowRoot?.querySelector('.card')
+          if (rootEl) maxDelta = Math.max(maxDelta, Math.ceil(rootEl.scrollWidth - rootEl.clientWidth))
+        })
+        maxDelta = Math.max(
+          maxDelta,
+          Math.ceil(document.documentElement.scrollWidth - document.documentElement.clientWidth),
+        )
+        report.textContent =
+          maxDelta <= 1
+            ? 'No horizontal scroll detected.'
+            : `Horizontal overflow: ${maxDelta}px wider than the container.`
+      }
+
+      function syncSpacing(on) {
+        if (on && !spacingStyle) {
+          spacingStyle = document.createElement('style')
+          spacingStyle.textContent = SPACING
+          document.head.appendChild(spacingStyle)
+        } else if (!on && spacingStyle) {
+          spacingStyle.remove()
+          spacingStyle = null
+        }
+        document.querySelectorAll('abol-job-card').forEach((card) => {
+          if (!card.shadowRoot) return
+          const existing = card.shadowRoot.querySelector('style[data-wcag-spacing]')
+          if (on && !existing) {
+            const s = document.createElement('style')
+            s.dataset.wcagSpacing = ''
+            s.textContent = SPACING
+            card.shadowRoot.appendChild(s)
+          } else if (!on && existing) existing.remove()
+        })
+        requestAnimationFrame(checkOverflow)
+      }
+
+      function logEvent(message) {
+        if (firstEvent) {
+          eventList.replaceChildren()
+          firstEvent = false
+        }
+        const li = document.createElement('li')
+        li.textContent = `${new Date().toLocaleTimeString('en-GB')}: ${message}`
+        eventList.prepend(li)
+      }
+
+      document.querySelectorAll('[data-zoom]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          zoomFactor = Number(btn.dataset.zoom)
+          document.querySelectorAll('[data-zoom]').forEach((other) => {
+            other.setAttribute('aria-pressed', String(other === btn))
+          })
+          applyLayout()
+        })
+      })
+
+      document.querySelector('[data-width="320"]').addEventListener('click', (event) => {
+        lock320 = !lock320
+        event.currentTarget.setAttribute('aria-pressed', String(lock320))
+        applyLayout()
+      })
+
+      document.getElementById('toggle-spacing').addEventListener('change', (e) => {
+        syncSpacing(e.target.checked)
+      })
+
+      document.getElementById('toggle-ethiopic').addEventListener('change', (e) => {
+        document.querySelectorAll('abol-job-card').forEach((card) => {
+          if (e.target.checked) card.setAttribute('calendar', 'ethiopic')
+          else card.removeAttribute('calendar')
+        })
+        if (document.getElementById('toggle-spacing').checked) syncSpacing(true)
+        requestAnimationFrame(checkOverflow)
+      })
+
+      document.getElementById('toggle-night').addEventListener('change', (e) => {
+        if (e.target.checked) document.body.dataset.surface = 'night'
+        else delete document.body.dataset.surface
+        requestAnimationFrame(checkOverflow)
+      })
+
+      document.addEventListener('abol:job-apply', (event) => {
+        event.preventDefault()
+        logEvent(`Apply for “${event.detail.job.title}” (host kept control).`)
+      })
+
+      document.addEventListener('abol:summary-play', (event) => {
+        logEvent(event.detail.playing ? `Summary playing (${event.detail.src})` : 'Summary paused')
+      })
+
+      window.addEventListener('resize', checkOverflow)
+      setTimeout(checkOverflow, 300)
+    </script>
+  </body>
+</html>

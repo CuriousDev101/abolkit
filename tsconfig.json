@@ -4,6 +4,7 @@
     "types": ["node"],
     "paths": {
       "@abolkit/core": ["./packages/core/src/index.ts"],
+      "@abolkit/job-card": ["./packages/job-card/src/index.ts"],
       "@abolkit/jobs": ["./packages/jobs/src/index.ts"],
       "@abolkit/provider-sdk": ["./packages/provider-sdk/src/index.ts"]
     }
