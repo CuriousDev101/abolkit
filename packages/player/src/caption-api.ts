@@ -84,7 +84,13 @@ export async function watchCaptions(options: WatchOptions): Promise<void> {
     let status = await lookup(base, options.videoUrl, signal)
     if (!requested && (!status || (status.status !== 'processing' && missing(status)))) {
       requested = true
-      status = await request(base, options.videoUrl, options.languages, signal, options.sourceLanguage)
+      status = await request(
+        base,
+        options.videoUrl,
+        options.languages,
+        signal,
+        options.sourceLanguage,
+      )
     }
     if (!status) return
     options.onStatus?.(status.status)

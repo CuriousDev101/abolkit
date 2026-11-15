@@ -7,11 +7,7 @@ export class BrailleExportError extends Error {
     | 'INVALID_INPUT'
     | 'BRIDGE_FAILED'
 
-  constructor(
-    code: BrailleExportError['code'],
-    message: string,
-    options?: { cause?: unknown },
-  ) {
+  constructor(code: BrailleExportError['code'], message: string, options?: { cause?: unknown }) {
     super(message, options?.cause !== undefined ? { cause: options.cause } : undefined)
     this.name = 'BrailleExportError'
     this.code = code

@@ -42,8 +42,7 @@ export function createApp(options: CreateAppOptions | Record<string, string | un
   const env = isEnvMap(options) ? options : (options.env ?? process.env)
   const config = loadApiConfig(env)
   const injectedDb = !isEnvMap(options) ? options.db : undefined
-  const db =
-    injectedDb ?? (config.databaseUrl ? openDatabase(config.databaseUrl) : undefined)
+  const db = injectedDb ?? (config.databaseUrl ? openDatabase(config.databaseUrl) : undefined)
   const storage =
     (!isEnvMap(options) && options.storage) ||
     createStorage({

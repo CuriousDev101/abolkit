@@ -50,11 +50,9 @@ export async function translateToBraille(options: TranslateBrailleOptions): Prom
   try {
     await access(script)
   } catch (err) {
-    throw new BrailleExportError(
-      'BRIDGE_FAILED',
-      `Liblouis bridge script not found at ${script}`,
-      { cause: err },
-    )
+    throw new BrailleExportError('BRIDGE_FAILED', `Liblouis bridge script not found at ${script}`, {
+      cause: err,
+    })
   }
 
   const python = options.pythonPath?.trim() || process.env.PYTHON?.trim() || 'python3'
@@ -70,10 +68,7 @@ export async function translateToBraille(options: TranslateBrailleOptions): Prom
       )
     }
     if (/Cannot find table|table.*not found|Cannot resolve table/i.test(msg)) {
-      throw new BrailleExportError(
-        'TABLE_MISSING',
-        `Liblouis table "${table}" is missing: ${msg}`,
-      )
+      throw new BrailleExportError('TABLE_MISSING', `Liblouis table "${table}" is missing: ${msg}`)
     }
     throw new BrailleExportError('TRANSLATE_FAILED', msg)
   }
