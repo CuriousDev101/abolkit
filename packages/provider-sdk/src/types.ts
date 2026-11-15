@@ -80,4 +80,9 @@ export interface ProviderConfig {
   transcriberOffHostConsent?: boolean
   /** Required before creating an off-host translator (`gemini`). TRANSLATOR_OFF_HOST_CONSENT=true. */
   translatorOffHostConsent?: boolean
+  /**
+   * Explicit opt-in before TTS (and other) adapters with `sendsDataOffHost: true`
+   * may be constructed. Maps to env `ALLOW_OFF_HOST_PROVIDERS=true`.
+   */
+  allowOffHostProviders?: boolean
 }

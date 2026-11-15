@@ -24,28 +24,19 @@ export {
   transcriberConfigFromEnv,
   type TranscriberSelection,
 } from './create-transcriber.ts'
-export { createTranslator } from './create-translator.ts'
-export { createTts, type CreateTtsOptions } from './create-tts.ts'
-
 export {
   createTranslator,
   translatorConfigFromEnv,
   type TranslatorSelection,
 } from './create-translator.ts'
+export { createTts, type CreateTtsOptions } from './create-tts.ts'
+
 export {
   assemblyAiConfigFromEnv,
   createAssemblyAiTranscriber,
   type AssemblyAiOptions,
   type AssemblyAiParams,
 } from './transcribers/assemblyai.ts'
-export {
-  createGeminiTranslator,
-  DEFAULT_GEMINI_MODEL,
-  geminiConfigFromEnv,
-  type GeminiTranslatorOptions,
-} from './translators/gemini.ts'
-export { createStubTranslator } from './translators/stub.ts'
-export { languagePromptName, withTranslatedText } from './translators/cue-text.ts'
 export {
   checkMmsHttpHealth,
   createMmsHttpTranscriber,
@@ -54,8 +45,14 @@ export {
 } from './transcribers/mms-http.ts'
 export { createStubTranscriber } from './transcribers/stub.ts'
 export { createCloudStubTranscriber } from './transcribers/cloud-stub.ts'
-export { createAssemblyAiTranscriberSkeleton } from './transcribers/assemblyai.ts'
 
+export {
+  createGeminiTranslator,
+  DEFAULT_GEMINI_MODEL,
+  geminiConfigFromEnv,
+  type GeminiTranslatorOptions,
+} from './translators/gemini.ts'
+export { languagePromptName, withTranslatedText } from './translators/cue-text.ts'
 export { createNoneTranslator } from './translators/none.ts'
 export { createStubTranslator } from './translators/stub.ts'
 export { createCloudTranslatorSkeleton } from './translators/cloud.ts'

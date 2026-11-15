@@ -14,6 +14,7 @@ export function providerConfigFromEnv(env: Env = process.env): ProviderConfig {
     ...storageConfigFromEnv(env),
     translator: env.TRANSLATOR?.trim() || 'none',
     tts: env.TTS?.trim() || 'recorded-clips',
+    translatorOffHostConsent: parseBool(env.TRANSLATOR_OFF_HOST_CONSENT, false),
     allowOffHostProviders: parseBool(env.ALLOW_OFF_HOST_PROVIDERS, false),
   }
 }
