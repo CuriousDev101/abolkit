@@ -7,6 +7,7 @@ Keep this folder small (demo clip under about 10 MB) and **rights-cleared**. Rec
 | File | What | Source / licence | Placeholder? |
 |---|---|---|---|
 | `lesson-1/manifest.json` | Demo lesson manifest | team | no |
+| `lesson-1/demo-source.wav` | Tiny silent WAV seeded into MinIO/SQLite by Compose (#43) | team | no |
 | `lesson-1/*.vtt`, `transcript.html` | EN/AM captions, EN descriptions, transcript | team | no |
 | `lesson-1/machine/*.vtt` | Machine STT draft shape (`needsReview` on every cue; #27). Copy of reviewed captions until a real MMS run replaces it | team | **yes** |
 | flower.mp4 (remote URL in manifest) | Short CC0 demo clip from MDN | MDN / CC0 | no |
