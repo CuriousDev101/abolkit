@@ -113,8 +113,10 @@ export class AbolJobCardElement extends HostElement {
   #observer: MutationObserver | null = null
   #audio: HTMLAudioElement | null = null
   #audioPlaying = false
+  #audioLoading = false
   #audioFailed = false
   #connected = false
+  #audioGeneration = 0
 
   constructor() {
     super()
@@ -383,17 +385,51 @@ export class AbolJobCardElement extends HostElement {
     card.appendChild(lead)
 
     if (job.audioSummaryUrl) {
+      const strip = el('div', 'audio-strip')
+      strip.setAttribute('part', 'audio-strip')
+      strip.dataset.playing = this.#audioPlaying ? 'true' : 'false'
+      strip.dataset.loading = this.#audioLoading ? 'true' : 'false'
+
+      const kicker = el('p', 'audio-kicker', jt(lang, 'audioSummaryLabel'))
+
+      const consoleEl = el('div', 'audio-console')
+
       const audioBtn = el('button', 'listen')
       audioBtn.type = 'button'
       audioBtn.setAttribute('part', 'audio-button')
+
+      const copy = el('div', 'audio-copy')
+      const status = el('p', 'audio-status')
+      status.id = `${this.#uid}-audio-status`
+
+      const eq = el('div', 'eq')
+      eq.setAttribute('aria-hidden', 'true')
+      for (let i = 0; i < 5; i++) {
+        eq.appendChild(el('span'))
+      }
+      copy.append(status, eq)
+
+      const track = el('div', 'audio-track')
+      track.setAttribute('role', 'progressbar')
+      track.setAttribute('aria-valuemin', '0')
+      track.setAttribute('aria-valuemax', '100')
+      track.setAttribute('aria-valuenow', '0')
+      track.setAttribute('aria-labelledby', `${this.#uid}-audio-status`)
+      const fill = el('span', 'audio-track-fill')
+      track.appendChild(fill)
+
       const audioNote = el('p', 'audio-note', jt(lang, 'audioUnavailable'))
       audioNote.hidden = !this.#audioFailed
 
-      this.#syncAudioButton(audioBtn, lang)
+      consoleEl.append(audioBtn, copy)
+      strip.append(kicker, consoleEl, track, audioNote)
+
+      this.#syncAudioUi(strip, audioBtn, status, fill, track, lang)
       audioBtn.addEventListener('click', () => {
-        void this.#toggleAudioSummary(job, audioBtn, audioNote, lang)
+        void this.#toggleAudioSummary(job, strip, audioBtn, status, fill, track, audioNote, lang)
       })
-      card.append(audioBtn, audioNote)
+
+      card.appendChild(strip)
     }
 
     // 3. Key facts as a ruled definition list (<dl>)
@@ -547,72 +583,152 @@ export class AbolJobCardElement extends HostElement {
     return dl
   }
 
-  #syncAudioButton(btn: HTMLButtonElement, lang: string): void {
+  #syncAudioUi(
+    strip: HTMLElement,
+    btn: HTMLButtonElement,
+    status: HTMLElement,
+    fill: HTMLElement,
+    track: HTMLElement,
+    lang: string,
+  ): void {
+    strip.dataset.playing = this.#audioPlaying ? 'true' : 'false'
+    strip.dataset.loading = this.#audioLoading ? 'true' : 'false'
     btn.setAttribute('aria-pressed', String(this.#audioPlaying))
+    if (this.#audioLoading) {
+      btn.setAttribute('aria-busy', 'true')
+      btn.disabled = true
+    } else {
+      btn.removeAttribute('aria-busy')
+      btn.disabled = false
+    }
     const icon = this.#audioPlaying ? ICONS.pause : ICONS.play
-    const label = jt(lang, this.#audioPlaying ? 'audioSummaryPause' : 'audioSummaryPlay')
-    btn.innerHTML = `${icon}<span></span>`
-    btn.querySelector('span')!.textContent = label
+    const label = this.#audioLoading
+      ? jt(lang, 'audioLoading')
+      : jt(lang, this.#audioPlaying ? 'audioSummaryPause' : 'audioSummaryPlay')
+    btn.setAttribute('aria-label', label)
+    btn.innerHTML = `<span class="dial">${icon}</span>`
+    status.textContent = label
+    this.#paintAudioProgress(fill, track)
+  }
+
+  #paintAudioProgress(fill: HTMLElement, track: HTMLElement): void {
+    const audio = this.#audio
+    const duration = audio?.duration
+    const current = audio?.currentTime ?? 0
+    const pct =
+      duration && Number.isFinite(duration) && duration > 0
+        ? Math.min(100, Math.max(0, (current / duration) * 100))
+        : this.#audioPlaying
+          ? 8
+          : 0
+    fill.style.inlineSize = `${pct}%`
+    track.setAttribute('aria-valuenow', String(Math.round(pct)))
   }
 
   async #toggleAudioSummary(
     job: NormalizedJobPosting,
+    strip: HTMLElement,
     btn: HTMLButtonElement,
+    status: HTMLElement,
+    fill: HTMLElement,
+    track: HTMLElement,
     note: HTMLElement,
     lang: string,
   ): Promise<void> {
-    if (!job.audioSummaryUrl) return
+    if (!job.audioSummaryUrl || this.#audioLoading) return
 
     if (this.#audio && this.#audioPlaying) {
       this.#audio.pause()
       this.#audioPlaying = false
-      this.#syncAudioButton(btn, lang)
+      this.#audioLoading = false
+      this.#syncAudioUi(strip, btn, status, fill, track, lang)
       this.#emitSummaryPlay(false, job.audioSummaryUrl, job)
       return
     }
 
-    const resolvedUrl = new URL(job.audioSummaryUrl, this.baseURI).href
+    let resolvedUrl: string
+    try {
+      resolvedUrl = new URL(job.audioSummaryUrl, this.baseURI).href
+    } catch {
+      this.#failAudio(strip, btn, status, fill, track, note, lang)
+      return
+    }
+
     if (!this.#audio || this.#audio.src !== resolvedUrl) {
       this.#stopAudio()
       const audio = new Audio(resolvedUrl)
-      audio.preload = 'none'
+      audio.preload = 'metadata'
+      audio.addEventListener('timeupdate', () => {
+        if (this.#audio !== audio) return
+        this.#paintAudioProgress(fill, track)
+      })
       audio.addEventListener('ended', () => {
+        if (this.#audio !== audio) return
         this.#audioPlaying = false
-        this.#syncAudioButton(btn, lang)
+        this.#audioLoading = false
+        audio.currentTime = 0
+        this.#syncAudioUi(strip, btn, status, fill, track, lang)
       })
       audio.addEventListener('error', () => {
-        this.#audioPlaying = false
-        this.#audioFailed = true
-        note.hidden = false
-        this.#syncAudioButton(btn, lang)
-        this.#announce(jt(lang, 'audioUnavailable'))
+        if (this.#audio !== audio) return
+        this.#failAudio(strip, btn, status, fill, track, note, lang)
       })
       this.#audio = audio
     }
 
+    const audio = this.#audio
+    const token = ++this.#audioGeneration
+    this.#audioLoading = true
+    this.#audioPlaying = false
+    note.hidden = true
+    this.#syncAudioUi(strip, btn, status, fill, track, lang)
+
     try {
-      note.hidden = true
-      await this.#audio.play()
+      await audio.play()
+      if (token !== this.#audioGeneration || this.#audio !== audio) return
       this.#audioFailed = false
+      this.#audioLoading = false
       this.#audioPlaying = true
-      this.#syncAudioButton(btn, lang)
+      this.#syncAudioUi(strip, btn, status, fill, track, lang)
       this.#emitSummaryPlay(true, job.audioSummaryUrl, job)
     } catch {
-      this.#audioPlaying = false
-      this.#audioFailed = true
-      note.hidden = false
-      this.#syncAudioButton(btn, lang)
-      this.#announce(jt(lang, 'audioUnavailable'))
+      if (token !== this.#audioGeneration || this.#audio !== audio) return
+      this.#failAudio(strip, btn, status, fill, track, note, lang)
     }
   }
 
+  #failAudio(
+    strip: HTMLElement,
+    btn: HTMLButtonElement,
+    status: HTMLElement,
+    fill: HTMLElement,
+    track: HTMLElement,
+    note: HTMLElement,
+    lang: string,
+  ): void {
+    this.#audioPlaying = false
+    this.#audioLoading = false
+    this.#audioFailed = true
+    note.hidden = false
+    note.textContent = jt(lang, 'audioUnavailable')
+    this.#syncAudioUi(strip, btn, status, fill, track, lang)
+    this.#announce(jt(lang, 'audioUnavailable'))
+  }
+
   #stopAudio(): void {
+    this.#audioGeneration += 1
     if (this.#audio) {
       this.#audio.pause()
       this.#audio.removeAttribute('src')
+      try {
+        this.#audio.load()
+      } catch {
+        /* ignore release errors in older engines */
+      }
       this.#audio = null
     }
     this.#audioPlaying = false
+    this.#audioLoading = false
   }
 
   #emitSummaryPlay(playing: boolean, src: string, job: NormalizedJobPosting): void {

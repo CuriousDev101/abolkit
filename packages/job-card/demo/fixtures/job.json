@@ -33,5 +33,5 @@
     }
   },
   "abolSummaryText": "Junior Accessibility Engineer in Addis Ababa. Full time. Apply by the end of December. Focus on captions, keyboard access, and clear job cards.",
-  "abolAudioSummary": "/samples/job-summary.opus"
+  "abolAudioSummary": "./samples/job-summary.wav"
 }

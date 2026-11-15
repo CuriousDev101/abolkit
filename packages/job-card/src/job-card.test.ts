@@ -235,6 +235,50 @@ describe('@abolkit/job-card schema, plain-language copy & JSON-LD', () => {
     expect(() => parseJobPosting({ '@type': 'JobPosting', title: '   ' })).toThrow(/title/)
   })
 
+  it('parses safe abolAudioSummary URLs and keeps audio i18n keys in sync (en/am)', () => {
+    const relative = parseJobPosting({
+      '@type': 'JobPosting',
+      title: 'Caption Reviewer',
+      description: 'Review Amharic captions.',
+      abolAudioSummary: './samples/job-summary.wav',
+    })
+    expect(relative.audioSummaryUrl).toBe('./samples/job-summary.wav')
+
+    const absolute = parseJobPosting({
+      '@type': 'JobPosting',
+      title: 'Caption Reviewer',
+      description: 'Review Amharic captions.',
+      abolAudioSummary: 'https://cdn.example.org/jobs/summary.wav',
+    })
+    expect(absolute.audioSummaryUrl).toBe('https://cdn.example.org/jobs/summary.wav')
+
+    const dataUri = parseJobPosting({
+      '@type': 'JobPosting',
+      title: 'Caption Reviewer',
+      description: 'Review Amharic captions.',
+      abolAudioSummary: 'data:audio/wav;base64,AAA',
+    })
+    expect(dataUri.audioSummaryUrl).toBeUndefined()
+
+    expect(jt('en', 'audioSummaryLabel')).toMatch(/Audio summary/i)
+    expect(jt('en', 'audioSummaryPlay')).toMatch(/Listen/i)
+    expect(jt('en', 'audioSummaryPause')).toMatch(/Pause/i)
+    expect(jt('en', 'audioLoading')).toMatch(/Loading/i)
+    expect(jt('en', 'audioUnavailable')).toMatch(/summary above/i)
+    expect(jt('am', 'audioSummaryLabel')).toBeTruthy()
+    expect(jt('am', 'audioSummaryPlay')).toBeTruthy()
+    expect(jt('am', 'audioLoading')).toBeTruthy()
+    expect(jt('am', 'audioUnavailable')).toBeTruthy()
+  })
+
+  /*
+   * Manual demo checks (happy-dom/jsdom custom-element audio not wired here):
+   * 1. Open packages/job-card/demo/index.html after `pnpm --filter @abolkit/job-card build`
+   * 2. Hero card shows listen strip; play/pause toggles aria-pressed and fires abol:summary-play
+   * 3. “More postings” cards have no listen control (text-only)
+   * 4. Break the WAV path → note appears, live region announces, summary text remains
+   */
+
   it('computes open, closing-soon, and closed deadline states and humanized countdown text', () => {
     const now = new Date('2026-11-15T10:00:00Z')
     expect(getDeadlineState('2026-12-31T23:59:59+03:00', now)).toBe('open')
