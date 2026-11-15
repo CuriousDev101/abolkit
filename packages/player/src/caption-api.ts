@@ -36,9 +36,19 @@ export interface ApiCaption {
   needsReview: boolean
 }
 
-interface CaptionStatus {
+export interface ApiCaptionJob {
+  id: string
+  type: 'transcribe' | 'translate'
+  language: string | null
+  status: 'queued' | 'running' | 'succeeded' | 'failed'
+  progress: number
+  error: string | null
+}
+
+export interface CaptionStatus {
   status: 'ready' | 'processing' | 'failed'
   captions: ApiCaption[]
+  jobs: ApiCaptionJob[]
 }
 
 export interface WatchOptions {
@@ -51,7 +61,8 @@ export interface WatchOptions {
   signal: AbortSignal
   /** Called once per caption file, with its WebVTT text. */
   onCaption(caption: ApiCaption, vtt: string): void
-  onStatus?(status: CaptionStatus['status']): void
+  /** Full API status each poll (jobs, overall state). */
+  onStatus?(status: CaptionStatus): void
   pollMs?: number
   /** Stop polling after this long; the job keeps running on the server. */
   maxWaitMs?: number
@@ -93,7 +104,7 @@ export async function watchCaptions(options: WatchOptions): Promise<void> {
       )
     }
     if (!status) return
-    options.onStatus?.(status.status)
+    options.onStatus?.(status)
 
     for (const caption of status.captions) {
       if (!wanted(caption) || delivered.has(caption.language)) continue
@@ -115,7 +126,7 @@ async function lookup(
   const res = await fetch(`${base}/api/captions?url=${encodeURIComponent(videoUrl)}`, { signal })
   if (res.status === 404) return null
   if (!res.ok) throw new Error(`Caption API HTTP ${res.status}`)
-  return (await res.json()) as CaptionStatus
+  return normalizeStatus(await res.json())
 }
 
 async function request(
@@ -139,7 +150,16 @@ async function request(
     const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null
     throw new Error(body?.error?.message ?? `Caption API HTTP ${res.status}`)
   }
-  return (await res.json()) as CaptionStatus
+  return normalizeStatus(await res.json())
+}
+
+function normalizeStatus(raw: unknown): CaptionStatus {
+  const body = raw as Partial<CaptionStatus> & { jobs?: ApiCaptionJob[] }
+  return {
+    status: body.status === 'processing' || body.status === 'failed' ? body.status : 'ready',
+    captions: Array.isArray(body.captions) ? body.captions : [],
+    jobs: Array.isArray(body.jobs) ? body.jobs : [],
+  }
 }
 
 function sleep(ms: number, signal: AbortSignal): Promise<void> {

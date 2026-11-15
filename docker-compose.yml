@@ -24,6 +24,7 @@ x-backend-env:
   TRANSCRIBER_OFF_HOST_CONSENT: ${TRANSCRIBER_OFF_HOST_CONSENT:-true}
   TRANSLATOR: ${TRANSLATOR:-gemini}
   TRANSLATOR_OFF_HOST_CONSENT: ${TRANSLATOR_OFF_HOST_CONSENT:-true}
+  GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
 
 x-backend: &backend
   build: .

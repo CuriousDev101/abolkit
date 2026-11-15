@@ -117,6 +117,23 @@ export class CaptionsMenuButtonElement extends CaptionsButtonElement {
   protected override reflectsHidden(): boolean {
     return false
   }
+
+  protected override update(changed: PropertyValues): void {
+    super.update(changed)
+    // applyStateDataAttrs still writes data-hidden from core state when Video.js's track list is empty.
+    // Host CueTracks / caption-api blobs are invisible to that list; keep the button usable for our menu.
+    if (this.#ownsCaptionsMenu()) {
+      this.removeAttribute('data-hidden')
+      this.removeAttribute('data-disabled')
+      if (this.getAttribute('aria-disabled') === 'true') this.removeAttribute('aria-disabled')
+    }
+  }
+
+  #ownsCaptionsMenu(): boolean {
+    if (!this.commandfor) return false
+    const menu = (this.getRootNode() as ShadowRoot | Document).getElementById(this.commandfor)
+    return !!menu?.hasAttribute('data-abol-custom-captions')
+  }
 }
 
 const CHECK = `<media-menu-item-indicator force-mount class="media-menu-indicator"><media-icon family="compat" name="check" class="media-menu-radio-icon"></media-icon></media-menu-item-indicator>`
@@ -146,14 +163,22 @@ export class OptionGroupElement extends MenuRadioGroupElement {
     super.connectedCallback()
     this.#abort?.abort()
     this.#abort = new AbortController()
-    // Video.js closes the page on every radio choice (completeMenuItemSelection). Caption style then jumps back a
-    // page, so the choice looks like it did nothing. Keep the page open and apply the value ourselves.
+    // Video.js closes the current submenu on every radio choice (completeMenuItemSelection → menu.close).
+    // For Caption style that pops the choice page back to the hub — looks like the option did nothing.
+    // Intercept in capture and apply the value ourselves so the page stays open (YouTube-style).
     this.addEventListener(
       'click',
       (ev) => {
-        const item = (ev.target as Element).closest('media-menu-radio-item')
-        if (!item || !this.contains(item)) return
-        ev.stopPropagation()
+        // Label clicks hit a Text node; Text has no closest(), so resolve via composedPath.
+        const item = ev
+          .composedPath()
+          .find(
+            (node): node is Element =>
+              node instanceof Element && node.localName === 'media-menu-radio-item',
+          )
+        if (!item || !this.contains(item) || item.hasAttribute('disabled')) return
+        ev.stopImmediatePropagation()
+        ev.preventDefault()
         const value = item.getAttribute('value') ?? ''
         if (this.value === value) return
         this.value = value
@@ -179,9 +204,11 @@ export class OptionGroupElement extends MenuRadioGroupElement {
 
   protected override update(changed: PropertyValues): void {
     super.update(changed)
+    // Never publish hidden:true — Video.js closes an open submenu when its option state is hidden,
+    // which bounced Caption style choice pages straight back to the previous list.
     this.publishMenuOptionState(
-      false,
       this.unavailable,
+      false,
       this.unavailable ? 'unavailable' : 'available',
     )
   }
@@ -208,13 +235,14 @@ const pageItem = (target: string, label: string, hint = HINT) =>
   `<media-menu-item commandfor="${target}" class="media-menu-item" data-page="${target}"><span data-l="${label}"></span>${hint}</media-menu-item>`
 const back = (label: string) =>
   `<media-menu-item class="media-menu-back-item">${icon('chevron', 'media-menu-back-chevron')}<span data-l="${label}"></span></media-menu-item><media-menu-separator class="media-menu-separator"></media-menu-separator>`
-const SEPARATOR = '<media-menu-separator class="media-menu-separator"></media-menu-separator>'
-const optionPage = (option: PlayerOption) =>
-  `<media-menu-content class="media-menu-content" id="abol-opt-${option.key}">${back(option.label)}
+const SEPARATOR =
+  '<media-menu-separator class="media-menu-separator abol-captions-sep"></media-menu-separator>'
+/** One settings/choice page. Caption style uses these for size, colour, position, etc. */
+const optionPage = (option: PlayerOption, extraClass = '') =>
+  `<media-menu-content class="media-menu-content${extraClass ? ` ${extraClass}` : ''}" id="abol-opt-${option.key}">${back(option.label)}
     <abol-option-group class="media-menu-radio-group" data-opt="${option.key}">${option.choices
       .map(([value, label]) => radioItem(value, label))
       .join('')}</abol-option-group></media-menu-content>`
-
 const main = OPTIONS.filter((o) => o.group === 'main')
 const caption = OPTIONS.filter((o) => o.group === 'caption')
 const toggle = (action: string, name: string) =>
@@ -235,16 +263,16 @@ ${optionMenu('abol-audio-menu', 'media-audio-track-radio-group')}
 </abol-captions-button>
 ${tooltip('abol-captions-trigger', LABEL_TIP)}
 <media-menu id="abol-captions-menu" ${MENU}>
-  <media-menu-content class="media-menu-content">
+  <media-menu-content class="media-menu-content abol-captions-root">
     ${mediaGroup('media-captions-radio-group', '<span data-part="badge" class="media-menu-badge"></span>')}
-    <abol-option-group class="media-menu-radio-group" data-opt="captionTrack"></abol-option-group>
+    <abol-option-group class="media-menu-radio-group abol-caption-tracks" data-opt="captionTrack" hidden></abol-option-group>
     ${SEPARATOR}
     ${pageItem('abol-page-caption', 'captionSettings', icon('chevron', 'media-menu-forward-chevron'))}
   </media-menu-content>
-  <media-menu-content class="media-menu-content" id="abol-page-caption">${back('captionSettings')}
+  <media-menu-content class="media-menu-content abol-caption-style" id="abol-page-caption">${back('captionSettings')}
     ${caption.map((o) => pageItem(`abol-opt-${o.key}`, o.label)).join('')}
   </media-menu-content>
-  ${caption.map(optionPage).join('')}
+  ${caption.map((o) => optionPage(o, 'abol-caption-choice')).join('')}
 </media-menu>
 
 <media-playback-rate-button commandfor="abol-speed-menu" class="media-button abol-speed-button" id="abol-speed-trigger">${icon('speed')}</media-playback-rate-button>
@@ -263,7 +291,7 @@ ${tooltip('abol-settings-trigger', '<media-text token="menu.settings">Settings</
   <media-menu-content class="media-menu-content">
     ${main.map((o) => pageItem(`abol-opt-${o.key}`, o.label)).join('')}
   </media-menu-content>
-  ${main.map(optionPage).join('')}
+  ${main.map((o) => optionPage(o)).join('')}
 </media-menu>`
 
 /** Video.js's skin styles stop at its own controls; these cover ours. */
@@ -276,18 +304,66 @@ const SKIN_CSS = `
 }
 .abol-captions-button[data-abol-active] .media-captions-button-off-icon { display: none; }
 .abol-captions-button[data-abol-active] .media-captions-button-on-icon { display: block; }
-/* A choice page is a grandchild of the root. Video.js only slides the direct parent away, so the track list
-   stayed underneath the choices and took the click. Slide the root away whenever any page of the menu is open. */
-media-menu:has(> media-menu-content[data-submenu][data-open]) > media-menu-content:not([data-submenu]) {
+/* Video.js sets data-hidden when its own track list is empty; CueTracks never appear there. */
+.video-controls-group:has(#abol-captions-menu[data-abol-custom-captions]) .abol-captions-button[data-hidden] {
+  display: grid;
+}
+
+/* Captions menu: tracks → Caption style → one page per control. */
+#abol-captions-menu.media-menu-popup { min-width: 14rem; }
+#abol-captions-menu .abol-captions-root { gap: 2px; padding-block: 2px; }
+/* Prefer CueTrack list over Video.js's YouTube-native captions when both would duplicate Off/English. */
+#abol-captions-menu[data-abol-custom-captions] media-captions-radio-group,
+#abol-captions-menu:not([data-abol-custom-captions]) .abol-caption-tracks {
+  display: none !important;
+}
+#abol-captions-menu .abol-captions-sep { margin-block: 4px; }
+#abol-captions-menu .abol-caption-style,
+#abol-captions-menu .abol-caption-choice {
+  min-width: 14.5rem;
+  gap: 2px;
+}
+#abol-captions-menu .abol-caption-style .media-menu-item,
+#abol-captions-menu .abol-caption-choice .media-menu-radio-item,
+#abol-captions-menu .abol-captions-root .media-menu-radio-item,
+#abol-captions-menu .abol-captions-root .media-menu-item[data-page] {
+  min-height: 2.35rem;
+  padding-inline: 0.7rem;
+  border-radius: 6px;
+}
+#abol-captions-menu .abol-caption-style .media-menu-item[data-page],
+#abol-captions-menu .abol-captions-root .media-menu-item[data-page="abol-page-caption"] {
+  justify-content: space-between;
+}
+#abol-captions-menu .abol-caption-style .media-menu-hint-label {
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+/* Keep an open style choice page interactive if a transition attribute lingers. */
+#abol-captions-menu .abol-caption-choice[data-open]:not([data-starting-style]):not([data-ending-style]) {
+  pointer-events: auto !important;
+  transform: none !important;
+  filter: none !important;
+  clip-path: inset(0) !important;
+  z-index: 11;
+}
+/* Video.js only slides the root (not [data-submenu]). Slide Caption style too when a choice
+   page opens, otherwise the hub stays under the choice page and steals clicks. */
+#abol-captions-menu > media-menu-content.abol-caption-style[data-child-open] {
   filter: blur(var(--media-hidden-blur, 8px));
   clip-path: inset(0 0 0 100%);
   transform: translateX(-100%);
-  pointer-events: none;
+  pointer-events: none !important;
+  visibility: hidden;
 }
-media-menu:has(> media-menu-content[data-submenu][data-open]) > media-menu-content:not([data-submenu]):dir(rtl) {
+#abol-captions-menu > media-menu-content.abol-caption-style[data-child-open]:dir(rtl) {
   clip-path: inset(0 100% 0 0);
   transform: translateX(100%);
 }
+
 /* Transcript covers the right of the frame; the bars are absolutely positioned, so inset them. */
 :host([data-transcript]) .video-controls-bottom { inset-inline-end: calc(var(--abol-transcript-width) + 8px); }
 :host([data-transcript]) .video-controls-top { inset-inline-end: calc(var(--abol-transcript-width) + 12px); }

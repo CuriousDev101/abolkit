@@ -16,12 +16,25 @@ export interface LessonConfig {
   adClips?: string
 }
 
-export function languageName(lang: string): string {
+/** Names Intl often omits or returns as the bare code (Ethiopian languages we generate). */
+const LANGUAGE_FALLBACKS: Record<string, string> = {
+  aa: 'Afar',
+  am: 'Amharic',
+  om: 'Oromo',
+  ti: 'Tigrinya',
+}
+
+/** Human-readable language name (e.g. `am` → "Amharic"). `locale` is the UI language for the label. */
+export function languageName(lang: string, locale = 'en'): string {
+  const code = lang.trim().toLowerCase()
+  if (!code) return lang
   try {
-    return new Intl.DisplayNames([lang], { type: 'language' }).of(lang) ?? lang
+    const name = new Intl.DisplayNames([locale, 'en'], { type: 'language' }).of(code)
+    if (name && name.toLowerCase() !== code) return name
   } catch {
-    return lang
+    /* fall through */
   }
+  return LANGUAGE_FALLBACKS[code] ?? lang.trim()
 }
 
 const TRACK_KINDS = ['captions', 'subtitles', 'descriptions', 'chapters']

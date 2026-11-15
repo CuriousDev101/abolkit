@@ -77,7 +77,7 @@ describe('createGeminiTranslator', () => {
       new Response(JSON.stringify({ error: { status: 'RESOURCE_EXHAUSTED', message: 'quota' } }), {
         status: 429,
       })) as typeof globalThis.fetch
-    const t = createGeminiTranslator({ apiKey: 'key', fetch })
+    const t = createGeminiTranslator({ apiKey: 'key', fetch, retryLimit: 0 })
     await expect(t.translate(CUES, { from: 'en', to: 'ti' })).rejects.toMatchObject({
       code: 'RESOURCE_EXHAUSTED',
       status: 429,
