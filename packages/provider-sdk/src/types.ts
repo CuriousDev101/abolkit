@@ -44,12 +44,22 @@ export interface Storage extends ProviderInfo {
 
 /** Chosen at deploy time from environment/config. Defaults must work with no accounts and no network. */
 export interface ProviderConfig {
-  /** Default after #7: 'mms-http'. Also: 'stub' (no network). */
+  /**
+   * Default after #7: 'mms-http' (self-hosted wrapper). Use 'stub' for no network.
+   * Off-host ids (e.g. 'assemblyai') require `allowOffHostProviders`.
+   */
   transcriber: string
+  /** Default: 'none' (identity). Also: 'stub'. Cloud ids require consent. */
   translator: string
+  /** Default: 'recorded-clips' (local files). Also: 'stub'. Cloud ids require consent. */
   tts: string
   /** Compose/demo default: 'minio' (mandatory, ADR 0005). Use 'local-disk' for tests / no-Docker. 'r2' later. */
   storage: string
   /** Base URL for mms-http, e.g. http://mms-stt:8000 */
   transcriberUrl?: string
+  /**
+   * Explicit opt-in before any adapter with `sendsDataOffHost: true` may be constructed.
+   * Maps to env `ALLOW_OFF_HOST_PROVIDERS=true`.
+   */
+  allowOffHostProviders?: boolean
 }

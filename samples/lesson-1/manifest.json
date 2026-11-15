@@ -1,0 +1,35 @@
+{
+  "id": "lesson-1",
+  "title": "Intro lesson",
+  "lang": "en",
+  "media": {
+    "video": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+  },
+  "captions": [
+    {
+      "lang": "en",
+      "label": "English",
+      "src": "en.vtt",
+      "default": true
+    },
+    {
+      "lang": "am",
+      "label": "አማርኛ",
+      "src": "am.vtt"
+    }
+  ],
+  "descriptions": [
+    {
+      "lang": "en",
+      "src": "ad.en.vtt"
+    }
+  ],
+  "sign": {
+    "lang": "ets",
+    "src": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+    "placeholder": true
+  },
+  "transcript": {
+    "src": "transcript.html"
+  }
+}

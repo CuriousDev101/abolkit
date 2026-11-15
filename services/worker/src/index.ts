@@ -2,7 +2,12 @@
 // STT: HTTP client to external MMS wrapper (spike #7). Model lives in another repo.
 // TODO(#25): queue + job runner. TODO(#26): wrap spikes/09-ffmpeg recipes. TODO(#27): STT job wiring.
 
-import { createTranscriber, ProviderError } from '@abolkit/provider-sdk'
+import {
+  createTranscriber,
+  createTranslator,
+  createTts,
+  ProviderError,
+} from '@abolkit/provider-sdk'
 import { loadWorkerConfig } from './config.js'
 
 export { loadWorkerConfig }
@@ -12,18 +17,35 @@ export function createWorkerTranscriber(env: Record<string, string | undefined> 
   return createTranscriber(config)
 }
 
-/** Dev helper: resolve transcriber and print which backend will be used. */
+/** Dev helper: resolve providers and print which backends will be used. */
 export async function main(): Promise<void> {
   try {
     const config = loadWorkerConfig()
     const transcriber = createTranscriber(config)
+    const translator = createTranslator(config)
+    const tts = createTts(config)
     console.log(
       JSON.stringify({
         ok: true,
-        transcriber: transcriber.id,
-        label: transcriber.label,
-        sendsDataOffHost: transcriber.sendsDataOffHost,
-        url: config.transcriberUrl ?? null,
+        allowOffHostProviders: config.allowOffHostProviders === true,
+        transcriber: {
+          id: transcriber.id,
+          label: transcriber.label,
+          sendsDataOffHost: transcriber.sendsDataOffHost,
+          url: config.transcriberUrl ?? null,
+        },
+        translator: {
+          id: translator.id,
+          label: translator.label,
+          sendsDataOffHost: translator.sendsDataOffHost,
+        },
+        tts: {
+          id: tts.id,
+          label: tts.label,
+          sendsDataOffHost: tts.sendsDataOffHost,
+          languages: tts.languages(),
+        },
+        storage: config.storage,
       }),
     )
   } catch (err: unknown) {

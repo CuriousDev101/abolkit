@@ -11,7 +11,9 @@
     "openapi:write": "node --experimental-strip-types scripts/write-openapi.ts",
     "client:generate": "node --experimental-strip-types scripts/write-openapi.ts && openapi-typescript ../../spikes/10-zod-openapi/openapi.json -o scripts/schema.d.ts",
     "client:check": "node ../../node_modules/typescript/bin/tsc -p tsconfig.client.json",
-    "spike:smoke": "node --experimental-strip-types scripts/smoke.ts"
+    "smoke": "node --experimental-strip-types scripts/smoke.ts",
+    "smoke:assets": "node --experimental-strip-types scripts/smoke-assets.ts",
+    "spike:smoke": "pnpm smoke"
   },
   "dependencies": {
     "@abolkit/core": "workspace:*",

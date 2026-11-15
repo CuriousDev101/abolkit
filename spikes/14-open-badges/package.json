@@ -1,0 +1,23 @@
+{
+  "name": "@abolkit/spike-14-open-badges",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Spike #14: Open Badges 3.0 Ed25519 sign/verify and JobPosting JSON-LD.",
+  "scripts": {
+    "keys": "tsx src/generate-keys.ts",
+    "issue": "tsx src/issue.ts",
+    "verify": "tsx src/verify.ts",
+    "smoke": "tsx src/smoke.ts"
+  },
+  "dependencies": {
+    "bs58": "^6.0.0",
+    "canonicalize": "^5.1.0",
+    "jose": "^6.2.17"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3"
+  }
+}

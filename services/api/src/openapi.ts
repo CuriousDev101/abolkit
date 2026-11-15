@@ -7,7 +7,8 @@ export const openApiConfig = {
     description:
       'HTTP API for Abol Kit. This process does not run speech-to-text. ' +
       'The worker calls a separate MMS ASR service (TRANSCRIBER_URL). ' +
-      'No path in this document accepts audio or returns a transcript.',
+      'Read routes are open with CORS; write routes require API_KEY. ' +
+      'Assets use the configured Storage adapter (local-disk default; MinIO for Compose).',
   },
   servers: [
     {

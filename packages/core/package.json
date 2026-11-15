@@ -4,5 +4,15 @@
   "private": true,
   "type": "module",
   "main": "src/index.ts",
-  "description": "Shared pure TypeScript: WebVTT parse/serialize, cue types, settings store, i18n strings, a11y helpers. No DOM, no Node-only APIs."
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "description": "Shared pure TypeScript: WebVTT parse/serialize, cue types, settings store, i18n strings, a11y helpers. No DOM, no Node-only APIs.",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "vitest": "^5.1.0"
+  }
 }

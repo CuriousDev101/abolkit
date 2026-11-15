@@ -1,9 +1,10 @@
 // The seam between our UI and whatever plays the media (ADR 0001).
-// Video.js is the first implementation; a native <video> implementation is the planned fallback.
+// Video.js (compat skin) is the default implementation; a native <video> implementation is the fallback.
 // Captions overlay, sign window and audio description talk ONLY to this interface.
 
 export type EngineEvent =
   | 'play'
+  | 'playing'
   | 'pause'
   | 'seeking'
   | 'seeked'
@@ -12,12 +13,34 @@ export type EngineEvent =
   | 'volumechange'
   | 'waiting'
   | 'canplay'
+  | 'loadedmetadata'
   | 'ended'
   | 'error'
 
+export interface MediaTrack {
+  kind: 'captions' | 'subtitles' | 'descriptions' | 'chapters'
+  src: string
+  lang: string
+  label: string
+  default?: boolean
+}
+
+export interface MediaSource {
+  /** A video URL, or a YouTube URL (youtube.com, youtu.be, youtube-nocookie.com). */
+  src: string
+  /** MIME type; `application/x-mpegURL` (or a `.m3u8` URL) selects HLS where the build includes it. */
+  type?: string | null
+  poster?: string
+  title?: string
+  tracks?: MediaTrack[]
+  crossOrigin?: string | null
+}
+
 export interface MediaEngine {
+  readonly kind: 'videojs' | 'native'
+
   /** Mount the media element(s) inside the given container (a node inside our Shadow DOM). */
-  mount(container: HTMLElement, source: { src: string; type?: string; poster?: string }): void
+  mount(container: HTMLElement, source: MediaSource): void
   destroy(): void
 
   play(): Promise<void>
@@ -33,6 +56,24 @@ export interface MediaEngine {
 
   on(event: EngineEvent, handler: () => void): () => void // returns an unsubscribe function
 
-  /** Needed by the sign window to stay in sync and by the offline mode to pick the audio-only source. */
-  readonly element: HTMLMediaElement
+  /** Swap the media URL in place (audio-only mode), keeping tracks and listeners. */
+  setSource(src: string): void
+
+  /**
+   * Caption and description tracks: the <video>'s own list, or (YouTube) the host's VTT tracks timed by the engine
+   * clock, which Video.js's captions menu cannot see.
+   */
+  readonly textTracks: TextTrackList
+
+  /** True when `textTracks` is engine-managed, so the player must offer its own caption track choice. */
+  readonly customTracks: boolean
+
+  /** Call `handler` once `track`'s cues finish loading; returns false when there is nothing to wait for. */
+  whenLoaded(track: TextTrack, handler: () => void): boolean
+
+  /** Where overlays (captions, sign window) attach so they stay inside the fullscreen area. */
+  readonly overlay: HTMLElement
+
+  /** Root holding our controls inside the engine's control bar, or null when the engine has none (native). */
+  readonly controls: ShadowRoot | null
 }

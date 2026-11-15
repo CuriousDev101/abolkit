@@ -7,6 +7,25 @@ coverage
 !.env.example
 *.log
 .DS_Store
+.pnpm-store
+.pnpm-home
+node_modules/.pnpm-store
+
+# npm lockfile — this repo uses pnpm
+package-lock.json
+
+# local tooling / pnpm store used for env bootstrap
+.tools/
+.pnpm-store/
+
+# spike local envs and caches (never commit)
+spikes/**/.venv/
+spikes/**/.venv*/
+spikes/**/.uv-cache/
+spikes/**/.hf-cache/
+spikes/**/.python/
+spikes/**/.tmp/
+spikes/**/__pycache__/
 
 # npm lockfile — this repo uses pnpm
 package-lock.json

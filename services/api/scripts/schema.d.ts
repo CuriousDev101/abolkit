@@ -24,10 +24,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload media
+         * @description Accepts multipart form field `file` (and optional `retentionDays`). Requires API_KEY. Stores bytes via the configured Storage adapter and returns `{ id }`.
+         */
+        post: operations["createAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Asset metadata and signed download URL
+         * @description Returns asset metadata plus a time-limited `downloadUrl`. Expired retention returns 410 Gone.
+         */
+        get: operations["getAsset"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/storage/object": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Signed local-disk object download
+         * @description HMAC-verified download route used when STORAGE_PROVIDER=local-disk. MinIO adapters return presigned S3 URLs instead of this path.
+         */
+        get: operations["getStorageObject"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ErrorBody: {
+            error: {
+                /** @example VALIDATION */
+                code: string;
+                /** @example Invalid request */
+                message: string;
+            };
+        };
         Health: {
             /**
              * @example true
@@ -39,6 +107,52 @@ export interface components {
              * @enum {string}
              */
             service: "abolkit-api";
+        };
+        AssetCreated: {
+            /**
+             * Format: uuid
+             * @example 11111111-1111-4111-8111-111111111111
+             */
+            id: string;
+        };
+        AssetUploadBody: {
+            /**
+             * Format: binary
+             * @description Media file (video or audio). Field name must be `file`.
+             */
+            file?: string;
+            /**
+             * @description Days to retain the asset before it expires. Defaults to ASSET_RETENTION_DAYS.
+             * @example 7
+             */
+            retentionDays?: number;
+        };
+        Asset: {
+            /** Format: uuid */
+            id: string;
+            /** @example video/mp4 */
+            mime: string;
+            sizeBytes: number;
+            /** @example lesson.mp4 */
+            originalName: string | null;
+            retentionDays: number;
+            /**
+             * Format: date-time
+             * @example 2026-11-14T18:00:00.000Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @example 2026-11-21T18:00:00.000Z
+             */
+            expiresAt: string;
+            /**
+             * @description Time-limited signed URL for the source object.
+             * @example /api/storage/object?key=assets%2F...&exp=...&sig=...
+             */
+            downloadUrl: string;
+            /** @example 3600 */
+            downloadUrlExpiresInSeconds: number;
         };
     };
     responses: never;
@@ -65,6 +179,175 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    createAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AssetUploadBody"];
+            };
+        };
+        responses: {
+            /** @description Asset stored */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetCreated"];
+                };
+            };
+            /** @description Validation error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Missing or invalid API key */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description File too large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description MIME type not allowed */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description API_KEY unset */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Asset metadata */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Asset"];
+                };
+            };
+            /** @description Invalid id */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Retention expired */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    getStorageObject: {
+        parameters: {
+            query: {
+                key: string;
+                exp: number;
+                sig: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Object bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            /** @description Bad signature payload */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Invalid or expired signature */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            /** @description Object missing */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
                 };
             };
         };

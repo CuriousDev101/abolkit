@@ -48,6 +48,7 @@ pnpm --filter @abolkit/api dev
 
 ## Follow-ups
 
-- `#17`: add the rest of the routes on this app (assets, jobs, lessons, credentials).
+- `#17`: productize this skeleton (config, JSON errors, one-command `pnpm dev:api`, API key gate for later writes). Done on branch `ol/17-api`.
+- `#24+`: mount assets, jobs, lessons, credentials on this app; protect writes with `requireApiKey`.
 - `#27`: worker job calls `createTranscriber({ transcriber: 'mms-http' })`. Do not add that route here.
 - `#46`: replace `/widget/embed.js` with the built `abol-player.js`.

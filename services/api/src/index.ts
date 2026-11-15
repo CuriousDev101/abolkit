@@ -1,7 +1,7 @@
-// API entry point. Owner: pair "ol".
-// Spike #10: health, /openapi.json, Scalar at /docs, script-tag embed.
+// API entry (#17 + #24): health, assets upload/metadata, signed downloads,
+// /openapi.json, Scalar at /docs, CORS, JSON errors.
 // STT is not this process. The worker calls the external MMS wrapper.
-// TODO(#17): assets, jobs, lessons, credentials.
+// Next: jobs (#25+), gated with requireApiKey.
 
 import { serve } from '@hono/node-server'
 
@@ -10,6 +10,7 @@ import { loadApiConfig } from './config.ts'
 
 export { createApp } from './app.ts'
 export { loadApiConfig } from './config.ts'
+export { requireApiKey } from './middleware/api-key.ts'
 
 export function start(env: Record<string, string | undefined> = process.env) {
   const config = loadApiConfig(env)
@@ -23,6 +24,7 @@ export function start(env: Record<string, string | undefined> = process.env) {
         url: `http://127.0.0.1:${info.port}`,
         docs: `http://127.0.0.1:${info.port}/docs`,
         openapi: `http://127.0.0.1:${info.port}/openapi.json`,
+        health: `http://127.0.0.1:${info.port}/api/health`,
       }),
     )
   })
