@@ -149,7 +149,12 @@ describe('@abolkit/job-card schema, plain-language copy & JSON-LD', () => {
       baseSalary: {
         '@type': 'MonetaryAmount',
         currency: 'ETB',
-        value: { '@type': 'QuantitativeValue', minValue: 20000, maxValue: 26000, unitText: 'MONTH' },
+        value: {
+          '@type': 'QuantitativeValue',
+          minValue: 20000,
+          maxValue: 26000,
+          unitText: 'MONTH',
+        },
       },
       validThrough: '2099-12-20',
     })

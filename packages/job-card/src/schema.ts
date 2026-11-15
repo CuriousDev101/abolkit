@@ -34,9 +34,7 @@ export interface JobLocationInfo {
   applicantLocations?: string[]
 }
 
-export type DescriptionBlock =
-  | { kind: 'p'; text: string }
-  | { kind: 'ul'; items: string[] }
+export type DescriptionBlock = { kind: 'p'; text: string } | { kind: 'ul'; items: string[] }
 
 /** Normalized, privacy-safe JobPosting representation used by `<abol-job-card>`. */
 export interface NormalizedJobPosting {
@@ -431,7 +429,9 @@ export function composePlainSummary(
         ? `${workType} የሥራ ዕድል`
         : `የ${workType} የሥራ ዕድል`
       : 'የሥራ ዕድል'
-    const first = ctx ? `${fields.title} ${ctx} ${typePhrase} ነው።` : `${fields.title} ${typePhrase} ነው።`
+    const first = ctx
+      ? `${fields.title} ${ctx} ${typePhrase} ነው።`
+      : `${fields.title} ${typePhrase} ነው።`
 
     if (isClosed) {
       return salary ? `${first} ክፍያው ${salary} ነበር። ማመልከቻው ተዘግቷል።` : `${first} ማመልከቻው ተዘግቷል።`
@@ -592,10 +592,7 @@ export function formatLocation(location: JobLocationInfo, lang?: string | null):
           ]
         : []
 
-  const placeText = formatList(
-    places.map((p) => formatSinglePlace(p, lang)).filter(Boolean),
-    lang,
-  )
+  const placeText = formatList(places.map((p) => formatSinglePlace(p, lang)).filter(Boolean), lang)
 
   const applicantList =
     location.applicantLocations && location.applicantLocations.length > 0
@@ -640,7 +637,9 @@ export function formatSalary(salary: JobSalary | undefined, lang?: string | null
 
   if (!hasRange && singleVal === undefined) return ''
 
-  const unitKey = salary.unitText ? SALARY_UNIT_MAP[salary.unitText.trim().toUpperCase()] : undefined
+  const unitKey = salary.unitText
+    ? SALARY_UNIT_MAP[salary.unitText.trim().toUpperCase()]
+    : undefined
   const unitLabel = unitKey
     ? jt(lang, unitKey)
     : salary.unitText

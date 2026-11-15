@@ -40,8 +40,16 @@
         font-family: 'Source Sans 3', 'Noto Sans Ethiopic', 'Noto Sans', system-ui, sans-serif;
         line-height: 1.5;
         background:
-          radial-gradient(90% 60% at 12% -10%, color-mix(in srgb, var(--leaf) 18%, transparent), transparent 55%),
-          radial-gradient(70% 50% at 100% 0%, color-mix(in srgb, var(--focus) 16%, transparent), transparent 45%),
+          radial-gradient(
+            90% 60% at 12% -10%,
+            color-mix(in srgb, var(--leaf) 18%, transparent),
+            transparent 55%
+          ),
+          radial-gradient(
+            70% 50% at 100% 0%,
+            color-mix(in srgb, var(--focus) 16%, transparent),
+            transparent 45%
+          ),
           linear-gradient(165deg, #cfdcd3 0%, var(--sage) 38%, var(--paper) 100%);
         background-attachment: fixed;
       }
@@ -191,7 +199,11 @@
         --abol-bg: #0f1412;
         --abol-fg: #f4f7f5;
         background:
-          radial-gradient(80% 50% at 10% 0%, color-mix(in srgb, var(--leaf) 22%, transparent), transparent 50%),
+          radial-gradient(
+            80% 50% at 10% 0%,
+            color-mix(in srgb, var(--leaf) 22%, transparent),
+            transparent 50%
+          ),
           linear-gradient(180deg, #0a0f0c, #121a16);
       }
 
@@ -218,7 +230,9 @@
     <div class="page">
       <header class="hero">
         <h1 class="brand"><span lang="am">አቦል</span>Abol</h1>
-        <p>Clear job notices for graduates — readable at 200% zoom, with JobPosting JSON-LD built in.</p>
+        <p>
+          Clear job notices for graduates — readable at 200% zoom, with JobPosting JSON-LD built in.
+        </p>
       </header>
 
       <main class="stage" id="stage">
@@ -235,7 +249,9 @@
         <label><input type="checkbox" id="toggle-spacing" /> Text spacing</label>
         <label><input type="checkbox" id="toggle-ethiopic" /> Ethiopian calendar</label>
         <label><input type="checkbox" id="toggle-night" /> Night surface</label>
-        <p class="report" id="overflow-report" role="status" aria-live="polite">Checking horizontal scroll…</p>
+        <p class="report" id="overflow-report" role="status" aria-live="polite">
+          Checking horizontal scroll…
+        </p>
         <ol class="log" id="event-list" role="log" aria-live="polite">
           <li>Apply or listen on a card to see events here.</li>
         </ol>
@@ -386,7 +402,8 @@
         let maxDelta = 0
         document.querySelectorAll('abol-job-card').forEach((card) => {
           const rootEl = card.shadowRoot?.querySelector('.card')
-          if (rootEl) maxDelta = Math.max(maxDelta, Math.ceil(rootEl.scrollWidth - rootEl.clientWidth))
+          if (rootEl)
+            maxDelta = Math.max(maxDelta, Math.ceil(rootEl.scrollWidth - rootEl.clientWidth))
         })
         maxDelta = Math.max(
           maxDelta,
