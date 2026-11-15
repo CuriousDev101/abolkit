@@ -1,10 +1,7 @@
-# Abol Kit local stack (#43, ADR 0005).
-# From a clean clone:
-#   cp .env.example .env
-#   docker compose up --build
+# Legacy SQLite stack (#43, ADR 0005). Prefer docker-compose.yml (ADR 0007) for captions.
+#   docker compose -f compose.sqlite.yaml up --build
 #
-# Services: MinIO (object storage) + API + worker + one-shot sample seed.
-# No Postgres / Redis — SQLite on a shared volume backs assets + the job queue.
+# MinIO + API + worker + sample seed. No Postgres / Redis — SQLite on a shared volume.
 
 name: abolkit
 

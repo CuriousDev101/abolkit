@@ -1,8 +1,7 @@
-# Prefer building from the repo root (#43):
+# Prefer the repo-root Dockerfile (ADR 0007):
 #   docker build --target worker -t abolkit-worker .
-# The root Dockerfile worker target also installs Liblouis (python3-louis,
-# liblouis-data) for optional Amharic BRF export (#55). This file stays for
-# discoverability and local ffmpeg smoke builds.
+# Root worker installs ffmpeg, yt-dlp, and Liblouis (#55). This file is only
+# for discoverability / local ffmpeg smoke builds.
 FROM mwader/static-ffmpeg:7.1 AS ffmpeg
 
 FROM node:22-bookworm-slim

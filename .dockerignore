@@ -14,6 +14,15 @@
 !**/.env.example
 .tools
 .pnpm-store
+# Not needed for api/worker images
+apps
+spikes
+samples
+docs-internal
+*.md
+!packages/**/README.md
+packages/player
+packages/job-card
 spikes/**/.venv*
 spikes/**/.uv-cache
 spikes/**/.hf-cache

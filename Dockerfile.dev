@@ -1,0 +1,57 @@
+# Local development images (watch + bind mounts via docker-compose.yml).
+#   docker compose up --build
+#
+# Production: docker compose -f docker-compose.prod.yml up -d --build
+
+ARG NODE_IMAGE=node:24-bookworm-slim
+ARG YTDLP_VERSION=2026.10.26
+
+FROM mwader/static-ffmpeg:7.1 AS ffmpeg
+
+FROM ${NODE_IMAGE} AS base
+ENV CI=true
+RUN npm install --global pnpm@11.28.9 && npm cache clean --force
+WORKDIR /app
+
+FROM base AS deps
+COPY package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.docker.yaml ./pnpm-workspace.yaml
+COPY packages/core/package.json packages/core/
+COPY packages/caption-store/package.json packages/caption-store/
+COPY packages/jobs/package.json packages/jobs/
+COPY packages/provider-sdk/package.json packages/provider-sdk/
+COPY services/api/package.json services/api/
+COPY services/worker/package.json services/worker/
+RUN pnpm install --frozen-lockfile --filter "@abolkit/api..." --filter "@abolkit/worker..."
+
+FROM deps AS api
+ENV NODE_ENV=development HOST=0.0.0.0 PORT=8787
+COPY packages/core packages/core
+COPY packages/caption-store packages/caption-store
+COPY packages/jobs packages/jobs
+COPY packages/provider-sdk packages/provider-sdk
+COPY services/api services/api
+RUN mkdir -p /data && chown node:node /data
+USER node
+WORKDIR /app/services/api
+EXPOSE 8787
+CMD ["node", "--experimental-strip-types", "--watch", "src/index.ts"]
+
+FROM deps AS worker
+ARG YTDLP_VERSION
+ENV NODE_ENV=development FFMPEG_BIN=/usr/local/bin/ffmpeg
+USER root
+COPY --from=ffmpeg /ffmpeg /ffprobe /usr/local/bin/
+ADD --chmod=755 https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}/yt-dlp_linux /usr/local/bin/yt-dlp
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 python3-louis liblouis-data \
+  && rm -rf /var/lib/apt/lists/* \
+  && mkdir -p /data && chown node:node /data
+COPY packages/core packages/core
+COPY packages/caption-store packages/caption-store
+COPY packages/jobs packages/jobs
+COPY packages/provider-sdk packages/provider-sdk
+COPY services/worker services/worker
+USER node
+WORKDIR /app/services/worker
+CMD ["node", "--experimental-strip-types", "--watch", "src/index.ts"]

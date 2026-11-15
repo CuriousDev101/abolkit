@@ -1,0 +1,125 @@
+# Production / EC2 demo (ADR 0007). Baked-in images, no source mounts.
+#
+#   cp .env.example .env   # set secrets + provider keys
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Local laptop (default):  docker compose up --build
+# API on 127.0.0.1:8787 — put Caddy/Nginx in front for public HTTPS.
+
+name: abolkit
+
+x-backend-env:
+  &backend-env
+  POSTGRES_URL: postgres://${POSTGRES_USER:-abolkit}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-abolkit}
+  REDIS_URL: redis://redis:6379
+  STORAGE_PROVIDER: minio
+  MINIO_ENDPOINT: minio:9000
+  MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
+  MINIO_BUCKET: ${MINIO_BUCKET:-abolkit-media}
+  MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+  API_KEY: ${API_KEY:?Set API_KEY in .env}
+  PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://127.0.0.1:8787}
+  CORS_ORIGIN: ${CORS_ORIGIN:-*}
+  CAPTION_ALLOWED_HOSTS: ${CAPTION_ALLOWED_HOSTS:-*}
+  TRANSCRIBER: ${TRANSCRIBER:-assemblyai}
+  TRANSCRIBER_OFF_HOST_CONSENT: ${TRANSCRIBER_OFF_HOST_CONSENT:-true}
+  TRANSLATOR: ${TRANSLATOR:-gemini}
+  TRANSLATOR_OFF_HOST_CONSENT: ${TRANSLATOR_OFF_HOST_CONSENT:-true}
+  GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+  CAPTION_TRANSCRIBE_CONCURRENCY: ${CAPTION_TRANSCRIBE_CONCURRENCY:-1}
+  CAPTION_TRANSLATE_CONCURRENCY: ${CAPTION_TRANSLATE_CONCURRENCY:-2}
+
+x-backend: &backend
+  build: .
+  restart: unless-stopped
+  env_file:
+    - path: .env
+      required: true
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    minio:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-abolkit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-abolkit}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - 127.0.0.1:5432:5432
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    volumes:
+      - redis-data:/data
+    ports:
+      - 127.0.0.1:6379:6379
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: ${MINIO_IMAGE:-pgsty/minio:RELEASE.2026-08-04T00-00-00Z}
+    restart: unless-stopped
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY in .env}
+    volumes:
+      - minio-data:/data
+    ports:
+      - 127.0.0.1:9000:9000
+      - 127.0.0.1:9001:9001
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    environment:
+      <<: *backend-env
+      HOST: 0.0.0.0
+      PORT: '8787'
+      NODE_ENV: production
+    ports:
+      - 127.0.0.1:${API_PORT:-8787}:8787
+
+  worker:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: worker
+    environment:
+      <<: *backend-env
+      NODE_ENV: production
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:
