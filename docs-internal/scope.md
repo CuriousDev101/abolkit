@@ -21,6 +21,10 @@ Track 2, *Accessible learning media*: for learners who are Deaf, hard of hearing
 
 Earns extra: Braille export (.brf); viewer for recorded live sessions with captions and chat log (both P2).
 
+### Braille export (#55) — status
+
+**Blocked (investigation only).** Liblouis ships an Ethiopic Grade 1 table (`ethio-g1.ctb` / `gez.tbl`) that can translate sample Amharic on this host (Liblouis 3.12.0). Issue #55 also requires a knowledgeable Amharic Braille reader to verify `.brf` output; **that verification is not arranged**, so we must **not** ship an unverified exporter. Full write-up: [`spikes/55-braille-brf/RESULT.md`](../spikes/55-braille-brf/RESULT.md).
+
 ## Install levels
 
 Must run inside Savanna and install elsewhere by: **Level 1** script tag, **Level 2** REST API with OpenAPI spec, **Level 3** a standard (we use schema.org/JobPosting and Open Badges 3.0). Target all three; Levels 1 and 2 first.
@@ -46,6 +50,7 @@ Must run inside Savanna and install elsewhere by: **Level 1** script tag, **Leve
 - No full LMS. Hosts are the Savanna static pages and one plain demo page.
 - No promise of Afaan Oromo, Tigrinya or Afar transcripts (feasibility only, #57).
 - Braille, tagged PDF and session viewer only after all P0/P1 work.
+- Do not advertise Amharic `.brf` export until `#55` human verification is recorded (see Braille status above).
 
 ## Assumptions
 
