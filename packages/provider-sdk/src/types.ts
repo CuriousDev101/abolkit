@@ -53,7 +53,7 @@ export interface ProviderConfig {
   /** Base URL for mms-http, e.g. http://mms-stt:8000 */
   transcriberUrl?: string
   /**
-   * Required before creating an off-host transcriber (`cloud` / `assemblyai`).
+   * Required before creating an off-host transcriber (`cloud`).
    * Maps to TRANSCRIBER_OFF_HOST_CONSENT=true (ADR 0003).
    */
   transcriberOffHostConsent?: boolean

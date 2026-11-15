@@ -2,12 +2,10 @@ import type { Cue } from '@abolkit/core'
 import type { Transcriber } from '../types.ts'
 
 /**
- * Optional cloud STT stand-in (AssemblyAI-class). Off by default.
+ * Optional cloud STT placeholder. Off by default.
  * `sendsDataOffHost: true` — createTranscriber refuses this id unless the
  * operator sets an explicit off-host consent flag (ADR 0003).
- *
- * Does not call a paid API; keeps the demo offline. Swap for a real HTTP
- * client later without touching the worker.
+ * Returns placeholder text only; no paid API is called.
  */
 export function createCloudStubTranscriber(): Transcriber {
   return {

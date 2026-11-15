@@ -1,7 +1,7 @@
 WEBVTT
 
-NOTE Pre-computed machine draft for issue #27. Every cue is needsReview until a human edits it.
-NOTE Default engine: mms-http (facebook/mms-1b-all) via external TRANSCRIBER_URL — not run in this monorepo.
+NOTE Placeholder for issue #27: copy of reviewed captions, not real model output.
+NOTE Every cue is needsReview until a human edits it. Replace with a real mms-http run.
 
 1
 00:00:00.000 --> 00:00:02.500 needsReview

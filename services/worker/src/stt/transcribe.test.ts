@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { parseVtt } from '@abolkit/core'
-import { JobError } from '@abolkit/jobs'
+import type { JobError } from '@abolkit/jobs'
 import {
   createLocalDiskStorage,
   createStubTranscriber,
@@ -23,6 +23,12 @@ describe('langFromJobParams', () => {
   it('accepts language and lang', () => {
     expect(langFromJobParams({ language: 'am' })).toBe('am')
     expect(langFromJobParams({ lang: 'en' })).toBe('en')
+  })
+
+  it('rejects unsupported languages without retry', () => {
+    expect(() => langFromJobParams({ language: 'fr' })).toThrow(
+      expect.objectContaining({ name: 'JobError', retryable: false }),
+    )
   })
 })
 
@@ -95,6 +101,39 @@ describe('transcribeStoredAudio', () => {
         lang: 'en',
         workDir: join(root, 'work'),
       }),
-    ).rejects.toMatchObject({ name: 'JobError', retryable: true, message: 'MMS down' } satisfies Partial<JobError>)
+    ).rejects.toMatchObject({
+      name: 'JobError',
+      retryable: true,
+      message: 'MMS down',
+    } satisfies Partial<JobError>)
+  })
+
+  it('does not retry client errors from the provider', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'abolkit-stt-4xx-'))
+    const storage = createLocalDiskStorage({
+      root: join(root, 'store'),
+      signingSecret: 'secret',
+    })
+    const assetId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+    await storage.put(audio16kKey(assetId), new Uint8Array([1]), 'audio/mpeg')
+
+    const rejecting: Transcriber = {
+      id: 'rejecting',
+      label: 'rejecting',
+      sendsDataOffHost: false,
+      async transcribe() {
+        throw new ProviderError('HTTP_ERROR', 'MMS wrapper HTTP 400', 400)
+      },
+    }
+
+    await expect(
+      transcribeStoredAudio({
+        storage,
+        transcriber: rejecting,
+        assetId,
+        lang: 'en',
+        workDir: join(root, 'work'),
+      }),
+    ).rejects.toMatchObject({ name: 'JobError', retryable: false })
   })
 })

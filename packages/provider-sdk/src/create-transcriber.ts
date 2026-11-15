@@ -29,12 +29,11 @@ export function createTranscriber(config: TranscriberSelection): Transcriber {
       }
       return createMmsHttpTranscriber({ baseUrl, sendsDataOffHost: false })
     }
-    case 'cloud':
-    case 'assemblyai': {
+    case 'cloud': {
       if (!config.transcriberOffHostConsent) {
         throw new ProviderError(
           'CONSENT_REQUIRED',
-          `TRANSCRIBER=${id} sends audio off the host. Set TRANSCRIBER_OFF_HOST_CONSENT=true only after the operator consents (ADR 0003). Default remains mms-http or stub.`,
+          `TRANSCRIBER=cloud sends audio off the host. Set TRANSCRIBER_OFF_HOST_CONSENT=true only after the operator consents (ADR 0003). Default remains mms-http or stub.`,
         )
       }
       return createCloudStubTranscriber()
@@ -51,9 +50,7 @@ export function createTranscriber(config: TranscriberSelection): Transcriber {
 export function transcriberConfigFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): TranscriberSelection {
-  const consentRaw =
-    env.TRANSCRIBER_OFF_HOST_CONSENT?.trim().toLowerCase() ??
-    env.ALLOW_OFF_HOST_TRANSCRIBER?.trim().toLowerCase()
+  const consentRaw = env.TRANSCRIBER_OFF_HOST_CONSENT?.trim().toLowerCase()
   return {
     transcriber: env.TRANSCRIBER ?? 'mms-http',
     transcriberUrl: env.TRANSCRIBER_URL,

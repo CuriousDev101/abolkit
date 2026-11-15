@@ -4,12 +4,7 @@ import { join } from 'node:path'
 
 import { serializeVtt, type Cue } from '@abolkit/core'
 import { JobError } from '@abolkit/jobs'
-import {
-  ProviderError,
-  type LangCode,
-  type Storage,
-  type Transcriber,
-} from '@abolkit/provider-sdk'
+import { ProviderError, type LangCode, type Storage, type Transcriber } from '@abolkit/provider-sdk'
 
 import { audio16kKey, captionsKey } from '../ffmpeg/keys.ts'
 import type { Logger } from '../runner.ts'
@@ -48,8 +43,7 @@ export function markNeedsReview(cues: readonly Cue[]): Cue[] {
 
 function mapProviderError(err: unknown): never {
   if (err instanceof ProviderError) {
-    const retryable =
-      err.code === 'UNREACHABLE' || err.code === 'HTTP_ERROR' || (err.status != null && err.status >= 500)
+    const retryable = err.code === 'UNREACHABLE' || (err.status != null && err.status >= 500)
     throw new JobError(err.message, { retryable, cause: err })
   }
   throw err

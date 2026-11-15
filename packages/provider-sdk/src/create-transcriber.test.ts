@@ -35,6 +35,12 @@ describe('createTranscriber', () => {
     expect(t.id).toBe('cloud')
     expect(t.sendsDataOffHost).toBe(true)
   })
+
+  it('has no assemblyai alias', () => {
+    expect(() =>
+      createTranscriber({ transcriber: 'assemblyai', transcriberOffHostConsent: true }),
+    ).toThrow(/Unknown transcriber/)
+  })
 })
 
 describe('transcriberConfigFromEnv', () => {

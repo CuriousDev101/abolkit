@@ -1,11 +1,13 @@
+import { JobError, type JsonObject } from '@abolkit/jobs'
 import type { LangCode } from '@abolkit/provider-sdk'
-import type { JsonObject } from '@abolkit/jobs'
 
-/** Read caption language from job params. Default `en` when missing or unknown. */
+const SUPPORTED: readonly LangCode[] = ['en', 'am']
+
+/** Read caption language from job params. Defaults to `en`; rejects languages we do not support (ADR 0003). */
 export function langFromJobParams(params: JsonObject): LangCode {
   const raw = params.language ?? params.lang
-  if (typeof raw !== 'string') return 'en'
-  const normalized = raw.trim().toLowerCase()
-  if (normalized === 'am' || normalized === 'en') return normalized
-  return 'en'
+  if (raw == null) return 'en'
+  const normalized = typeof raw === 'string' ? raw.trim().toLowerCase() : ''
+  if (SUPPORTED.includes(normalized)) return normalized
+  throw new JobError(`Unsupported language "${String(raw)}". Use en or am.`, { retryable: false })
 }
