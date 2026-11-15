@@ -1,5 +1,10 @@
 import { enqueueJob, getJob, type Job } from '@abolkit/jobs'
-import { createStorage, verifyLocalDiskSignedUrl, type Storage } from '@abolkit/provider-sdk'
+import {
+  createStorage,
+  verifyLocalDiskSignedUrl,
+  type Storage,
+  type Tts,
+} from '@abolkit/provider-sdk'
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
 import { cors } from 'hono/cors'
@@ -13,6 +18,8 @@ import { getAssetById, isExpired } from './db/assets.ts'
 import { openDatabase } from './db/sqlite.ts'
 import { embedScript } from './embed.ts'
 import { HttpError, jsonError, validationHook } from './http.ts'
+import { isJobSummaryPath, registerJobSummaryRoutes } from './job-summaries/register.ts'
+import { createApiTts } from './job-summaries/service.ts'
 import { requireApiKey } from './middleware/api-key.ts'
 import { openApiConfig } from './openapi.ts'
 import { createAssetRoute, getAssetRoute } from './routes/assets.ts'
@@ -30,6 +37,8 @@ export type CreateAppOptions = {
   /** Injected in tests. */
   db?: DatabaseSync
   storage?: Storage
+  /** Injected TTS for job-card audio summaries (tests use stub). */
+  tts?: Tts | null
   /** URL captions (ADR 0007). Defaults to one built from POSTGRES_URL / REDIS_URL; `null` turns them off. */
   captions?: CaptionBackend | null
 }
@@ -37,6 +46,7 @@ export type CreateAppOptions = {
 /**
  * Hono + zod-openapi API (#17 skeleton, #24 assets/storage, #25 jobs).
  * Writes under /api use requireApiKey; GET metadata, job status and signed downloads stay open.
+ * Job-card audio summaries and URL captions are public (no API key).
  */
 export function createApp(options: CreateAppOptions | Record<string, string | undefined> = {}) {
   const env = isEnvMap(options) ? options : (options.env ?? process.env)
@@ -55,6 +65,10 @@ export function createApp(options: CreateAppOptions | Record<string, string | un
     !isEnvMap(options) && options.captions !== undefined
       ? options.captions
       : createCaptionBackend(env)
+  const tts =
+    !isEnvMap(options) && 'tts' in options
+      ? (options.tts ?? null)
+      : createApiTts(env)
 
   const scalarJs = loadScalarStandalone()
   const app = new OpenAPIHono({ defaultHook: validationHook })
@@ -74,9 +88,15 @@ export function createApp(options: CreateAppOptions | Record<string, string | un
   app.use('*', apiCors(config.corsOrigin))
 
   // Writes (upload, job create) need the API key. Reads stay public, and so do the URL caption
-  // endpoints, which are rate limited and host allow-listed instead.
+  // and job-summary endpoints (browser-facing job card).
   app.use('/api/*', async (c, next) => {
-    if (!WRITE_METHODS.has(c.req.method) || isCaptionPath(c.req.path)) return next()
+    if (
+      !WRITE_METHODS.has(c.req.method) ||
+      isCaptionPath(c.req.path) ||
+      isJobSummaryPath(c.req.path)
+    ) {
+      return next()
+    }
     return requireApiKey(config.apiKey)(c, next)
   })
 
@@ -87,6 +107,7 @@ export function createApp(options: CreateAppOptions | Record<string, string | un
   registerAssetRoutes(app, config, assets, storage)
   registerJobRoutes(app, config, db)
   registerCaptionRoutes(app, captions, config.publicBaseUrl)
+  registerJobSummaryRoutes(app, { db, storage, config, tts })
 
   app.doc31('/openapi.json', openApiConfig)
 
@@ -280,7 +301,8 @@ function isEnvMap(
     !('env' in value) &&
     !('db' in value) &&
     !('storage' in value) &&
-    !('captions' in value)
+    !('captions' in value) &&
+    !('tts' in value)
   )
 }
 

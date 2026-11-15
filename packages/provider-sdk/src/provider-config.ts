@@ -1,5 +1,6 @@
 import type { ProviderConfig } from './types.ts'
 import { transcriberConfigFromEnv } from './create-transcriber.ts'
+import { ttsConfigFromEnv } from './create-tts.ts'
 import { storageConfigFromEnv } from './storage/create-storage.ts'
 
 type Env = Record<string, string | undefined>
@@ -9,13 +10,15 @@ type Env = Record<string, string | undefined>
  * Defaults need no cloud accounts: stub/mms-http STT, translator none, recorded TTS, local-disk storage.
  */
 export function providerConfigFromEnv(env: Env = process.env): ProviderConfig {
+  const tts = ttsConfigFromEnv(env)
   return {
     ...transcriberConfigFromEnv(env),
     ...storageConfigFromEnv(env),
     translator: env.TRANSLATOR?.trim() || 'none',
-    tts: env.TTS?.trim() || 'recorded-clips',
+    tts: tts.tts,
     translatorOffHostConsent: parseBool(env.TRANSLATOR_OFF_HOST_CONSENT, false),
-    allowOffHostProviders: parseBool(env.ALLOW_OFF_HOST_PROVIDERS, false),
+    ttsOffHostConsent: tts.ttsOffHostConsent,
+    allowOffHostProviders: tts.allowOffHostProviders,
   }
 }
 

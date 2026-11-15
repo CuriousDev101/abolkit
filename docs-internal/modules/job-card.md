@@ -11,13 +11,14 @@ An accessible job card that graduates can use to find work: readable by screen r
 
 - **Element:** `<abol-job-card src="/jobs/123.json">` or an inline JSON-LD `<script type="application/ld+json">` inside the element.
 - **Data:** a JobPosting object (title, hiringOrganization, jobLocation or applicantLocationRequirements, employmentType, datePosted, validThrough, description, baseSalary if provided) plus optional `abolAudioSummary` URL and `abolSummaryText`.
+- **Audio API:** optional `audio-summary-api="http://127.0.0.1:8787"` calls `POST /api/job-summaries/audio` with `{ jobId, text, lang }` (English TTS via AssemblyAI). Audio is generated once per job id + text hash and reused until the summary text changes. Prefer a JobPosting `@id` / `identifier` for stable cache keys.
 - **Events:** `abol:job-apply` (host handles the apply action), `abol:summary-play`.
 - **CSS variables:** same as the player.
 
 ## Design
 
 - Semantic markup: one heading, a definition list for facts (location, type, deadline), plain-language summary first, then details.
-- Audio summary: a play/pause button (`aria-pressed`) for a pre-generated or recorded clip; the same text is always visible; graceful fallback when audio is missing.
+- Audio summary: a play/pause button (`aria-pressed`) for a pre-generated clip or one fetched from the job-summary API; loading / error / playback states; the same text is always visible; graceful fallback when audio is missing.
 - Responsive and reflowing: no horizontal scroll at 200% zoom and 400% reflow; text spacing overrides do not break it.
 - Dates: format with `Intl.DateTimeFormat`, optionally the Ethiopian calendar (spike #13); do not rely on colour alone for status such as "closing soon".
 - Emits valid JSON-LD for search engines and the host.

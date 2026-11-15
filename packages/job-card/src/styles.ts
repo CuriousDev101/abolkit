@@ -168,15 +168,42 @@ export const JOB_CARD_CSS = `
   background: transparent;
   color: var(--_fg);
   border: 1.5px solid var(--_rule-strong);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
-.listen:hover {
+.listen:hover:not(:disabled) {
   background: color-mix(in srgb, var(--_fg) 6%, var(--_bg));
 }
 
 .listen[aria-pressed="true"] {
   background: var(--_press);
   border-color: var(--_accent-ink);
+}
+
+.listen[data-state="loading"] {
+  opacity: 0.78;
+  cursor: wait;
+}
+
+.listen:disabled {
+  cursor: wait;
+}
+
+.listen .spin {
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 2px solid color-mix(in srgb, var(--_fg) 25%, transparent);
+  border-block-start-color: var(--_fg);
+  border-radius: 50%;
+  animation: abol-spin 0.7s linear infinite;
+}
+
+@keyframes abol-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .audio-note {
