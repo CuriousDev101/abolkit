@@ -32,6 +32,7 @@ import {
   type OfflineSnapshot,
 } from './offline/index.js'
 import { OPTIONS, type OptionKey } from './options.js'
+import { mountSignMedia, unloadSignMedia, type SignPlayable } from './sign-media.js'
 import { hydrateSettings, loadSettings, saveSettings } from './storage.js'
 import { PLAYER_CSS } from './styles.js'
 
@@ -70,7 +71,6 @@ const TEMPLATE = `
           <span class="tr-lang" hidden></span>
         </div>
         <div class="tr-head-actions">
-          <button type="button" class="tr-braille" data-a="braille-export" hidden></button>
           <button type="button" class="tr-close" data-a="transcript" data-la="hideTranscript">${CLOSE_ICON}</button>
         </div>
       </header>
@@ -91,6 +91,7 @@ const TEMPLATE = `
     <button type="button" data-a="transcript" data-l="transcript" aria-pressed="false" hidden></button>
     <button type="button" data-a="offline" data-la="downloadOffline" aria-pressed="false" hidden></button>
     <a class="offline-pack" data-a="offline-pack" data-la="offlinePackLink" hidden download></a>
+    <button type="button" data-a="braille-export" data-la="exportBraille" hidden></button>
     <button type="button" data-a="settings" data-l="settings" aria-expanded="false" aria-controls="abol-st"></button>
   </div>
   <section id="abol-st" class="panel" hidden><div class="settings">${NATIVE_SETTINGS}</div></section>
@@ -109,7 +110,7 @@ const OVERLAYS = `
     <button type="button" data-a="sign-dock" data-la="dockCorner">◰</button>
     <button type="button" data-a="sign-reset" data-la="resetSign">↺</button>
   </div>
-  <video muted playsinline preload="metadata" aria-hidden="true" tabindex="-1"></video>
+  <div class="sign-media"></div>
   <p class="sign-note" data-l="sampleSign" hidden></p>
   <span class="sign-grip" aria-hidden="true"></span>
 </div>`
@@ -200,7 +201,6 @@ export class AbolPlayerElement extends HTMLElement {
   #captionLang: string | null = null
   #audioOnly = false
   #moveMode = false
-  #resumeAfterSign = false
   #drag: {
     mode: 'move' | 'resize'
     x: number
@@ -212,7 +212,10 @@ export class AbolPlayerElement extends HTMLElement {
   #layers: HTMLElement | null = null
   #cue: HTMLElement | null = null
   #sign: HTMLElement | null = null
-  #signVideo: HTMLVideoElement | null = null
+  #signMediaHost: HTMLElement | null = null
+  /** Native `<video>` or isolated YouTube follower in the floating sign window. */
+  #signVideo: SignPlayable | null = null
+  #boundSignMedia = new WeakSet<object>()
   #boundTracks = new WeakSet<TextTrack>()
   /** Fetched transcript HTML, kept so a language switch can rebuild without refetching. */
   #trHtml: string | null = null
@@ -633,11 +636,22 @@ export class AbolPlayerElement extends HTMLElement {
     this.#layers = layers
     this.#cue = layers.querySelector('.cue')
     this.#sign = layers.querySelector('.sign')
-    this.#signVideo = layers.querySelector('.sign video')
-    if (!config.sign) return
+    this.#signMediaHost = layers.querySelector('.sign-media')
+    if (!config.sign || !this.#sign || !this.#signMediaHost) return
 
-    const sign = this.#sign!
-    this.#signVideo!.src = config.sign.src
+    const sign = this.#sign
+    // Defer YouTube sign mount so the main lesson's <youtube-video> can claim the IFrame API first.
+    const mount = () => {
+      if (!this.#signMediaHost || !this.#config?.sign || !this.#engine) return
+      this.#signVideo = mountSignMedia(this.#signMediaHost, this.#config.sign.src)
+      this.#bindSignMedia(this.#engine)
+      this.#showSign()
+    }
+    if (/youtube|youtu\.be/i.test(config.sign.src)) {
+      window.setTimeout(mount, 0)
+    } else {
+      mount()
+    }
     sign.querySelector<HTMLElement>('.sign-note')!.hidden = !config.sign.placeholder
     // The skin treats pointer and key events in its container as player gestures/hotkeys.
     sign.addEventListener('click', (ev) => {
@@ -696,7 +710,6 @@ export class AbolPlayerElement extends HTMLElement {
   }
 
   #bindMedia(engine: MediaEngine): void {
-    const sign = this.#signVideo!
     const on = (event: EngineEvent, handler: () => void) =>
       this.#off.push(engine.on(event, handler))
     const listen = (target: EventTarget, type: string, handler: (ev: Event) => void) => {
@@ -704,11 +717,6 @@ export class AbolPlayerElement extends HTMLElement {
       this.#off.push(() => target.removeEventListener(type, handler))
     }
 
-    on('play', () => this.#signShown() && void sign.play().catch(noop))
-    on('playing', () => this.#signShown() && void sign.play().catch(noop))
-    on('pause', () => sign.pause())
-    on('waiting', () => sign.pause())
-    on('ratechange', () => (sign.playbackRate = engine.playbackRate))
     on('seeked', () => {
       this.#syncSign(true)
       this.#syncTranscript(true)
@@ -722,28 +730,35 @@ export class AbolPlayerElement extends HTMLElement {
       this.#settings.muted = engine.muted
     })
 
-    let resumeTimer = 0
-    const resume = () => {
-      clearTimeout(resumeTimer)
-      if (!this.#resumeAfterSign) return
-      this.#resumeAfterSign = false
-      void engine.play().catch(noop)
+    // Main lesson is the clock. Resolve sign media dynamically (YouTube sign mounts deferred).
+    const followPlay = () => {
+      const sign = this.#signVideo
+      if (!sign || !this.#signShown() || engine.paused) return
+      void sign.play().catch(noop)
     }
-    // Pause both while the sign video buffers; a slow sign stream must never stall the lesson for long.
-    sign.addEventListener('waiting', () => {
-      if (!this.#signShown() || engine.paused) return
-      this.#resumeAfterSign = true
-      engine.pause()
-      if (sign.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) queueMicrotask(resume)
-      else resumeTimer = window.setTimeout(resume, 3000)
+    const followPause = () => {
+      const sign = this.#signVideo
+      if (!sign) return
+      try {
+        sign.pause()
+      } catch {
+        /* ignore */
+      }
+    }
+    on('play', followPlay)
+    on('playing', followPlay)
+    on('pause', followPause)
+    on('waiting', followPause)
+    on('ratechange', () => {
+      const sign = this.#signVideo
+      if (!sign) return
+      try {
+        sign.playbackRate = engine.playbackRate
+      } catch {
+        /* ignore */
+      }
     })
-    this.#off.push(() => clearTimeout(resumeTimer))
-    on('play', () => (this.#resumeAfterSign = false))
-    sign.addEventListener('canplay', resume)
-    sign.addEventListener('error', () => {
-      if (this.#sign) this.#sign.hidden = true
-      resume()
-    })
+    this.#bindSignMedia(engine)
 
     // Tracks can appear after load: in-band captions/descriptions in the file or an HLS manifest.
     const tracks = engine.textTracks
@@ -757,6 +772,32 @@ export class AbolPlayerElement extends HTMLElement {
     listen(tracks, 'change', () => this.#onTracksChange())
     // A cue active at 0:00 gets no cuechange until playback moves.
     for (const track of Array.from(tracks)) engine.whenLoaded(track, () => this.#renderCue())
+  }
+
+  /** Sign-only listeners (rogue autoplay / errors). Safe to call again after deferred YouTube mount. */
+  #bindSignMedia(engine: MediaEngine): void {
+    const sign = this.#signVideo
+    if (!sign || this.#boundSignMedia.has(sign)) return
+    this.#boundSignMedia.add(sign)
+    const blockRoguePlay = () => {
+      if (engine.paused || !this.#signShown()) {
+        try {
+          sign.pause()
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    sign.addEventListener('play', blockRoguePlay)
+    sign.addEventListener('playing', blockRoguePlay)
+    sign.addEventListener('error', () => {
+      if (this.#sign) this.#sign.hidden = true
+    })
+    try {
+      sign.pause()
+    } catch {
+      /* ignore */
+    }
   }
 
   #bindTrack(track: TextTrack): void {
@@ -909,16 +950,26 @@ export class AbolPlayerElement extends HTMLElement {
       this.#brailleExportAllowed() &&
       !!this.#amharicCaptionTrack() &&
       this.#amharicCueTexts().length > 0
-    for (const btn of this.#all<HTMLButtonElement>('.tr-braille')) {
+    const short = this.#brailleBusy
+      ? t(this.#lang, 'exportBrailleBusy')
+      : t(this.#lang, 'exportBraille')
+    const label = `${short} — ${t(this.#lang, 'exportBrailleExperimental')}`
+    for (const btn of this.#all(toggles('braille-export'))) {
       btn.hidden = !show
-      btn.disabled = this.#brailleBusy
-      btn.textContent = this.#brailleBusy
-        ? t(this.#lang, 'exportBrailleBusy')
-        : t(this.#lang, 'exportBraille')
-      const label = `${btn.textContent} — ${t(this.#lang, 'exportBrailleExperimental')}`
       btn.setAttribute('aria-label', label)
-      btn.title = label
+      // Native bar has no Video.js tooltip; control-bar tips come from data-abol-tip.
+      if (btn.matches('.bar [data-a]')) {
+        btn.title = label
+        btn.textContent = short
+        ;(btn as HTMLButtonElement).disabled = this.#brailleBusy
+      } else {
+        btn.removeAttribute('title')
+        btn.removeAttribute('aria-pressed')
+        btn.toggleAttribute('disabled', this.#brailleBusy)
+        btn.setAttribute('aria-disabled', String(this.#brailleBusy))
+      }
     }
+    for (const tip of this.#all('[data-abol-tip="braille-export"]')) tip.textContent = short
   }
 
   async #exportBraille(): Promise<void> {
@@ -1319,9 +1370,27 @@ export class AbolPlayerElement extends HTMLElement {
   #syncSign(force: boolean): void {
     const sign = this.#signVideo
     const video = this.#engine
-    if (!sign || !video || !this.#signShown() || sign.readyState === 0) return
-    if (force || Math.abs(sign.currentTime - video.currentTime) > DRIFT_S)
-      sign.currentTime = video.currentTime
+    if (!sign || !video || !this.#signShown()) return
+    // Without the main lesson playing, the sign window must not run on its own.
+    if (video.paused) {
+      if (!sign.paused) {
+        try {
+          sign.pause()
+        } catch {
+          /* ignore */
+        }
+      }
+      return
+    }
+    if (sign.readyState === 0) return
+    try {
+      if (force || Math.abs(sign.currentTime - video.currentTime) > DRIFT_S) {
+        sign.currentTime = video.currentTime
+      }
+      if (sign.paused) void sign.play().catch(noop)
+    } catch {
+      /* YouTube seek/play can fail while the iframe boots */
+    }
   }
 
   #setMoveMode(on: boolean): void {
@@ -1375,9 +1444,14 @@ export class AbolPlayerElement extends HTMLElement {
     })
     this.#off.push(off)
     engine.setSource(on ? config.audio : config.src)
-    // Stop the sign video downloading while the viewer saves bandwidth.
-    if (on) this.#signVideo?.removeAttribute('src')
-    else if (config.sign && this.#signVideo) this.#signVideo.src = config.sign.src
+    // Stop the sign media downloading while the viewer saves bandwidth.
+    if (on) {
+      unloadSignMedia(this.#signVideo, this.#signMediaHost)
+      this.#signVideo = null
+    } else if (config.sign && this.#signMediaHost && this.#engine) {
+      this.#signVideo = mountSignMedia(this.#signMediaHost, config.sign.src)
+      this.#bindSignMedia(this.#engine)
+    }
     this.#showSign()
   }
 
@@ -1939,17 +2013,16 @@ export class AbolPlayerElement extends HTMLElement {
     this.#clipAudio?.pause()
     this.#clipAudio = null
     globalThis.speechSynthesis?.cancel()
-    this.#signVideo?.removeAttribute('src')
+    unloadSignMedia(this.#signVideo, this.#signMediaHost)
     this.#engine?.destroy()
     this.#engine = null
-    this.#layers = this.#cue = this.#sign = this.#signVideo = null
+    this.#layers = this.#cue = this.#sign = this.#signMediaHost = this.#signVideo = null
     this.#boundTracks = new WeakSet()
     this.#clips = []
     this.#lastAd = null
     this.#captionLang = null
     this.#audioOnly = false
     this.#moveMode = false
-    this.#resumeAfterSign = false
     this.#offlineBusy = false
     this.#offlineNetwork = null
     this.#revokeCachedUrls()

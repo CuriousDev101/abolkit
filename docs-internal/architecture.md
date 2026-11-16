@@ -66,7 +66,7 @@ UI framework (Preact vs plain TS) is chosen per component by size budget. `@vide
 }
 ```
 
-All fields except `media.video` and one caption track are optional; the player hides features whose data is missing. `ets` is the ISO 639-3 code for Ethiopian Sign Language (verify). `placeholder: true` makes the player show a visible "sample content" note.
+All fields except `media.video` and one caption track are optional; the player hides features whose data is missing. `ets` is the ISO 639-3 code for Ethiopian Sign Language (verify). `placeholder: true` makes the player show a visible "sample content" note. `sign.src` may be an MP4/direct file URL or a YouTube URL (the Video.js player build mounts `<youtube-video>` for YouTube).
 
 ### AD clip manifest (`ad.<lang>.json`)
 
@@ -100,7 +100,7 @@ Errors: JSON `{ error: { code, message } }`. CORS open for read endpoints; write
 
 ## Custom element contract (`<abol-player>`)
 
-- **Attributes (simple use, no manifest):** `src` (video), `poster`, `captions` (default caption VTT), `captions-lang`, `captions-label`, `descriptions` (AD VTT), `sign` (sign-language video), `sign-placeholder`, `transcript` (HTML; generated from captions when absent), `audio` (low-bandwidth audio-only version), `offline-pack` (zip URL / PWA affordance). More caption languages as `<track kind="captions" srclang label src>` children.
+- **Attributes (simple use, no manifest):** `src` (video), `poster`, `captions` (default caption VTT), `captions-lang`, `captions-label`, `descriptions` (AD VTT), `sign` (sign-language MP4 or YouTube URL), `sign-placeholder`, `transcript` (HTML; generated from captions when absent), `audio` (low-bandwidth audio-only version), `offline-pack` (zip URL / PWA affordance). More caption languages as `<track kind="captions" srclang label src>` children.
 - **Attributes (general):** `manifest` (URL; attributes override its fields), `lang`, `controls-keys="off|focus"`, `engine="native"`, `crossorigin`, `api-base`, `autoplay` (ignored; never autoplay).
 - **Events:** `abol:ready`, `abol:error`, `abol:caption-change`, `abol:description-toggle`, `abol:sign-toggle`.
 - **CSS variables:** `--abol-accent`, `--abol-bg`, `--abol-fg`, `--abol-radius`. Everything else stays inside Shadow DOM.

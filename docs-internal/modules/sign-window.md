@@ -13,8 +13,8 @@ A movable, resizable window showing a second video (an Ethiopian Sign Language i
 
 ## Design
 
-- Second `<video>` (muted, no own controls) in a floating panel inside the shadow root.
-- **Sync:** the main video is the clock. Mirror play, pause, seek and rate. Correct drift when `|sign.currentTime - main.currentTime|` exceeds about 0.3 s (check on `timeupdate`/animation frame). Handle buffering by pausing both and resuming together.
+- Second media element (muted, no own controls) in a floating panel inside the shadow root: native `<video>` for MP4/direct URLs, or an **isolated** YouTube `YT.Player` for YouTube sign URLs (not a second `<youtube-video>`, which races the main lesson iframe).
+- **Sync:** the main lesson is the clock. Mirror play, pause, seek and rate onto the sign window. Correct drift when `|sign.currentTime - main.currentTime|` exceeds about 0.3 s (check on `timeupdate`). Sign buffering must **not** pause the main lesson; if the main is paused or waiting, the sign pauses too. YouTube sign embeds use `controls=0` / no pointer events (no YouTube chrome).
 - **Move and resize with a single pointer** (drag header/handles) **and with the keyboard** (WCAG 2.5.7): a "move/resize" mode toggled by a button, arrow keys to move, Shift+arrows to resize, `Esc` to leave. Provide buttons for size presets (small/medium/large) and **dock to corner**.
 - Bounds: stays inside the player; does not cover the control bar by default; remembers position and size per viewer; resets with one button.
 - Screen readers: the window has an accessible name ("Sign language interpretation"), its controls are labelled, and the video is not announced as content noise.

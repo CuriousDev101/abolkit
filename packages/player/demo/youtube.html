@@ -24,14 +24,19 @@
       <p>
         Playback is the YouTube video. Captions and the transcript come from the caption API (YouTube
         manual/auto VTT when available, otherwise AssemblyAI), not from sample files. Failed languages show
-        Refresh in the captions menu.
+        Refresh in the captions menu. The floating sign window also uses a YouTube source (sample /
+        placeholder).
       </p>
       <abol-player
         src="https://youtu.be/5um9-i2Ta7w"
+        sign="https://youtu.be/M7lc1UVf-VE"
+        sign-placeholder
         lang="en"
         caption-api="http://localhost:8787"
+       sing="https://youtu.be/RhQvlq-mZtA?si=GAZRpnVwA2vzq3kO"
         generate-captions="am om ti aa"
       ></abol-player>
+    </abol-player>
     </main>
     <script src="../dist/abol-player.js"></script>
   </body>

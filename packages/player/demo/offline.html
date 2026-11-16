@@ -38,11 +38,16 @@
         <li>Audio, captions and transcript should still work from Cache API + IndexedDB.</li>
         <li>Click again to <strong>Remove offline copy</strong>.</li>
         <li>
-          Open the transcript, switch captions to Amharic, then use <strong>Export Braille (.brf)</strong>
-          (loads sibling <code>abol-player.braille.js</code> — experimental).
+          With Amharic captions loaded, use <strong>Export Amharic Braille (.brf)</strong> in the
+          control bar beside captions (loads sibling <code>abol-player.braille.js</code> — experimental).
         </li>
       </ol>
-      <abol-player manifest="./offline/manifest.json" lang="en"></abol-player>
+      <abol-player
+        manifest="./offline/manifest.json"
+        sign="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+        sign-placeholder
+        lang="en"
+      ></abol-player>
     </main>
     <script src="../dist/abol-player.js"></script>
   </body>
