@@ -1,4 +1,5 @@
 import { jt, sanitizeLangTag } from './i18n.ts'
+import { parseJobPostingFromRemote } from './load-job.ts'
 import {
   composePlainSummary,
   formatDeadlineStatus,
@@ -106,7 +107,14 @@ const HostElement: typeof HTMLElement =
 type AudioUiState = 'idle' | 'loading' | 'playing' | 'error'
 
 export class AbolJobCardElement extends HostElement {
-  static observedAttributes = ['src', 'lang', 'calendar', 'heading-level', 'audio-summary-api']
+  static observedAttributes = [
+    'src',
+    'job-url',
+    'lang',
+    'calendar',
+    'heading-level',
+    'audio-summary-api',
+  ]
 
   readonly #root: ShadowRoot
   readonly #uid: string
@@ -168,13 +176,27 @@ export class AbolJobCardElement extends HostElement {
     else this.removeAttribute('audio-summary-api')
   }
 
+  /**
+   * JobPosting URL (JSON/JSON-LD file, or an HTML page that embeds JobPosting JSON-LD).
+   * Prefer this over inlining a `<script type="application/ld+json">` for every card.
+   */
   get src(): string {
-    return this.getAttribute('src') ?? ''
+    return this.#jobUrlAttr()
   }
 
   set src(value: string) {
     if (value) this.setAttribute('src', value)
     else this.removeAttribute('src')
+  }
+
+  /** Alias for `src` — `<abol-job-card job-url="https://host/jobs/123.json">`. */
+  get jobUrl(): string {
+    return this.getAttribute('job-url') ?? ''
+  }
+
+  set jobUrl(value: string) {
+    if (value) this.setAttribute('job-url', value)
+    else this.removeAttribute('job-url')
   }
 
   connectedCallback(): void {
@@ -193,7 +215,7 @@ export class AbolJobCardElement extends HostElement {
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
     if (!this.#connected || oldValue === newValue) return
-    if (name === 'src') {
+    if (name === 'src' || name === 'job-url') {
       void this.#loadFromSource()
       return
     }
@@ -201,6 +223,11 @@ export class AbolJobCardElement extends HostElement {
       this.#stopAudio()
       this.#renderJob(this.#job)
     }
+  }
+
+  /** `job-url` wins when both are set so hosts can override a default `src`. */
+  #jobUrlAttr(): string {
+    return (this.getAttribute('job-url') ?? this.getAttribute('src') ?? '').trim()
   }
 
   #effectiveLang(job?: NormalizedJobPosting | null): string {
@@ -235,7 +262,7 @@ export class AbolJobCardElement extends HostElement {
               n.type === 'application/ld+json' &&
               !n.hasAttribute(GENERATED_LD_ATTR),
           )
-        if (touchedHostJson && !this.hasAttribute('src')) {
+        if (touchedHostJson && !this.#jobUrlAttr()) {
           void this.#loadFromSource()
           break
         }
@@ -256,31 +283,34 @@ export class AbolJobCardElement extends HostElement {
     this.#abort?.abort()
     this.#stopAudio()
     this.#audioFailed = false
+    this.#resolvedAudioUrl = null
 
-    const src = this.getAttribute('src')?.trim()
+    const src = this.#jobUrlAttr()
     if (src) {
       const controller = new AbortController()
       this.#abort = controller
       this.#renderStatus(jt(this.#effectiveLang(), 'loading'), 'loading')
       try {
-        const res = await fetch(src, {
-          signal: controller.signal,
-          headers: { Accept: 'application/ld+json, application/json;q=0.9, */*;q=0.1' },
-        })
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`)
-        }
-        const raw: unknown = await res.json()
+        const job = await this.#fetchJobFromUrl(src, controller.signal)
         if (controller.signal.aborted) return
-        const parsed = parseJobPosting(raw)
-        this.#job = parsed
-        this.#syncJsonLd(parsed)
-        this.#renderJob(parsed)
+        this.#job = job
+        this.#audioFailed = false
+        this.#audioLoading = false
+        this.#resolvedAudioUrl = job.audioSummaryUrl
+          ? new URL(job.audioSummaryUrl, this.baseURI).href
+          : null
+        this.#syncJsonLd(job)
+        this.#renderJob(job)
       } catch (err) {
         if (controller.signal.aborted) return
         this.#job = null
         const key =
-          err instanceof Error && err.message.includes('JobPosting') ? 'errorInvalid' : 'errorLoad'
+          err instanceof Error &&
+          /JobPosting|JSON-LD|JSON\.parse|title|Could not find|Could not extract|JOB_PARSE/i.test(
+            err.message,
+          )
+            ? 'errorInvalid'
+            : 'errorLoad'
         this.#renderStatus(jt(this.#effectiveLang(), key), 'error')
       }
       return
@@ -404,9 +434,14 @@ export class AbolJobCardElement extends HostElement {
 
     const canPlayAudio = Boolean(job.audioSummaryUrl || this.#audioSummaryApiBase())
     if (canPlayAudio) {
+      const audioRow = el('div', 'listen-row')
+      audioRow.setAttribute('part', 'audio')
       const audioBtn = el('button', 'listen')
       audioBtn.type = 'button'
       audioBtn.setAttribute('part', 'audio-button')
+      const audioHint = el('span', 'listen-hint', jt(lang, 'audioSummaryHint'))
+      audioHint.id = `${this.#uid}-audio-hint`
+      audioBtn.setAttribute('aria-describedby', audioHint.id)
       const audioNote = el('p', 'audio-note', jt(lang, 'audioUnavailable'))
       audioNote.hidden = !this.#audioFailed
 
@@ -414,7 +449,8 @@ export class AbolJobCardElement extends HostElement {
       audioBtn.addEventListener('click', () => {
         void this.#toggleAudioSummary(job, summaryCopy, audioBtn, audioNote, lang)
       })
-      card.append(audioBtn, audioNote)
+      audioRow.append(audioBtn, audioHint)
+      card.append(audioRow, audioNote)
     }
 
     // 3. Key facts as a ruled definition list (<dl>)
@@ -583,15 +619,16 @@ export class AbolJobCardElement extends HostElement {
     btn.setAttribute('aria-pressed', String(state === 'playing'))
 
     if (state === 'loading') {
-      btn.innerHTML = `<span class="spin" aria-hidden="true"></span><span></span>`
-      btn.querySelector('span:last-child')!.textContent = jt(lang, 'audioSummaryLoading')
+      btn.innerHTML =
+        `<span class="listen-glyph" aria-hidden="true"><span class="spin"></span></span><span class="listen-label"></span>`
+      btn.querySelector('.listen-label')!.textContent = jt(lang, 'audioSummaryLoading')
       return
     }
 
     const icon = state === 'playing' ? ICONS.pause : ICONS.play
     const label = jt(lang, state === 'playing' ? 'audioSummaryPause' : 'audioSummaryPlay')
-    btn.innerHTML = `${icon}<span></span>`
-    btn.querySelector('span')!.textContent = label
+    btn.innerHTML = `<span class="listen-glyph" aria-hidden="true">${icon}</span><span class="listen-label"></span>`
+    btn.querySelector('.listen-label')!.textContent = label
   }
 
   async #toggleAudioSummary(
@@ -684,6 +721,60 @@ export class AbolJobCardElement extends HostElement {
     } finally {
       this.#audioLoading = false
       this.#syncAudioButton(btn, lang)
+    }
+  }
+
+  /**
+   * Load a JobPosting from `job-url` / `src`.
+   * Cross-origin URLs go through `GET /api/job-postings/resolve` when `audio-summary-api` is set
+   * (server-side proxy — avoids browser CORS; extracts JSON, JSON-LD, or plain HTML).
+   * Same-origin URLs are fetched directly and parsed in the browser.
+   */
+  async #fetchJobFromUrl(src: string, signal: AbortSignal): Promise<NormalizedJobPosting> {
+    const absoluteUrl = new URL(src, this.baseURI).href
+    const apiBase = this.#audioSummaryApiBase()
+
+    if (apiBase && this.#isCrossOriginHttp(absoluteUrl)) {
+      const endpoint = new URL('/api/job-postings/resolve', apiBase)
+      endpoint.searchParams.set('url', absoluteUrl)
+      const res = await fetch(endpoint.href, {
+        signal,
+        headers: { Accept: 'application/json' },
+      })
+      if (!res.ok) {
+        let detail = `HTTP ${res.status}`
+        try {
+          const errBody = (await res.json()) as { error?: { message?: string } }
+          if (errBody.error?.message) detail = errBody.error.message
+        } catch {
+          // keep status text
+        }
+        throw new Error(detail)
+      }
+      const body = (await res.json()) as { job?: unknown }
+      if (!body.job) throw new Error('Job resolve response missing job')
+      return parseJobPosting(body.job)
+    }
+
+    const res = await fetch(absoluteUrl, {
+      signal,
+      headers: {
+        Accept: 'application/ld+json, application/json;q=0.9, text/html;q=0.8, */*;q=0.1',
+      },
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const text = await res.text()
+    return parseJobPostingFromRemote(text, res.headers.get('content-type') ?? '', absoluteUrl).job
+  }
+
+  /** True when `url` is http(s) on a different origin than this document (CORS risk). */
+  #isCrossOriginHttp(url: string): boolean {
+    try {
+      const target = new URL(url)
+      if (target.protocol !== 'http:' && target.protocol !== 'https:') return false
+      return target.origin !== new URL(this.baseURI).origin
+    } catch {
+      return true
     }
   }
 

@@ -162,28 +162,42 @@ export const JOB_CARD_CSS = `
   color: var(--_fg);
 }
 
+.listen-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin-block-start: 1rem;
+}
+
 .listen {
-  margin-block-start: 0.9rem;
-  padding: 0.55rem 1.05rem 0.55rem 0.85rem;
-  background: transparent;
-  color: var(--_fg);
-  border: 1.5px solid var(--_rule-strong);
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.7rem;
+  padding: 0.28rem 1rem 0.28rem 0.28rem;
+  background: color-mix(in srgb, var(--_accent) 12%, var(--_surface));
+  color: var(--_accent-ink);
+  border: 1.5px solid color-mix(in srgb, var(--_accent) 42%, var(--_rule-strong));
+  box-shadow: 0 1px 0 color-mix(in srgb, #ffffff 55%, transparent) inset;
 }
 
 .listen:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--_fg) 6%, var(--_bg));
+  background: color-mix(in srgb, var(--_accent) 20%, var(--_surface));
+  border-color: var(--_accent-ink);
 }
 
 .listen[aria-pressed="true"] {
   background: var(--_press);
   border-color: var(--_accent-ink);
+  color: var(--_fg);
+}
+
+.listen[aria-pressed="true"] .listen-glyph {
+  background: var(--_accent-ink);
 }
 
 .listen[data-state="loading"] {
-  opacity: 0.78;
+  opacity: 0.85;
   cursor: wait;
 }
 
@@ -191,11 +205,39 @@ export const JOB_CARD_CSS = `
   cursor: wait;
 }
 
+.listen-glyph {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 2.35rem;
+  block-size: 2.35rem;
+  border-radius: calc(var(--_radius) * 0.65);
+  background: var(--_accent);
+  color: #ffffff;
+}
+
+.listen-glyph svg {
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+}
+
+.listen-label {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.listen-hint {
+  max-inline-size: 28ch;
+  color: var(--_muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .listen .spin {
-  width: 0.95rem;
-  height: 0.95rem;
-  border: 2px solid color-mix(in srgb, var(--_fg) 25%, transparent);
-  border-block-start-color: var(--_fg);
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid color-mix(in srgb, #ffffff 35%, transparent);
+  border-block-start-color: #ffffff;
   border-radius: 50%;
   animation: abol-spin 0.7s linear infinite;
 }
@@ -445,6 +487,12 @@ button svg {
   .listen {
     inline-size: 100%;
   }
+  .listen {
+    justify-content: flex-start;
+  }
+  .listen-hint {
+    max-inline-size: none;
+  }
   .lead {
     margin-block-start: 1.05rem;
   }
@@ -468,6 +516,11 @@ button svg {
   .apply {
     border-color: ButtonText;
     forced-color-adjust: none;
+  }
+  .listen-glyph {
+    forced-color-adjust: none;
+    background: ButtonText;
+    color: ButtonFace;
   }
   .listen[aria-pressed="true"] {
     border-width: 3px;

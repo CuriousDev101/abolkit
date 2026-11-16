@@ -231,7 +231,8 @@
       <header class="hero">
         <h1 class="brand"><span lang="am">አቦል</span>Abol</h1>
         <p>
-          Clear job notices for graduates — readable at 200% zoom, with JobPosting JSON-LD built in.
+          Clear job notices for graduates — load a JobPosting URL (JSON or HTML with JSON-LD), no
+          embedded script required per card.
         </p>
       </header>
 
@@ -239,7 +240,7 @@
         <abol-job-card
           id="hero-card"
           heading-level="2"
-          src="./fixtures/job.json"
+          job-url="https://www.google.com/about/careers/applications/jobs/results/86136593793852102-senior-director-product-management-chrome-developer-and-ecosystem"
           audio-summary-api="http://127.0.0.1:8787"
         ></abol-job-card>
       </main>
@@ -265,88 +266,13 @@
       <section class="more" aria-labelledby="more-h">
         <h2 id="more-h">More postings</h2>
         <div class="stack">
-          <abol-job-card heading-level="3" audio-summary-api="http://127.0.0.1:8787">
-            <script type="application/ld+json">
-              {
-                "@context": "https://schema.org",
-                "@type": "JobPosting",
-                "@id": "job-junior-data-quality-analyst",
-                "inLanguage": "en",
-                "title": "Junior Data Quality Analyst",
-                "description": "Review education and graduate placement records for accuracy across partner campuses in Addis Ababa and Hawassa.\n\n• Check weekly spreadsheets and explain findings in clear language.\n• Verify structured job data with the accessibility team.\n\nTraining is provided in your first month.\n\nGraduates from computer science, information systems, or statistics are encouraged to apply.",
-                "datePosted": "2026-11-12",
-                "validThrough": "2026-11-19T23:59:59+03:00",
-                "employmentType": ["FULL_TIME", "INTERN"],
-                "hiringOrganization": {
-                  "@type": "Organization",
-                  "name": "Blue Nile Learning Services",
-                  "sameAs": "https://example.org/blue-nile-learning"
-                },
-                "jobLocation": [
-                  {
-                    "@type": "Place",
-                    "address": {
-                      "@type": "PostalAddress",
-                      "addressLocality": "Addis Ababa",
-                      "addressCountry": "ET"
-                    }
-                  },
-                  {
-                    "@type": "Place",
-                    "address": {
-                      "@type": "PostalAddress",
-                      "addressLocality": "Hawassa",
-                      "addressCountry": "ET"
-                    }
-                  }
-                ],
-                "baseSalary": {
-                  "@type": "MonetaryAmount",
-                  "currency": "ETB",
-                  "value": {
-                    "@type": "QuantitativeValue",
-                    "minValue": 20000,
-                    "maxValue": 26000,
-                    "unitText": "MONTH"
-                  }
-                },
-                "url": "https://example.org/jobs/junior-data-quality-analyst/apply"
-              }
-            </script>
-          </abol-job-card>
+          <abol-job-card
+            heading-level="3"
+            src="./fixtures/job-page.html"
+            audio-summary-api="http://127.0.0.1:8787"
+          ></abol-job-card>
 
-          <abol-job-card lang="am-ET" heading-level="3">
-            <script type="application/ld+json">
-              {
-                "@context": "https://schema.org",
-                "@type": "JobPosting",
-                "inLanguage": "am-ET",
-                "title": "ጀማሪ የሶፍትዌር ሙከራ ባለሙያ",
-                "description": "የድር እና የሞባይል መተግበሪያዎችን ተደራሽነት ይፈትሻሉ። ያገኙትን ችግር በግልጽ ቃላት ይመዘግባሉ።\n\nለሙከራ መሣሪያዎቹ ሥልጠና ይሰጣል።",
-                "datePosted": "2026-11-15",
-                "validThrough": "2026-12-30T23:59:59+03:00",
-                "employmentType": "FULL_TIME",
-                "jobLocationType": "TELECOMMUTE",
-                "applicantLocationRequirements": { "@type": "Country", "name": "ET" },
-                "hiringOrganization": {
-                  "@type": "Organization",
-                  "name": "ሲዳማ ዲጂታል ሶሉሽንስ",
-                  "sameAs": "https://example.org/sidama-digital"
-                },
-                "baseSalary": {
-                  "@type": "MonetaryAmount",
-                  "currency": "ETB",
-                  "value": {
-                    "@type": "QuantitativeValue",
-                    "minValue": 22000,
-                    "maxValue": 28000,
-                    "unitText": "MONTH"
-                  }
-                },
-                "url": "https://example.org/jobs/junior-software-tester/apply"
-              }
-            </script>
-          </abol-job-card>
+          <abol-job-card lang="am-ET" heading-level="3" job-url="./fixtures/job-am.json"></abol-job-card>
 
           <abol-job-card heading-level="3" audio-summary-api="http://127.0.0.1:8787">
             <script type="application/ld+json">

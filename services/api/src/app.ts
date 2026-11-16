@@ -18,6 +18,7 @@ import { getAssetById, isExpired } from './db/assets.ts'
 import { openDatabase } from './db/sqlite.ts'
 import { embedScript } from './embed.ts'
 import { HttpError, jsonError, validationHook } from './http.ts'
+import { isJobPostingPath, registerJobPostingRoutes } from './job-postings/register.ts'
 import { isJobSummaryPath, registerJobSummaryRoutes } from './job-summaries/register.ts'
 import { createApiTts } from './job-summaries/service.ts'
 import { requireApiKey } from './middleware/api-key.ts'
@@ -28,6 +29,7 @@ import { createAssetJobRoute, getJobRoute } from './routes/jobs.ts'
 import { getStorageObjectRoute } from './routes/storage-object.ts'
 import { loadScalarStandalone } from './scalar-asset.ts'
 import { ErrorBodySchema, type JobBody } from './schemas.ts'
+import { readWidget } from './widgets.ts'
 
 const DOCS_SCRIPT_PATH = '/docs/scalar.js'
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
@@ -46,7 +48,7 @@ export type CreateAppOptions = {
 /**
  * Hono + zod-openapi API (#17 skeleton, #24 assets/storage, #25 jobs).
  * Writes under /api use requireApiKey; GET metadata, job status and signed downloads stay open.
- * Job-card audio summaries and URL captions are public (no API key).
+ * Job-card audio summaries, job-URL resolve, and URL captions are public (no API key).
  */
 export function createApp(options: CreateAppOptions | Record<string, string | undefined> = {}) {
   const env = isEnvMap(options) ? options : (options.env ?? process.env)
@@ -87,13 +89,14 @@ export function createApp(options: CreateAppOptions | Record<string, string | un
 
   app.use('*', apiCors(config.corsOrigin))
 
-  // Writes (upload, job create) need the API key. Reads stay public, and so do the URL caption
-  // and job-summary endpoints (browser-facing job card).
+  // Writes (upload, job create) need the API key. Reads stay public, and so do the URL caption,
+  // job-summary, and job-posting resolve endpoints (browser-facing job card).
   app.use('/api/*', async (c, next) => {
     if (
       !WRITE_METHODS.has(c.req.method) ||
       isCaptionPath(c.req.path) ||
-      isJobSummaryPath(c.req.path)
+      isJobSummaryPath(c.req.path) ||
+      isJobPostingPath(c.req.path)
     ) {
       return next()
     }
@@ -108,6 +111,7 @@ export function createApp(options: CreateAppOptions | Record<string, string | un
   registerJobRoutes(app, config, db)
   registerCaptionRoutes(app, captions, config.publicBaseUrl)
   registerJobSummaryRoutes(app, { db, storage, config, tts })
+  registerJobPostingRoutes(app)
 
   app.doc31('/openapi.json', openApiConfig)
 
@@ -134,6 +138,32 @@ export function createApp(options: CreateAppOptions | Record<string, string | un
       'Content-Type': 'application/javascript; charset=utf-8',
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
+    })
+  })
+
+  // Level-1 script-tag installs: built IIFEs from packages/*/dist (docs-and-distribution #46).
+  app.get('/widget/:name', (c) => {
+    const name = c.req.param('name')
+    if (name.includes('/') || name.includes('..')) {
+      return jsonError(c, 404, 'NOT_FOUND', 'Not found')
+    }
+    const widget = readWidget(name)
+    if (!widget) {
+      return jsonError(
+        c,
+        404,
+        'WIDGET_NOT_BUILT',
+        `Widget "${name}" not found. Run pnpm --filter @abolkit/job-card build (and/or @abolkit/player build).`,
+      )
+    }
+    const isMap = name.endsWith('.map')
+    return c.body(new Uint8Array(widget.body), 200, {
+      'Content-Type': isMap
+        ? 'application/json; charset=utf-8'
+        : 'application/javascript; charset=utf-8',
+      'Cache-Control': 'public, max-age=60',
+      'X-Content-Type-Options': 'nosniff',
+      'Access-Control-Allow-Origin': '*',
     })
   })
 

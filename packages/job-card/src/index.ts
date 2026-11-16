@@ -15,6 +15,12 @@ export type {
   JobSalary,
   NormalizedJobPosting,
 } from './schema.ts'
+export type { JobExtractSource, JobRemoteParseResult } from './load-job.ts'
+export {
+  extractJsonLdDocuments,
+  parseJobPostingFromRemote,
+  scrapeJobPostingFromHtml,
+} from './load-job.ts'
 export {
   composePlainSummary,
   formatDeadlineStatus,
