@@ -62,14 +62,108 @@ describe('createGeminiTranslator', () => {
     expect(JSON.stringify(first.body)).not.toContain('2.5')
   })
 
-  it('fails when the model skips a line instead of shifting the rest', async () => {
+  it('uses positional order when indices are wrong but the count matches', async () => {
+    const api = fakeGemini((lines) => ({
+      translations: lines.map(({ text }, order) => ({ i: order + 99, text: `TI:${text}` })),
+    }))
+    const t = createGeminiTranslator({ apiKey: 'key', fetch: api.fetch, batchSize: 10 })
+    const out = await t.translate(CUES, { from: 'en', to: 'ti' })
+    expect(out.map((c) => c.text)).toEqual([
+      'TI:Hello and welcome.',
+      'TI:Today we learn fractions.',
+      'TI:Thank you.',
+    ])
+  })
+
+  it('fails when the model skips a line and retries are exhausted', async () => {
     const api = fakeGemini((lines) => ({
       translations: lines.slice(1).map(({ i, text }) => ({ i, text })),
     }))
-    const t = createGeminiTranslator({ apiKey: 'key', fetch: api.fetch })
+    const t = createGeminiTranslator({ apiKey: 'key', fetch: api.fetch, retryLimit: 0 })
     await expect(t.translate(CUES, { from: 'en', to: 'om' })).rejects.toThrow(
       /skipped caption line 0/,
     )
+  })
+
+  it('retries incomplete structured replies', async () => {
+    let calls = 0
+    const fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+      calls++
+      const body = JSON.parse(String(init?.body)) as GeminiBody
+      const lines = JSON.parse(body.contents[0].parts[0].text).lines as Array<{
+        i: number
+        text: string
+      }>
+      const translations =
+        calls === 1
+          ? lines.slice(1).map(({ i, text }) => ({ i, text: `AA:${text}` }))
+          : lines.map(({ i, text }) => ({ i, text: `AA:${text}` }))
+      return new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ text: JSON.stringify({ translations }) }] } }],
+        }),
+      )
+    }) as typeof globalThis.fetch
+    const t = createGeminiTranslator({
+      apiKey: 'key',
+      fetch,
+      retryLimit: 2,
+      sleep: async () => undefined,
+    })
+    const out = await t.translate(CUES, { from: 'en', to: 'aa' })
+    expect(calls).toBe(2)
+    expect(out[0]?.text).toBe('AA:Hello and welcome.')
+  })
+
+  it('sends a short transcript in one Gemini call', async () => {
+    const api = fakeGemini((lines) => ({
+      translations: lines.map(({ i, text }) => ({ i, text: `AM:${text}` })),
+    }))
+    const t = createGeminiTranslator({ apiKey: 'key', fetch: api.fetch, batchSize: 80 })
+    await t.translate(CUES, { from: 'en', to: 'am' })
+    expect(api.requests).toHaveLength(1)
+    expect(api.requests[0]!.body.generationConfig).toMatchObject({
+      responseMimeType: 'application/json',
+    })
+    expect(
+      (api.requests[0]!.body.generationConfig as { maxOutputTokens?: number }).maxOutputTokens,
+    ).toBeGreaterThanOrEqual(1024)
+  })
+
+  it('splits a batch after retries keep skipping lines', async () => {
+    let calls = 0
+    const fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+      calls++
+      const body = JSON.parse(String(init?.body)) as GeminiBody
+      const lines = JSON.parse(body.contents[0].parts[0].text).lines as Array<{
+        i: number
+        text: string
+      }>
+      // Full-size attempts always skip; half-size (≤2) succeed.
+      const translations =
+        lines.length > 2
+          ? lines.slice(1).map(({ i, text }) => ({ i, text: `OM:${text}` }))
+          : lines.map(({ i, text }) => ({ i, text: `OM:${text}` }))
+      return new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ text: JSON.stringify({ translations }) }] } }],
+        }),
+      )
+    }) as typeof globalThis.fetch
+    const t = createGeminiTranslator({
+      apiKey: 'key',
+      fetch,
+      batchSize: 80,
+      retryLimit: 0,
+      sleep: async () => undefined,
+    })
+    const out = await t.translate(CUES, { from: 'en', to: 'om' })
+    expect(calls).toBeGreaterThan(1)
+    expect(out.map((c) => c.text)).toEqual([
+      'OM:Hello and welcome.',
+      'OM:Today we learn fractions.',
+      'OM:Thank you.',
+    ])
   })
 
   it('surfaces HTTP errors with their status so the job can retry', async () => {
