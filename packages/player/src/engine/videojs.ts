@@ -18,6 +18,11 @@ export class VideoJsEngine extends NativeEngine {
   #stream: HTMLElement | null = null
   /** YouTube only: the host's VTT tracks, since the iframe cannot load them. */
   #cueTracks: CueTrackList | null = null
+  /**
+   * YouTube's adapter only flips `paused` on iframe state changes. After play(), pause() can leave
+   * `paused === false` until state 2 arrives — keep our own intent and re-assert.
+   */
+  #pauseIntent = false
   #unbind: Array<() => void> = []
 
   readonly hls: boolean
@@ -30,6 +35,7 @@ export class VideoJsEngine extends NativeEngine {
 
   override mount(container: HTMLElement, source: MediaSource): void {
     this.destroy()
+    this.#pauseIntent = false
     const player = document.createElement('video-player')
     if (source.poster) player.setAttribute('poster', source.poster)
     if (source.title) player.setAttribute('content-title', source.title)
@@ -78,7 +84,19 @@ export class VideoJsEngine extends NativeEngine {
       this.#unbind.push(() => target.removeEventListener(type, handler))
     }
     listen(yt, 'timeupdate', tick)
+    listen(yt, 'seeking', tick)
     listen(yt, 'seeked', tick)
+    // Re-assert pause if YouTube reports play/playing while the host asked to pause.
+    const reassertPause = () => {
+      if (!this.#pauseIntent) return
+      media.pause()
+    }
+    listen(yt, 'play', reassertPause)
+    listen(yt, 'playing', reassertPause)
+    listen(yt, 'pause', () => {
+      // Intent satisfied once the iframe reports paused.
+      if (media.paused) this.#pauseIntent = false
+    })
     // One caption source at a time: picking a host track turns YouTube's off, and the reverse.
     const own = media.textTracks as TextTrackList | undefined
     listen(tracks, 'change', () => {
@@ -92,6 +110,26 @@ export class VideoJsEngine extends NativeEngine {
         for (const tr of tracks) if (isCaption(tr) && tr.mode === 'showing') tr.mode = 'disabled'
       })
     }
+  }
+
+  override play(): Promise<void> {
+    this.#pauseIntent = false
+    return super.play()
+  }
+
+  override pause(): void {
+    if (this.#cueTracks) this.#pauseIntent = true
+    super.pause()
+  }
+
+  override get paused(): boolean {
+    return this.#pauseIntent || super.paused
+  }
+
+  override seek(seconds: number): void {
+    super.seek(seconds)
+    // CueTrackList otherwise waits for timeupdate/seeked; sync the overlay immediately.
+    this.#cueTracks?.tick(Number.isFinite(seconds) ? Math.max(0, seconds) : this.currentTime)
   }
 
   override setSource(src: string): void {
@@ -125,6 +163,7 @@ export class VideoJsEngine extends NativeEngine {
     this.#unbind = []
     this.#cueTracks?.destroy()
     this.#cueTracks = null
+    this.#pauseIntent = false
     this.#stream?.removeAttribute('src')
     super.destroy()
     this.#skin = null

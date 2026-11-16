@@ -65,6 +65,8 @@ const bundles = [
   { outfile: 'dist/abol-player.lite.js', videojs: false, hls: false },
 ]
 
+const kb = (n) => `${(n / 1024).toFixed(1)} KB`
+
 for (const { outfile, videojs, hls } of bundles) {
   await esbuild.build({
     entryPoints: [join(root, 'src/index.ts')],
@@ -81,7 +83,27 @@ for (const { outfile, videojs, hls } of bundles) {
     logLevel: 'warning',
   })
   const bytes = readFileSync(join(root, outfile))
-  const kb = (n) => `${(n / 1024).toFixed(1)} KB`
+  console.log(
+    `${outfile.padEnd(28)} ${kb(bytes.length).padStart(9)}  (${kb(gzipSync(bytes, { level: 9 }).length)} gzip)`,
+  )
+}
+
+// Service worker (#36): separate classic script so hosts can register it beside the player bundle.
+{
+  const outfile = 'dist/abol-player.sw.js'
+  await esbuild.build({
+    entryPoints: [join(root, 'src/offline/sw.ts')],
+    outfile: join(root, outfile),
+    bundle: true,
+    format: 'iife',
+    platform: 'browser',
+    target: ['es2022'],
+    minify: true,
+    sourcemap: true,
+    legalComments: 'none',
+    logLevel: 'warning',
+  })
+  const bytes = readFileSync(join(root, outfile))
   console.log(
     `${outfile.padEnd(28)} ${kb(bytes.length).padStart(9)}  (${kb(gzipSync(bytes, { level: 9 }).length)} gzip)`,
   )

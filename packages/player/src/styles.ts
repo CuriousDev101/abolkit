@@ -415,6 +415,23 @@ button[aria-pressed="true"], button[aria-expanded="true"] {
   border-radius: 0 0 var(--abol-radius) var(--abol-radius);
   background: color-mix(in srgb, var(--abol-bg) 85%, #000);
 }
+.bar button,
+.bar a.offline-pack {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--abol-fg) 25%, transparent);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.bar button[aria-pressed="true"] { outline: 2px solid var(--abol-accent); outline-offset: 1px; }
 .panel { padding: 12px 16px; border-top: 1px solid color-mix(in srgb, var(--abol-fg) 20%, transparent); }
 .settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 16px; }
 .settings label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }

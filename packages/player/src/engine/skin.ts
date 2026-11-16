@@ -23,6 +23,7 @@ registerIcons('compat', {
   quality: qualityIcon,
   transcript: `<svg ${SVG}><rect width="14" height="14" x="2" y="2" stroke="currentColor" stroke-linejoin="round" stroke-width="2" rx="2"/><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M5.5 6.5h7m-7 3h7m-7 3h4"/></svg>`,
   sign: `<svg ${SVG}><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M5.5 9.5V4.25a1.25 1.25 0 0 1 2.5 0V8.5m0-.5V2.75a1.25 1.25 0 0 1 2.5 0V8.5m0 0V3.75a1.25 1.25 0 0 1 2.5 0V10m0 0V6.25a1.25 1.25 0 0 1 2.5 0V11a5.5 5.5 0 0 1-5.5 5.5H9.2a4 4 0 0 1-2.9-1.25L2.9 11.7a1.3 1.3 0 0 1 1.85-1.8l.75.7V9.5"/></svg>`,
+  offline: `<svg ${SVG}><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 3.5v7.5m0 0-2.75-2.75M9 11l2.75-2.75M3.5 13.25V14A1.5 1.5 0 0 0 5 15.5h8A1.5 1.5 0 0 0 14.5 14v-.75"/></svg>`,
 })
 
 /**
@@ -164,7 +165,7 @@ export class OptionGroupElement extends MenuRadioGroupElement {
     this.#abort?.abort()
     this.#abort = new AbortController()
     // Video.js closes the current submenu on every radio choice (completeMenuItemSelection → menu.close).
-    // For Caption style that pops the choice page back to the hub — looks like the option did nothing.
+    // That pops the choice page back to the settings hub — looks like the option did nothing.
     // Intercept in capture and apply the value ourselves so the page stays open (YouTube-style).
     this.addEventListener(
       'click',
@@ -235,24 +236,22 @@ const pageItem = (target: string, label: string, hint = HINT) =>
   `<media-menu-item commandfor="${target}" class="media-menu-item" data-page="${target}"><span data-l="${label}"></span>${hint}</media-menu-item>`
 const back = (label: string) =>
   `<media-menu-item class="media-menu-back-item">${icon('chevron', 'media-menu-back-chevron')}<span data-l="${label}"></span></media-menu-item><media-menu-separator class="media-menu-separator"></media-menu-separator>`
-const SEPARATOR =
-  '<media-menu-separator class="media-menu-separator abol-captions-sep"></media-menu-separator>'
-/** One settings/choice page. Caption style uses these for size, colour, position, etc. */
-const optionPage = (option: PlayerOption, extraClass = '') =>
-  `<media-menu-content class="media-menu-content${extraClass ? ` ${extraClass}` : ''}" id="abol-opt-${option.key}">${back(option.label)}
+/** One settings/choice page (root → choice). Keep menus one level deep — Video.js closes on blur across siblings. */
+const optionPage = (option: PlayerOption) =>
+  `<media-menu-content class="media-menu-content" id="abol-opt-${option.key}">${back(option.label)}
     <abol-option-group class="media-menu-radio-group" data-opt="${option.key}">${option.choices
       .map(([value, label]) => radioItem(value, label))
       .join('')}</abol-option-group></media-menu-content>`
 const main = OPTIONS.filter((o) => o.group === 'main')
-const caption = OPTIONS.filter((o) => o.group === 'caption')
 const toggle = (action: string, name: string) =>
   `<abol-toggle-button class="media-button abol-toggle-button" id="abol-${action}-trigger" data-action="${action}" hidden>${icon(name)}</abol-toggle-button>
 ${tooltip(`abol-${action}-trigger`, `<span data-abol-tip="${action}"></span>`)}`
 
-/** Left to right: sign language, transcript, audio, captions, speed, quality, settings. */
+/** Left to right: sign language, transcript, offline, audio, captions, speed, quality, settings. */
 const CONTROLS = `
 ${toggle('sign', 'sign')}
 ${toggle('transcript', 'transcript')}
+${toggle('offline', 'offline')}
 
 <button type="button" commandfor="abol-audio-menu" class="media-button" id="abol-audio-trigger" data-aria="audioTrack">${icon('speech')}</button>
 ${tooltip('abol-audio-trigger', '<media-text token="menu.audio">Audio</media-text>')}
@@ -266,13 +265,7 @@ ${tooltip('abol-captions-trigger', LABEL_TIP)}
   <media-menu-content class="media-menu-content abol-captions-root">
     ${mediaGroup('media-captions-radio-group', '<span data-part="badge" class="media-menu-badge"></span>')}
     <abol-option-group class="media-menu-radio-group abol-caption-tracks" data-opt="captionTrack" hidden></abol-option-group>
-    ${SEPARATOR}
-    ${pageItem('abol-page-caption', 'captionSettings', icon('chevron', 'media-menu-forward-chevron'))}
   </media-menu-content>
-  <media-menu-content class="media-menu-content abol-caption-style" id="abol-page-caption">${back('captionSettings')}
-    ${caption.map((o) => pageItem(`abol-opt-${o.key}`, o.label)).join('')}
-  </media-menu-content>
-  ${caption.map((o) => optionPage(o, 'abol-caption-choice')).join('')}
 </media-menu>
 
 <media-playback-rate-button commandfor="abol-speed-menu" class="media-button abol-speed-button" id="abol-speed-trigger">${icon('speed')}</media-playback-rate-button>
@@ -309,7 +302,7 @@ const SKIN_CSS = `
   display: grid;
 }
 
-/* Captions menu: tracks → Caption style → one page per control. */
+/* Captions menu: track list only (style lives in settings — avoids 2-level Video.js blur close). */
 #abol-captions-menu.media-menu-popup { min-width: 14rem; }
 #abol-captions-menu .abol-captions-root { gap: 2px; padding-block: 2px; }
 /* Prefer CueTrack list over Video.js's YouTube-native captions when both would duplicate Off/English. */
@@ -317,51 +310,10 @@ const SKIN_CSS = `
 #abol-captions-menu:not([data-abol-custom-captions]) .abol-caption-tracks {
   display: none !important;
 }
-#abol-captions-menu .abol-captions-sep { margin-block: 4px; }
-#abol-captions-menu .abol-caption-style,
-#abol-captions-menu .abol-caption-choice {
-  min-width: 14.5rem;
-  gap: 2px;
-}
-#abol-captions-menu .abol-caption-style .media-menu-item,
-#abol-captions-menu .abol-caption-choice .media-menu-radio-item,
-#abol-captions-menu .abol-captions-root .media-menu-radio-item,
-#abol-captions-menu .abol-captions-root .media-menu-item[data-page] {
+#abol-captions-menu .abol-captions-root .media-menu-radio-item {
   min-height: 2.35rem;
   padding-inline: 0.7rem;
   border-radius: 6px;
-}
-#abol-captions-menu .abol-caption-style .media-menu-item[data-page],
-#abol-captions-menu .abol-captions-root .media-menu-item[data-page="abol-page-caption"] {
-  justify-content: space-between;
-}
-#abol-captions-menu .abol-caption-style .media-menu-hint-label {
-  max-width: 7rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  opacity: 0.85;
-}
-/* Keep an open style choice page interactive if a transition attribute lingers. */
-#abol-captions-menu .abol-caption-choice[data-open]:not([data-starting-style]):not([data-ending-style]) {
-  pointer-events: auto !important;
-  transform: none !important;
-  filter: none !important;
-  clip-path: inset(0) !important;
-  z-index: 11;
-}
-/* Video.js only slides the root (not [data-submenu]). Slide Caption style too when a choice
-   page opens, otherwise the hub stays under the choice page and steals clicks. */
-#abol-captions-menu > media-menu-content.abol-caption-style[data-child-open] {
-  filter: blur(var(--media-hidden-blur, 8px));
-  clip-path: inset(0 0 0 100%);
-  transform: translateX(-100%);
-  pointer-events: none !important;
-  visibility: hidden;
-}
-#abol-captions-menu > media-menu-content.abol-caption-style[data-child-open]:dir(rtl) {
-  clip-path: inset(0 100% 0 0);
-  transform: translateX(100%);
 }
 
 /* Transcript covers the right of the frame; the bars are absolutely positioned, so inset them. */

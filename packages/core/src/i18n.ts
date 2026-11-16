@@ -71,6 +71,12 @@ const EN = {
   edgeOutline: 'Outline',
   showSign: 'Show sign language',
   hideSign: 'Hide sign language',
+  downloadOffline: 'Download for offline',
+  downloadingOffline: 'Downloading for offline',
+  offlineReady: 'Saved for offline',
+  removeOffline: 'Remove offline copy',
+  offlineError: 'Offline download failed',
+  offlinePackLink: 'Download offline pack zip',
 } as const
 
 export type UiStringKey = keyof typeof EN
@@ -146,6 +152,12 @@ const AM: Record<UiStringKey, string> = {
   edgeOutline: 'ዝርዝር መስመር',
   showSign: 'የምልክት ቋንቋ አሳይ',
   hideSign: 'የምልክት ቋንቋ ደብቅ',
+  downloadOffline: 'ከመስመር ውጭ ለመጠቀም አውርድ',
+  downloadingOffline: 'ከመስመር ውጭ ለመጠቀም በማውረድ ላይ',
+  offlineReady: 'ከመስመር ውጭ ተቀምጧል',
+  removeOffline: 'ከመስመር ውጭ ቅጂ አስወግድ',
+  offlineError: 'ከመስመር ውጭ ማውረድ አልተሳካም',
+  offlinePackLink: 'የከመስመር ውጭ ጥቅል ዚፕ አውርድ',
 }
 
 const TABLES: Record<UiLang, Record<UiStringKey, string>> = { en: EN, am: AM }

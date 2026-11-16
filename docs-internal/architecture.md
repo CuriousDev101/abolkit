@@ -99,11 +99,12 @@ Errors: JSON `{ error: { code, message } }`. CORS open for read endpoints; write
 
 ## Custom element contract (`<abol-player>`)
 
-- **Attributes (simple use, no manifest):** `src` (video), `poster`, `captions` (default caption VTT), `captions-lang`, `captions-label`, `descriptions` (AD VTT), `sign` (sign-language video), `sign-placeholder`, `transcript` (HTML; generated from captions when absent), `audio` (low-bandwidth audio-only version). More caption languages as `<track kind="captions" srclang label src>` children.
+- **Attributes (simple use, no manifest):** `src` (video), `poster`, `captions` (default caption VTT), `captions-lang`, `captions-label`, `descriptions` (AD VTT), `sign` (sign-language video), `sign-placeholder`, `transcript` (HTML; generated from captions when absent), `audio` (low-bandwidth audio-only version), `offline-pack` (zip URL / PWA affordance). More caption languages as `<track kind="captions" srclang label src>` children.
 - **Attributes (general):** `manifest` (URL; attributes override its fields), `lang`, `controls-keys="off|focus"`, `engine="native"`, `crossorigin`, `api-base`, `autoplay` (ignored; never autoplay).
 - **Events:** `abol:ready`, `abol:error`, `abol:caption-change`, `abol:description-toggle`, `abol:sign-toggle`.
 - **CSS variables:** `--abol-accent`, `--abol-bg`, `--abol-fg`, `--abol-radius`. Everything else stays inside Shadow DOM.
 - **Methods:** `play()`, `pause()`, `seek(s)`.
+- **Media properties:** `currentTime` (get/set), `duration` (get), `volume` (get/set), `playbackRate` (get/set).
 
 ## Cross-cutting rules
 

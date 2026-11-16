@@ -17,8 +17,18 @@ import { configFromAttributes, configFromManifest, languageName, mergeConfig } f
 import type { EngineEvent, MediaEngine } from './engine.js'
 import { createEngine } from './engine/create.js'
 import { isYouTube } from './engine/source.js'
+import {
+  canUseOfflineApis,
+  downloadLesson,
+  getOfflineSnapshot,
+  lessonIdFrom,
+  removeLesson,
+  resolveCachedPlayback,
+  type OfflineLessonAssets,
+  type OfflineSnapshot,
+} from './offline/index.js'
 import { OPTIONS, type OptionKey } from './options.js'
-import { loadSettings, saveSettings } from './storage.js'
+import { hydrateSettings, loadSettings, saveSettings } from './storage.js'
 import { PLAYER_CSS } from './styles.js'
 
 const TAG = 'abol-player'
@@ -72,6 +82,8 @@ const TEMPLATE = `
   <div class="bar" part="toolbar" role="group" hidden>
     <button type="button" data-a="sign" data-l="signToggle" aria-pressed="false" hidden></button>
     <button type="button" data-a="transcript" data-l="transcript" aria-pressed="false" hidden></button>
+    <button type="button" data-a="offline" data-la="downloadOffline" aria-pressed="false" hidden></button>
+    <a class="offline-pack" data-a="offline-pack" data-la="offlinePackLink" hidden download></a>
     <button type="button" data-a="settings" data-l="settings" aria-expanded="false" aria-controls="abol-st"></button>
   </div>
   <section id="abol-st" class="panel" hidden><div class="settings">${NATIVE_SETTINGS}</div></section>
@@ -203,6 +215,11 @@ export class AbolPlayerElement extends HTMLElement {
   #trQuery = ''
   #trManualUntil = 0
   #frameObserver: ResizeObserver | null = null
+  #offline: OfflineSnapshot = { status: 'idle', progress: 0 }
+  #offlineBusy = false
+  #cachedObjectUrls: string[] = []
+  /** Network URLs for Cache API download/remove (kept when boot remaps src to blob:). */
+  #offlineNetwork: OfflineLessonAssets | null = null
 
   constructor() {
     super()
@@ -251,6 +268,9 @@ export class AbolPlayerElement extends HTMLElement {
     this.#frameObserver?.disconnect()
     this.#frameObserver = new ResizeObserver(() => this.#syncTranscriptFrame())
     this.#frameObserver.observe(this.#q('.root'))
+    void hydrateSettings().then((settings) => {
+      if (settings) this.#settings = settings
+    })
     this.#schedule()
   }
 
@@ -276,6 +296,34 @@ export class AbolPlayerElement extends HTMLElement {
 
   seek(seconds: number): void {
     this.#engine?.seek(seconds)
+  }
+
+  get currentTime(): number {
+    return this.#engine?.currentTime ?? 0
+  }
+
+  set currentTime(seconds: number) {
+    this.seek(seconds)
+  }
+
+  get duration(): number {
+    return this.#engine?.duration ?? 0
+  }
+
+  get volume(): number {
+    return this.#engine?.volume ?? 1
+  }
+
+  set volume(value: number) {
+    if (this.#engine) this.#engine.volume = value
+  }
+
+  get playbackRate(): number {
+    return this.#engine?.playbackRate ?? 1
+  }
+
+  set playbackRate(value: number) {
+    if (this.#engine) this.#engine.playbackRate = value
   }
 
   #q<T extends Element = HTMLElement>(selector: string): T {
@@ -328,23 +376,57 @@ export class AbolPlayerElement extends HTMLElement {
         )
       }
       if (!config.src) throw new Error('Set the src or manifest attribute')
+      // Attribute shortcut for hosts that do not use a full manifest.
+      const packAttr = this.getAttribute('offline-pack')
+      if (packAttr && !config.offlinePack)
+        config.offlinePack = new URL(packAttr, document.baseURI).href
 
       const keys = this.getAttribute('controls-keys')
       if (keys === 'off' || keys === 'focus') this.#settings.controlsKeys = keys
       const preferred = this.#settings.captionsLang
-      if (
-        preferred !== undefined &&
-        config.tracks.some((tr) => tr.lang === preferred || preferred === '')
-      ) {
-        for (const tr of config.tracks)
-          if (tr.kind === 'captions' || tr.kind === 'subtitles') tr.default = tr.lang === preferred
+      // undefined = never chosen (keep HTML/manifest defaults). '' = viewer turned captions off.
+      if (preferred !== undefined) {
+        if (preferred === '' || config.tracks.some((tr) => tr.lang === preferred)) {
+          for (const tr of config.tracks)
+            if (tr.kind === 'captions' || tr.kind === 'subtitles')
+              tr.default = preferred !== '' && tr.lang === preferred
+        }
       }
+
+      const offlineAssets = this.#offlineAssets(config)
+      this.#offlineNetwork = offlineAssets
+      this.#offline = await getOfflineSnapshot(offlineAssets.id)
+      // When the network is down, remount from Cache API object URLs (audio-first).
+      if (canUseOfflineApis() && !navigator.onLine) {
+        const cached = await resolveCachedPlayback(offlineAssets)
+        if (cached?.mediaUrl) {
+          this.#revokeCachedUrls()
+          this.#cachedObjectUrls = cached.objectUrls
+          config = {
+            ...config,
+            src: cached.mediaUrl,
+            audio: cached.mediaUrl,
+            poster: config.poster
+              ? (cached.trackUrls.get(config.poster) ?? config.poster)
+              : undefined,
+            tracks: config.tracks.map((tr) => ({
+              ...tr,
+              src: cached.trackUrls.get(tr.src) ?? tr.src,
+            })),
+          }
+          if (cached.transcriptHtml) this.#trHtml = cached.transcriptHtml
+          this.#audioOnly = true
+        }
+      }
+      if (boot !== this.#boots) return
+      const src = config.src
+      if (!src) throw new Error('Set the src or manifest attribute')
 
       const engine = await createEngine(this.getAttribute('engine'))
       if (boot !== this.#boots) return
       if (
         engine.kind === 'native' &&
-        isYouTube({ src: config.src, type: this.getAttribute('type') })
+        isYouTube({ src, type: this.getAttribute('type') })
       ) {
         throw new Error(
           'YouTube sources need the Video.js build (abol-player.js), not the lite build',
@@ -353,7 +435,7 @@ export class AbolPlayerElement extends HTMLElement {
       this.#config = config
       this.#engine = engine
       engine.mount(this.#q('.stage'), {
-        src: config.src,
+        src,
         type: this.getAttribute('type'),
         poster: config.poster,
         title: config.title,
@@ -370,6 +452,7 @@ export class AbolPlayerElement extends HTMLElement {
       this.#applyAd()
       this.#showSign()
       this.#refreshAvailability()
+      this.#reflectOffline()
       this.#label()
       if (this.#settings.transcriptOpen && this.#hasTranscript()) void this.#setTranscriptOpen(true)
       this.#status(null)
@@ -666,9 +749,14 @@ export class AbolPlayerElement extends HTMLElement {
       signVisible: !!config?.sign,
       audioOnly: !!config?.audio,
       captionTrack: useCustomCaptions,
+      // Caption style is in the settings menu (1-level); always offer it.
+      fontScale: true,
+      color: true,
+      background: true,
+      backgroundOpacity: true,
+      position: true,
+      edge: true,
     }
-    // Caption style controls the cue overlay we draw — always offer it (YouTube-style Options).
-    for (const { key, group } of OPTIONS) if (group === 'caption') available[key] = true
     type Group = HTMLElement & {
       unavailable: boolean
       setChoices?(choices: Array<[string, string]>): void
@@ -681,10 +769,6 @@ export class AbolPlayerElement extends HTMLElement {
       for (const item of this.#all(`media-menu-item[data-page="abol-opt-${key}"]`))
         item.hidden = !ok
     }
-    for (const item of this.#all('media-menu-item[data-page="abol-page-caption"]'))
-      item.hidden = false
-    for (const sep of this.#all('#abol-captions-menu .abol-captions-sep'))
-      sep.hidden = !useCustomCaptions
     for (const menu of this.#all<HTMLElement>('#abol-captions-menu'))
       menu.toggleAttribute('data-abol-custom-captions', useCustomCaptions)
     for (const group of this.#all<Group>('abol-option-group[data-opt="captionTrack"]')) {
@@ -705,6 +789,111 @@ export class AbolPlayerElement extends HTMLElement {
     if (useCustomCaptions) this.#reflectCaptions()
     for (const node of this.#all(toggles('transcript'))) node.hidden = !this.#hasTranscript()
     for (const node of this.#all(toggles('sign'))) node.hidden = !config?.sign
+    this.#reflectOffline()
+  }
+
+  #offlineAssets(config: LessonConfig): OfflineLessonAssets {
+    const urls = [
+      config.audio,
+      config.poster,
+      config.transcript,
+      ...config.tracks.map((tr) => tr.src),
+    ].filter((u): u is string => !!u && !u.startsWith('blob:'))
+    return {
+      id: lessonIdFrom(config.id, config.src ?? config.audio),
+      title: config.title,
+      urls,
+      mediaUrl: config.audio?.startsWith('blob:') ? undefined : config.audio,
+      transcriptUrl: config.transcript?.startsWith('blob:') ? undefined : config.transcript,
+      offlinePackUrl: config.offlinePack,
+    }
+  }
+
+  #reflectOffline(): void {
+    const assets = this.#offlineNetwork
+    const canCache = canUseOfflineApis() && !!assets?.urls.length
+    const ready = this.#offline.status === 'ready'
+    const downloading = this.#offline.status === 'downloading'
+    const labelKey =
+      downloading
+        ? 'downloadingOffline'
+        : ready
+          ? 'removeOffline'
+          : this.#offline.status === 'error'
+            ? 'offlineError'
+            : 'downloadOffline'
+    const label = t(this.#lang, labelKey)
+    for (const node of this.#all(toggles('offline'))) {
+      node.hidden = !canCache
+      node.setAttribute('aria-label', label)
+      node.title = label
+      if ('active' in node) (node as HTMLElement & { active: boolean }).active = ready
+      else node.setAttribute('aria-pressed', String(ready))
+      if (node.hasAttribute('data-l')) node.textContent = label
+    }
+    for (const tip of this.#all('[data-abol-tip="offline"]')) tip.textContent = label
+    const pack = this.#config?.offlinePack
+    for (const link of this.#all<HTMLAnchorElement>('a.offline-pack, a[data-a="offline-pack"]')) {
+      link.hidden = !pack
+      if (pack) {
+        link.href = pack
+        const packLabel = t(this.#lang, 'offlinePackLink')
+        link.setAttribute('aria-label', packLabel)
+        link.title = packLabel
+        link.textContent = packLabel
+      }
+    }
+  }
+
+  async #toggleOffline(): Promise<void> {
+    if (this.#offlineBusy || !this.#config) return
+    const assets =
+      this.#offlineNetwork ??
+      (this.#config ? this.#offlineAssets(this.#config) : null)
+    if (!assets) return
+    if (!assets.urls.length) {
+      if (assets.offlinePackUrl) window.open(assets.offlinePackUrl, '_blank', 'noopener')
+      return
+    }
+    if (!canUseOfflineApis()) {
+      if (assets.offlinePackUrl) window.open(assets.offlinePackUrl, '_blank', 'noopener')
+      return
+    }
+    this.#offlineBusy = true
+    try {
+      if (this.#offline.status === 'ready') {
+        await removeLesson(assets.id)
+        this.#offline = { status: 'idle', progress: 0 }
+        this.#announce(t(this.#lang, 'downloadOffline'))
+      } else {
+        this.#offline = await downloadLesson(assets, (snap) => {
+          this.#offline = snap
+          this.#reflectOffline()
+          if (snap.status === 'downloading') {
+            const pct = Math.round((snap.progress || 0) * 100)
+            this.#announce(`${t(this.#lang, 'downloadingOffline')} ${pct}%`)
+          }
+        })
+        if (this.#offline.status === 'ready') this.#announce(t(this.#lang, 'offlineReady'))
+        else if (this.#offline.status === 'error')
+          this.#announce(this.#offline.error || t(this.#lang, 'offlineError'))
+      }
+    } catch (err) {
+      this.#offline = {
+        status: 'error',
+        progress: this.#offline.progress,
+        error: err instanceof Error ? err.message : String(err),
+      }
+      this.#announce(t(this.#lang, 'offlineError'))
+    } finally {
+      this.#offlineBusy = false
+      this.#reflectOffline()
+    }
+  }
+
+  #revokeCachedUrls(): void {
+    for (const url of this.#cachedObjectUrls) URL.revokeObjectURL(url)
+    this.#cachedObjectUrls = []
   }
 
   /** Engine-managed captions: Video.js cannot see them, so we mirror their state on the captions button and menu. */
@@ -728,8 +917,12 @@ export class AbolPlayerElement extends HTMLElement {
     if (lang === this.#captionLang) return
     const initial = this.#captionLang === null
     this.#captionLang = lang
-    this.#settings.captionsLang = lang
-    saveSettings(this.#settings)
+    // Do not persist "off" from the first reflection — tracks may still be loading, and an empty
+    // captionsLang in localStorage would force every default=false on the next boot.
+    if (!initial || lang) {
+      this.#settings.captionsLang = lang
+      saveSettings(this.#settings)
+    }
     if (!initial) {
       this.#announce(
         track ? `${t(this.#lang, 'captions')}: ${track.label}` : t(this.#lang, 'captionsOff'),
@@ -1282,6 +1475,11 @@ export class AbolPlayerElement extends HTMLElement {
       case 'transcript':
         if (this.#hasTranscript()) void this.#setTranscriptOpen(!this.#transcriptOpen)
         return
+      case 'offline':
+        void this.#toggleOffline()
+        return
+      case 'offline-pack':
+        return
       case 'settings': {
         const panel = this.#q('#abol-st')
         panel.hidden = !panel.hidden
@@ -1329,6 +1527,7 @@ export class AbolPlayerElement extends HTMLElement {
     this.#sign?.setAttribute('aria-label', t(lang, 'signWindow'))
     this.#reflectTranscript()
     this.#reflectSign()
+    this.#reflectOffline()
     this.#applyStyle()
   }
 
@@ -1514,6 +1713,9 @@ export class AbolPlayerElement extends HTMLElement {
     this.#audioOnly = false
     this.#moveMode = false
     this.#resumeAfterSign = false
+    this.#offlineBusy = false
+    this.#offlineNetwork = null
+    this.#revokeCachedUrls()
     this.#trHtml = null
     this.#trTrack = null
     this.#trCueCount = 0
