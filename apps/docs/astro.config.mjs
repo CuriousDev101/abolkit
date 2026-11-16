@@ -9,6 +9,7 @@ export default defineConfig({
       title: 'Abol Kit',
       description:
         'Accessible learning-media toolkit: <abol-player>, <abol-job-card>, and install guides for @0.1.1.',
+      customCss: ['./src/styles/custom.css'],
       social: [
         {
           icon: 'github',
@@ -32,10 +33,21 @@ export default defineConfig({
           items: [
             { label: 'Install overview', slug: 'install' },
             { label: 'CDN (script tag)', slug: 'install/cdn' },
-            { label: '@abolkit/job-card', slug: 'install/job-card' },
             { label: '@abolkit/player', slug: 'install/player' },
+            { label: '@abolkit/job-card', slug: 'install/job-card' },
             { label: 'Frameworks', slug: 'install/frameworks' },
           ],
+        },
+        {
+          label: 'Components',
+          items: [
+            { label: '<abol-player>', slug: 'components/player' },
+            { label: '<abol-job-card>', slug: 'components/job-card' },
+          ],
+        },
+        {
+          label: 'Guides',
+          items: [{ label: 'Accessibility', slug: 'guides/accessibility' }],
         },
       ],
       lastUpdated: true,

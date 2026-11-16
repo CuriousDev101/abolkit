@@ -1,0 +1,52 @@
+/* Abol Kit docs: clearer reading surface and example blocks */
+:root {
+  --abol-docs-accent: #0b6e4f;
+  --abol-docs-accent-soft: color-mix(in srgb, #0b6e4f 14%, transparent);
+  --abol-docs-ink: #16201b;
+  --abol-docs-muted: #45574c;
+}
+
+:root[data-theme='light'],
+[data-theme='light'] {
+  --sl-color-accent-low: #d7e8df;
+  --sl-color-accent: var(--abol-docs-accent);
+  --sl-color-accent-high: #074d38;
+  --sl-color-text-accent: var(--abol-docs-accent);
+}
+
+.sl-markdown-content h2 {
+  margin-top: 2.25rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--sl-color-hairline);
+}
+
+.sl-markdown-content h2:first-of-type {
+  border-top: 0;
+  margin-top: 1.5rem;
+}
+
+.sl-markdown-content table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.sl-markdown-content th {
+  white-space: nowrap;
+  background: var(--sl-color-gray-6, var(--sl-color-bg-nav));
+}
+
+.sl-markdown-content code {
+  font-size: 0.9em;
+}
+
+/* Example callouts stay readable without looking like a dashboard */
+.sl-markdown-content .starlight-aside {
+  border-radius: 0.65rem;
+}
+
+.hero {
+  --sl-color-banner-bg: var(--abol-docs-accent-soft);
+}

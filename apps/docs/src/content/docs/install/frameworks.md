@@ -15,7 +15,7 @@ Import once so the custom element registers, then use the tag in your template.
 
 ## React
 
-### Job card — wrapper (recommended)
+### Job card (wrapper, recommended)
 
 ```jsx
 import { AbolJobCard } from '@abolkit/job-card/react'
@@ -32,7 +32,7 @@ export function Job() {
 }
 ```
 
-### Job card — custom element
+### Job card (custom element)
 
 ```jsx
 import '@abolkit/job-card'
@@ -52,12 +52,33 @@ Prefer React 19 for unknown custom-element attributes. For custom events without
 ### Player
 
 ```jsx
+import { useEffect, useRef } from 'react'
 import '@abolkit/player'
 
 export function Lesson() {
-  return <abol-player />
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const onReady = (e) => console.log(e.detail.engine)
+    el.addEventListener('abol:ready', onReady)
+    return () => el.removeEventListener('abol:ready', onReady)
+  }, [])
+
+  return (
+    <abol-player
+      ref={ref}
+      src="https://example.org/lesson.mp4"
+      captions="/en.vtt"
+      captions-lang="en"
+      lang="en"
+    />
+  )
 }
 ```
+
+There is no React wrapper for the player. Use the custom element + `ref` for events. Full guide: **[Player](/components/player/)**.
 
 ## Vue 3
 

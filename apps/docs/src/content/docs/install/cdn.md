@@ -23,7 +23,12 @@ Use a **pinned** CDN URL. Never load `@latest` in docs or production.
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@abolkit/player@0.1.1/dist/abol-player.js"></script>
 
-<abol-player></abol-player>
+<abol-player
+  src="https://example.org/lesson.mp4"
+  captions="/captions/en.vtt"
+  captions-lang="en"
+  lang="en"
+></abol-player>
 ```
 
 ### Player variants
@@ -31,14 +36,17 @@ Use a **pinned** CDN URL. Never load `@latest` in docs or production.
 | File | Use when |
 | --- | --- |
 | `…/dist/abol-player.js` | Default Video.js build |
-| `…/dist/abol-player.lite.js` | Smallest — native `<video>` |
+| `…/dist/abol-player.lite.js` | Smallest (native `<video>`) |
 | `…/dist/abol-player.stream.js` | HLS extras |
+| `…/dist/abol-player.braille.js` (+ `.braille.capi.js`) | GPL Liblouis companion for Amharic `.brf` |
 
 Example lite:
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@abolkit/player@0.1.1/dist/abol-player.lite.js"></script>
 ```
+
+See the **[player guide](/components/player/)** and **[job card guide](/components/job-card/)**.
 
 ## unpkg
 

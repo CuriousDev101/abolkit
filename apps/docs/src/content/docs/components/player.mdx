@@ -1,0 +1,257 @@
+---
+title: '<abol-player>'
+description: Simple and advanced usage for the Abol Kit video player.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components'
+
+Shadow DOM video player with captions, audio description, sign video, transcript, and offline packs.
+
+## 1. Minimal
+
+Load the lite build and set `src` plus captions:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@abolkit/player@0.1.1/dist/abol-player.lite.js"></script>
+
+<abol-player
+  src="https://example.org/lesson.mp4"
+  captions="/captions/en.vtt"
+  captions-lang="en"
+  lang="en"
+></abol-player>
+```
+
+Or with npm:
+
+```bash
+npm install @abolkit/player@0.1.1
+```
+
+```js
+import '@abolkit/player'
+```
+
+```html
+<abol-player src="/lesson.mp4" captions="/en.vtt" captions-lang="en" lang="en"></abol-player>
+```
+
+That is enough for most pages.
+
+## 2. Common extras
+
+Add only what you need:
+
+```html
+<abol-player
+  src="/lesson.mp4"
+  captions="/en.vtt"
+  captions-lang="en"
+  descriptions="/ad.en.vtt"
+  transcript="/transcript.html"
+  poster="/poster.jpg"
+  lang="en"
+>
+  <track kind="captions" src="/am.vtt" srclang="am" label="አማርኛ" />
+</abol-player>
+```
+
+| Goal | Add |
+| --- | --- |
+| Second caption language | `<track kind="captions" …>` child |
+| Audio description | `descriptions="/ad.en.vtt"` |
+| Transcript panel | `transcript="/transcript.html"` |
+| Poster image | `poster="/poster.jpg"` |
+| Smaller CDN file | `abol-player.lite.js` |
+| Default Video.js build | `abol-player.js` |
+
+## 3. Advanced examples
+
+<Tabs>
+<TabItem label="YouTube + generate">
+
+Needs a running Abol Kit API.
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@abolkit/player@0.1.1/dist/abol-player.js"></script>
+
+<abol-player
+  src="https://youtu.be/VIDEO_ID"
+  caption-api="https://api.example"
+  generate-captions="am om ti aa"
+  lang="en"
+></abol-player>
+```
+
+`generate-captions` tokens must be from: `am`, `om`, `ti`, `aa`.
+
+</TabItem>
+<TabItem label="Sign + shortcuts">
+
+```html
+<abol-player
+  src="/lesson.mp4"
+  captions="/en.vtt"
+  captions-lang="en"
+  sign="/sign.mp4"
+  lang="en"
+  controls-keys="focus"
+></abol-player>
+```
+
+Focused shortcuts: `d` (description), `s` (sign), `t` (transcript). Use `controls-keys="off"` to disable letter shortcuts ([Accessibility](/guides/accessibility/)).
+
+</TabItem>
+<TabItem label="Manifest">
+
+```html
+<abol-player manifest="/lessons/lesson-1/manifest.json" lang="en"></abol-player>
+```
+
+Attribute values override the same fields from the manifest when both are set.
+
+</TabItem>
+<TabItem label="Offline pack">
+
+```html
+<abol-player
+  src="/lesson.mp4"
+  captions="/en.vtt"
+  offline-pack="/packs/lesson-1.zip"
+  lang="en"
+></abol-player>
+```
+
+</TabItem>
+<TabItem label="React">
+
+```jsx
+import { useEffect, useRef } from 'react'
+import '@abolkit/player'
+
+export function Lesson() {
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const onReady = (e) => console.log('engine', e.detail.engine)
+    el.addEventListener('abol:ready', onReady)
+    return () => el.removeEventListener('abol:ready', onReady)
+  }, [])
+
+  return (
+    <abol-player
+      ref={ref}
+      src="/lesson.mp4"
+      captions="/en.vtt"
+      captions-lang="en"
+      lang="en"
+    />
+  )
+}
+```
+
+No React wrapper package. Prefer React 19 for custom-element attributes. Wire events with `ref` + `addEventListener`.
+
+</TabItem>
+</Tabs>
+
+## Install files
+
+| Path | Use when |
+| --- | --- |
+| `dist/abol-player.js` | Default CDN / Video.js |
+| `dist/abol-player.esm.js` | `import '@abolkit/player'` |
+| `dist/abol-player.lite.js` | Smallest, native `<video>` |
+| `dist/abol-player.stream.js` | HLS extras |
+| `dist/abol-player.sw.js` | Offline service worker helper |
+| `dist/abol-player.braille.js` + `.braille.capi.js` | GPL Liblouis companion for Amharic `.brf` |
+
+Main player is **MIT**. Braille companion files are **GPL-3.0**. Hide Braille export with `braille-export="off"`.
+
+## Attributes
+
+| Attribute | Default | Description |
+| --- | --- | --- |
+| `src` | | Video URL (file, HLS, or YouTube). Required unless `manifest` provides media. |
+| `manifest` | | Lesson JSON URL. Merged with attributes; attributes win. |
+| `poster` | | Poster image URL. |
+| `audio` | | Low-bandwidth audio-only URL. |
+| `captions` | | Single captions WebVTT URL. |
+| `captions-lang` | `lang` | Language for `captions=`. |
+| `captions-label` | language name | Label for that track. |
+| `descriptions` | | Audio-description WebVTT URL. |
+| `sign` | | Sign-language video URL (file or YouTube). |
+| `sign-placeholder` | off | Show a sample-content note on the sign window. |
+| `transcript` | | HTML transcript URL. |
+| `offline-pack` | | Offline zip URL (enables download UI). |
+| `lang` | document / `en` | UI language. |
+| `caption-api` | | Caption API origin (with `generate-captions`). |
+| `generate-captions` | | Space-separated codes: `am om ti aa`. |
+| `braille-export` | on when Amharic cues exist | Set `off` to hide export. |
+| `controls-keys` | `focus` | `focus` or `off` (WCAG 2.1.4). |
+
+Observed attributes (changes reboot or relabel): `src`, `manifest`, `captions`, `captions-lang`, `sign`, `lang`, `caption-api`, `generate-captions`, `braille-export`.
+
+`<track>` children: `kind` of `captions`, `subtitles`, `descriptions`, or `chapters`.
+
+## Methods and properties
+
+| Member | Description |
+| --- | --- |
+| `play()` | Start playback (`Promise<void>`). |
+| `pause()` | Pause. |
+| `seek(seconds)` | Seek. |
+| `currentTime` | Get / set playhead. |
+| `duration` | Duration (read-only). |
+| `volume` | Get / set `0`–`1`. |
+| `playbackRate` | Get / set rate. |
+
+Use attributes for `src` / `manifest` (no JS mirrors).
+
+```js
+const el = document.querySelector('abol-player')
+el.addEventListener('abol:ready', () => {
+  el.volume = 0.8
+  void el.play()
+})
+```
+
+## Events
+
+All bubble and compose across Shadow DOM.
+
+| Event | Detail |
+| --- | --- |
+| `abol:ready` | `{ engine: 'videojs' \| 'native' }` |
+| `abol:error` | `{ message: string }` |
+| `abol:captions` | Generate / poll status payloads |
+| `abol:caption-change` | `{ lang: string \| null }` |
+| `abol:description-toggle` | `{ mode: 'off' \| 'text' \| 'voice' }` |
+| `abol:sign-toggle` | `{ visible: boolean }` |
+| `abol:braille` | `{ status: 'ready' \| 'error', … }` |
+
+## Theme (CSS)
+
+```css
+abol-player {
+  --abol-accent: #0b6e4f;
+  --abol-bg: #0f1412;
+  --abol-fg: #f4f7f5;
+  --abol-radius: 8px;
+  --abol-focus: #ffbf47;
+  --abol-transcript-width: clamp(240px, 32%, 380px);
+  --abol-max-width: 960px;
+}
+
+abol-player::part(stage) {
+  border-radius: 12px;
+}
+```
+
+Parts: `root`, `stage`, `transcript`, `toolbar`.
+
+<Aside type="tip">
+Start from the [Quickstart](/getting-started/) minimal page, then copy one Advanced tab above when you need it.
+</Aside>

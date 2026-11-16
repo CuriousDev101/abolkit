@@ -1,0 +1,146 @@
+---
+title: Accessibility
+description: Keyboard, captions, focus, and known limits for Abol Kit player and job card.
+---
+
+import { Aside, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components'
+
+How keyboard, captions, focus, and screen-reader support work in `<abol-player>` and `<abol-job-card>`.
+
+<CardGrid>
+  <Card title="Player" icon="seti:video">
+    Shortcuts, caption settings, 44px targets, live regions. [Player guide](/components/player/)
+  </Card>
+  <Card title="Job card" icon="document">
+    Headings, Apply new-tab text, live announcements, 46px targets. [Job card guide](/components/job-card/)
+  </Card>
+</CardGrid>
+
+## Player
+
+### Keyboard shortcuts
+
+Letter shortcuts run only when focus is inside the player (shadow tree) and `controls-keys` is not `off`.
+
+| Key | Action | Needs |
+| --- | --- | --- |
+| `d` | Cycle audio description: `off` → `text` → `voice` → `off` | A descriptions track |
+| `s` | Show or hide the sign window | A `sign` source |
+| `t` | Open or close the transcript panel | A transcript |
+| `Escape` | Close Settings (focus returns to Settings), or close transcript when focus is in the transcript panel |  |
+
+Also ignored for letter shortcuts: `Ctrl` / `Meta` / `Alt`, and typing in `input`, `select`, `textarea`, or contenteditable.
+
+**Sign window move mode** (Move / resize control):
+
+| Key | Action |
+| --- | --- |
+| Arrow keys | Move the sign window |
+| `Shift` + Arrow keys | Resize |
+| `Escape` | Leave move mode |
+
+### `controls-keys` (WCAG 2.1.4)
+
+Character-key shortcuts can clash with assistive technology. Turn them off:
+
+```html
+<abol-player
+  src="/lesson.mp4"
+  captions="/en.vtt"
+  controls-keys="off"
+></abol-player>
+```
+
+| Value | Behavior |
+| --- | --- |
+| `focus` (default) | `d` / `s` / `t` work when the player has focus |
+| `off` | Single-letter keys are blocked inside the player (Space is not blocked). `Escape` still works |
+
+You can also change this in the player Settings menu (Keyboard shortcuts).
+
+### Captions and description
+
+- Use WebVTT with correct `srclang` or `captions-lang`.
+- Caption appearance (size, colour, background, position, edge) is in Settings.
+- Audio description modes: **off**, **text** (announced in a polite live region), **voice** (local clip or on-device speech, not a cloud voice).
+- Caption jobs from `caption-api` + `generate-captions` may need review. Status is shown in a live region and via `abol:captions`.
+- Amharic Braille export is experimental. Hide it with `braille-export="off"`.
+
+### Focus, targets, motion
+
+- Toolbar and settings controls use at least **44×44 CSS px** hit areas.
+- Focus ring colour: `--abol-focus` (default `#ffbf47`).
+- Transcript search and cue count use polite live updates.
+- Reduced motion: the player respects `prefers-reduced-motion` for UI motion where applied.
+
+```css
+abol-player {
+  --abol-focus: #ffbf47;
+  --abol-fg: #f4f7f5;
+  --abol-bg: #0f1412;
+}
+```
+
+## Job card
+
+### Structure and names
+
+- The card is labelled by the job title heading (`aria-labelledby`).
+- Title heading level comes from `heading-level` (`2`–`6`).
+- Decorative icons use `aria-hidden="true"`.
+- Status and audio use a polite `aria-live` region for announcements.
+
+### Apply and Listen
+
+| Control | Accessibility notes |
+| --- | --- |
+| Apply (with posting `url`) | Real link, `target="_blank"`, plus screen-reader text “opens in a new tab” |
+| Apply (no URL) | Button that only fires `abol:job-apply` |
+| Listen | `aria-pressed`, `aria-busy` while preparing audio, `aria-describedby` hint |
+
+Hosts can cancel navigation:
+
+```js
+card.addEventListener('abol:job-apply', (event) => {
+  event.preventDefault()
+})
+```
+
+### Focus and zoom
+
+- Buttons and Apply use at least **46px** minimum block size.
+- Focus ring: `--abol-focus` (default `#ffbf47`).
+- Layout is built for readable reflow (including about 200% zoom).
+- Supports `forced-colors` and `prefers-reduced-motion`.
+
+```css
+abol-job-card {
+  --abol-focus: #ffbf47;
+  --abol-fg: #16201b;
+  --abol-bg: #e8f0ea;
+}
+```
+
+## Known limits
+
+<Tabs>
+<TabItem label="Player">
+
+- YouTube playback uses the YouTube IFrame API. Keys inside that iframe are mostly outside Abol’s control.
+- Cross-origin caption or transcript URLs need correct CORS for the browser to load them.
+- With `controls-keys="off"`, Video.js and Abol letter shortcuts are blocked via capture; host page shortcuts are unchanged.
+- Braille `.brf` export is experimental and not independently verified.
+
+</TabItem>
+<TabItem label="Job card">
+
+- Audio summary synthesis currently supports English (`lang=en`) through the API.
+- Cross-origin `job-url` resolve needs `audio-summary-api` (server proxy). Same-origin fetches do not.
+- Apply always opens an external URL in a new tab when present; there is no in-page apply form.
+
+</TabItem>
+</Tabs>
+
+<Aside type="tip">
+After you theme with `--abol-*` or `::part()`, check the page with axe (or similar) and keyboard-only navigation.
+</Aside>

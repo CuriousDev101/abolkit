@@ -6,7 +6,7 @@
   "description": "Abol Kit: accessible learning-media toolkit (embeddable video player, captions pipeline, job card).",
   "packageManager": "pnpm@11.28.9",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.23.4"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

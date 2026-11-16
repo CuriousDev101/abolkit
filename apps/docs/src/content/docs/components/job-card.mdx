@@ -1,0 +1,194 @@
+---
+title: '<abol-job-card>'
+description: Simple and advanced usage for the Abol Kit job card.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components'
+
+Accessible job notices from [schema.org/JobPosting](https://schema.org/JobPosting): JSON, JSON-LD, or HTML career pages, with a plain-language summary and optional listen-to-summary audio.
+
+## 1. Minimal
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@abolkit/job-card@0.1.1/dist/abol-job-card.js"></script>
+
+<abol-job-card job-url="/jobs/123.json" lang="en"></abol-job-card>
+```
+
+Or with npm:
+
+```bash
+npm install @abolkit/job-card@0.1.1
+```
+
+```js
+import '@abolkit/job-card'
+```
+
+```html
+<abol-job-card job-url="/jobs/123.json" lang="en"></abol-job-card>
+```
+
+If the posting includes a safe `url`, **Apply** opens it in a new tab.
+
+## 2. Common extras
+
+```html
+<abol-job-card
+  job-url="/jobs/123.json"
+  lang="am-ET"
+  calendar="ethiopic"
+  heading-level="2"
+></abol-job-card>
+```
+
+| Goal | Add |
+| --- | --- |
+| Amharic UI | `lang="am-ET"` |
+| Ethiopian calendar dates | `calendar="ethiopic"` |
+| Title heading level | `heading-level="2"` … `"6"` |
+| Inline data (no URL) | Child `<script type="application/ld+json">` |
+| Audio summary | `audio-summary-api="https://api.example"` |
+
+## 3. Advanced examples
+
+<Tabs>
+<TabItem label="Inline JSON-LD">
+
+```html
+<abol-job-card lang="en" heading-level="3">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "JobPosting",
+      "title": "Junior Accessibility Engineer",
+      "description": "Build clear learning tools.",
+      "url": "https://example.org/jobs/1/apply",
+      "datePosted": "2026-11-14",
+      "validThrough": "2026-12-31",
+      "hiringOrganization": {
+        "@type": "Organization",
+        "name": "Example Org",
+        "sameAs": "https://example.org"
+      }
+    }
+  </script>
+</abol-job-card>
+```
+
+</TabItem>
+<TabItem label="Audio summary">
+
+```html
+<abol-job-card
+  job-url="/jobs/123.json"
+  audio-summary-api="https://api.example"
+  lang="en"
+></abol-job-card>
+```
+
+English summaries call `POST {api}/api/job-summaries/audio`. Leave `audio-summary-api` unset if you do not run the API. Listen also appears if the posting already includes `abolAudioSummary`.
+
+</TabItem>
+<TabItem label="Cross-origin job URL">
+
+With `audio-summary-api` set, cross-origin `job-url` values load via:
+
+```http
+GET {audio-summary-api}/api/job-postings/resolve?url=…
+```
+
+Same-origin URLs are fetched directly in the browser.
+
+```html
+<abol-job-card
+  job-url="https://careers.example/jobs/1.html"
+  audio-summary-api="https://api.example"
+  lang="en"
+></abol-job-card>
+```
+
+</TabItem>
+<TabItem label="React wrapper">
+
+```jsx
+import { AbolJobCard } from '@abolkit/job-card/react'
+
+export function Job({ url }) {
+  return (
+    <AbolJobCard
+      jobUrl={url}
+      lang="en"
+      calendar="gregory"
+      headingLevel={2}
+      onJobApply={(detail) => console.log(detail.job.title)}
+    />
+  )
+}
+```
+
+`react` is an optional peer dependency (only for `@abolkit/job-card/react`).
+
+</TabItem>
+<TabItem label="Handle Apply yourself">
+
+```js
+document.querySelector('abol-job-card')?.addEventListener('abol:job-apply', (event) => {
+  event.preventDefault() // stop the card's new-tab link
+  console.log(event.detail.job.title, event.detail.url)
+})
+```
+
+</TabItem>
+</Tabs>
+
+## Attributes
+
+| Attribute | Default | Description |
+| --- | --- | --- |
+| `job-url` | | Preferred source (JSON, JSON-LD, or HTML). Wins over `src`. |
+| `src` | | Alias for `job-url` (use one). |
+| `lang` | document / `en` | UI language (`en`, `am-ET`, …). |
+| `calendar` | `gregory` | `gregory` or `ethiopic` (`ethiopian` accepted). |
+| `heading-level` | `2` | Title heading `2`–`6`. |
+| `audio-summary-api` | | API origin for TTS and cross-origin resolve. |
+
+## Properties
+
+| Property | Description |
+| --- | --- |
+| `job` | Get `NormalizedJobPosting \| null`, or set raw JSON / object to re-render. |
+| `jobUrl` / `src` | Attribute mirrors. |
+| `audioSummaryApi` | Attribute mirror. |
+
+## Events
+
+| Event | Detail | Notes |
+| --- | --- | --- |
+| `abol:job-apply` | `{ job, jsonLd, url? }` | Cancelable. With `url`, Apply is a new-tab link; `preventDefault()` stops it. |
+| `abol:summary-play` | `{ playing, src, job }` | Audio summary started or paused. |
+
+## Apply behavior
+
+- Safe posting `url` → Apply is `<a target="_blank" rel="noopener noreferrer">`.
+- No URL → Apply is a button that only fires `abol:job-apply`.
+- Closed posting (past `validThrough`) → Apply is omitted; status banner still shows.
+
+## Theme (CSS)
+
+```css
+abol-job-card {
+  --abol-accent: #0b6e4f;
+  --abol-bg: #e8f0ea;
+  --abol-fg: #16201b;
+  --abol-radius: 12px;
+  --abol-focus: #ffbf47;
+  --abol-max-width: 40rem;
+}
+```
+
+No CSS `::part` hooks. Theme with these variables only.
+
+<Aside type="tip">
+Start from [Quickstart](/getting-started/), then open one Advanced tab when you need audio, React, or cross-origin resolve.
+</Aside>
