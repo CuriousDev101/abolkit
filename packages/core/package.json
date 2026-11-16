@@ -1,18 +1,40 @@
 {
   "name": "@abolkit/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "type": "module",
-  "main": "src/index.ts",
-  "exports": {
-    ".": "./src/index.ts"
+  "description": "Shared pure TypeScript for Abol Kit: WebVTT, cues, settings, i18n, a11y helpers.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CuriousDev101/abolkit.git",
+    "directory": "packages/core"
   },
-  "description": "Shared pure TypeScript: WebVTT parse/serialize, cue types, settings store, i18n strings, a11y helpers. No DOM, no Node-only APIs.",
+  "homepage": "https://github.com/CuriousDev101/abolkit/tree/main/packages/core#readme",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
   "scripts": {
+    "build": "node build.mjs",
+    "prepack": "node build.mjs",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "vitest": "^5.1.0"
   }
 }

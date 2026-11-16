@@ -1,5 +1,34 @@
 # apps/docs
 
-Public documentation site (Starlight). Owner: pair ol (pair ab writes the component reference). Issues #44-46.
+Public documentation site ([Starlight](https://starlight.astro.build/)).  
+Package install guides pin **`@0.1.1`**.
 
-Not scaffolded yet. When ready, create it here following the current Starlight "getting started" instructions, keep it accessible (axe clean), and add live `<abol-player>` demos. See `docs-internal/modules/docs-and-distribution.md`.
+## Develop
+
+From the repo root:
+
+```bash
+pnpm install
+pnpm --filter @abolkit/docs dev
+```
+
+Or:
+
+```bash
+cd apps/docs && pnpm dev
+```
+
+## Build
+
+```bash
+pnpm --filter @abolkit/docs build
+```
+
+Static output: `apps/docs/dist/`.
+
+## Content
+
+- `src/content/docs/` — Markdown / MDX pages
+- Sidebar: `astro.config.mjs`
+
+Owner: pair ol (pair ab for component reference). Issues #44–46.

@@ -1,27 +1,80 @@
 {
   "name": "@abolkit/job-card",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "type": "module",
-  "main": "src/index.ts",
+  "description": "Accessible <abol-job-card> web component: schema.org/JobPosting, audio summary, works in React, Vue, and Angular.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CuriousDev101/abolkit.git",
+    "directory": "packages/job-card"
+  },
+  "homepage": "https://github.com/CuriousDev101/abolkit/tree/main/packages/job-card#readme",
+  "bugs": {
+    "url": "https://github.com/CuriousDev101/abolkit/issues"
+  },
+  "keywords": [
+    "web-components",
+    "custom-elements",
+    "job-posting",
+    "accessibility",
+    "react",
+    "vue",
+    "angular",
+    "schema.org"
+  ],
+  "sideEffects": [
+    "./dist/abol-job-card.js",
+    "./dist/abol-job-card.esm.js"
+  ],
+  "main": "./dist/abol-job-card.esm.js",
+  "module": "./dist/abol-job-card.esm.js",
+  "types": "./dist/abol-job-card.d.ts",
+  "browser": "./dist/abol-job-card.js",
+  "unpkg": "./dist/abol-job-card.js",
+  "jsdelivr": "./dist/abol-job-card.js",
   "exports": {
-    ".": "./src/index.ts"
-  },
-  "description": "<abol-job-card>: accessible job card with schema.org/JobPosting data and an audio summary.",
-  "scripts": {
-    "build": "node build.mjs",
-    "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json"
-  },
-  "dependencies": {
-    "@abolkit/core": "workspace:*"
-  },
-  "devDependencies": {
-    "esbuild": "^0.28.2",
-    "vitest": "^5.1.0"
+    ".": {
+      "types": "./dist/abol-job-card.d.ts",
+      "import": "./dist/abol-job-card.esm.js",
+      "default": "./dist/abol-job-card.esm.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js",
+      "default": "./dist/react.js"
+    },
+    "./load-job": {
+      "types": "./dist/load-job.d.ts",
+      "import": "./dist/load-job.js",
+      "default": "./dist/load-job.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
-    "src"
-  ]
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "prepack": "node build.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "react": ">=17"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@abolkit/core": "workspace:*",
+    "@types/react": "^19.0.0",
+    "esbuild": "^0.28.2",
+    "react": "^19.0.0",
+    "vitest": "^5.1.0"
+  }
 }

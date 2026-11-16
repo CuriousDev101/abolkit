@@ -25,7 +25,15 @@
 ```html
 <script src="https://HOST/widget/abol-player.js"></script>
 <abol-player manifest="https://HOST/api/lessons/lesson-1"></abol-player>
+
+<script src="https://HOST/widget/abol-job-card.js"></script>
+<!-- audio-summary-api also proxies job-url via GET /api/job-postings/resolve (CORS-safe). -->
+<abol-job-card job-url="https://careers.example/jobs/123" audio-summary-api="https://HOST"></abol-job-card>
 ```
+
+Serve `abol-player.sw.js` beside the player script so the embed can register the offline service worker (#36). The worker’s default scope is its directory (e.g. `/widget/`). Optional response header `Service-Worker-Allowed: /` widens scope when the host wants the lesson page shell cached too. Offline still needs HTTPS or `http://localhost`.
+
+Build widgets before relying on `/widget/*`: `pnpm --filter @abolkit/player build` and `pnpm --filter @abolkit/job-card build`.
 
 ## Done when
 

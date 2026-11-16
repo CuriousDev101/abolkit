@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Abol Player — offline demo (#36)</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: 'Noto Sans Ethiopic', 'Noto Sans', system-ui, sans-serif;
+        background: #e8eee9;
+        color: #122;
+      }
+      main {
+        max-width: 960px;
+        margin: 2rem auto;
+        padding: 0 1rem 3rem;
+      }
+      abol-player {
+        margin-block: 1rem 2.5rem;
+      }
+      ol {
+        max-width: 65ch;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Offline PWA demo</h1>
+      <p>
+        Serve this folder over <code>http://localhost</code> (service workers need a secure context). Use the
+        download control on the player, throttle to Slow 3G, then go offline / airplane mode and reload.
+      </p>
+      <ol>
+        <li>Open DevTools → Network → Slow 3G.</li>
+        <li>Click <strong>Download for offline</strong> on the player.</li>
+        <li>Enable Offline (or airplane mode on a phone) and reload.</li>
+        <li>Audio, captions and transcript should still work from Cache API + IndexedDB.</li>
+        <li>Click again to <strong>Remove offline copy</strong>.</li>
+      </ol>
+      <abol-player manifest="./offline/manifest.json" lang="en"></abol-player>
+    </main>
+    <script src="../dist/abol-player.js"></script>
+  </body>
+</html>

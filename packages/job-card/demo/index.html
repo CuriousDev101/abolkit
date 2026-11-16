@@ -23,7 +23,7 @@
         --abol-accent: #0b6e4f;
         --abol-bg: #e8f0ea;
         --abol-fg: #16201b;
-        --abol-radius: 10px;
+        --abol-radius: 12px;
         --abol-focus: #ffbf47;
       }
 
@@ -55,7 +55,7 @@
       }
 
       .page {
-        max-width: 52rem;
+        max-width: 54rem;
         margin: 0 auto;
         padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 1.75rem) 4rem;
       }
@@ -67,7 +67,7 @@
       .brand {
         margin: 0 0 0.45rem;
         font-family: Literata, 'Noto Serif Ethiopic', Georgia, serif;
-        font-size: clamp(2.4rem, 6vw, 3.4rem);
+        font-size: clamp(2.5rem, 6.5vw, 3.6rem);
         font-weight: 700;
         letter-spacing: -0.03em;
         line-height: 1.05;
@@ -80,14 +80,35 @@
 
       .hero p {
         margin: 0;
-        max-width: 36ch;
+        max-width: 40ch;
         color: var(--muted);
-        font-size: 1.05rem;
+        font-size: 1.08rem;
+      }
+
+      .install {
+        margin: 1.25rem 0 0;
+        display: grid;
+        gap: 0.65rem;
+      }
+
+      .install code,
+      .snippet {
+        display: block;
+        overflow-x: auto;
+        padding: 0.85rem 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--rule);
+        background: color-mix(in srgb, #fff 72%, var(--paper));
+        font-family: ui-monospace, 'Cascadia Code', Menlo, monospace;
+        font-size: 0.86rem;
+        line-height: 1.45;
+        color: #123226;
       }
 
       .stage {
         position: relative;
         min-width: 0;
+        margin-top: 1.75rem;
       }
 
       abol-job-card {
@@ -102,10 +123,12 @@
         border-top: 1px solid var(--rule);
       }
 
-      .tools h2 {
+      .tools h2,
+      .more h2,
+      .frameworks h2 {
         margin: 0 0 0.85rem;
         font-family: Literata, Georgia, serif;
-        font-size: 1.15rem;
+        font-size: 1.2rem;
         font-weight: 700;
       }
 
@@ -167,20 +190,38 @@
         margin: 0.25rem 0;
       }
 
-      .more {
+      .more,
+      .frameworks {
         margin-top: 3rem;
-      }
-
-      .more h2 {
-        margin: 0 0 1rem;
-        font-family: Literata, Georgia, serif;
-        font-size: 1.25rem;
       }
 
       .stack {
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
+      }
+
+      .grid {
+        display: grid;
+        gap: 1rem;
+      }
+
+      @media (min-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .card-note {
+        margin: 0 0 0.55rem;
+        color: var(--muted);
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      .frameworks .snippet {
+        margin: 0;
+        min-height: 100%;
       }
 
       :focus-visible {
@@ -207,7 +248,11 @@
           linear-gradient(180deg, #0a0f0c, #121a16);
       }
 
-      body[data-surface='night'] .tool-row button {
+      body[data-surface='night'] .tool-row button,
+      body[data-surface='night'] .install code,
+      body[data-surface='night'] .snippet,
+      body[data-surface='night'] .report,
+      body[data-surface='night'] .log {
         background: #141c18;
         border-color: #6c7c73;
         color: var(--ink);
@@ -231,15 +276,23 @@
       <header class="hero">
         <h1 class="brand"><span lang="am">አቦል</span>Abol</h1>
         <p>
-          Clear job notices for graduates — readable at 200% zoom, with JobPosting JSON-LD built in.
+          Clear job notices for graduates — one web component for JSON, JSON-LD, or HTML career
+          pages, with an optional listen-to-summary control.
         </p>
+        <div class="install" aria-label="Install snippets">
+          <code>npm install @abolkit/job-card</code>
+          <code
+            >&lt;script src="https://cdn.jsdelivr.net/npm/@abolkit/job-card@0.1.1/dist/abol-job-card.js"&gt;&lt;/script&gt;</code
+          >
+        </div>
       </header>
 
       <main class="stage" id="stage">
+        <p class="card-note">Featured · JobPosting JSON</p>
         <abol-job-card
           id="hero-card"
           heading-level="2"
-          src="./fixtures/job.json"
+          job-url="./fixtures/job.json"
           audio-summary-api="http://127.0.0.1:8787"
         ></abol-job-card>
       </main>
@@ -265,116 +318,77 @@
       <section class="more" aria-labelledby="more-h">
         <h2 id="more-h">More postings</h2>
         <div class="stack">
-          <abol-job-card heading-level="3" audio-summary-api="http://127.0.0.1:8787">
-            <script type="application/ld+json">
-              {
-                "@context": "https://schema.org",
-                "@type": "JobPosting",
-                "@id": "job-junior-data-quality-analyst",
-                "inLanguage": "en",
-                "title": "Junior Data Quality Analyst",
-                "description": "Review education and graduate placement records for accuracy across partner campuses in Addis Ababa and Hawassa.\n\n• Check weekly spreadsheets and explain findings in clear language.\n• Verify structured job data with the accessibility team.\n\nTraining is provided in your first month.\n\nGraduates from computer science, information systems, or statistics are encouraged to apply.",
-                "datePosted": "2026-11-12",
-                "validThrough": "2026-11-19T23:59:59+03:00",
-                "employmentType": ["FULL_TIME", "INTERN"],
-                "hiringOrganization": {
-                  "@type": "Organization",
-                  "name": "Blue Nile Learning Services",
-                  "sameAs": "https://example.org/blue-nile-learning"
-                },
-                "jobLocation": [
-                  {
+          <div>
+            <p class="card-note">HTML career page · no JSON-LD (scraped)</p>
+            <abol-job-card
+              heading-level="3"
+              src="./fixtures/job-page.html"
+              audio-summary-api="http://127.0.0.1:8787"
+            ></abol-job-card>
+          </div>
+
+          <div>
+            <p class="card-note">Amharic · Ethiopian calendar ready</p>
+            <abol-job-card
+              lang="am-ET"
+              heading-level="3"
+              job-url="./fixtures/job-am.json"
+            ></abol-job-card>
+          </div>
+
+          <div>
+            <p class="card-note">Inline JSON-LD fallback</p>
+            <abol-job-card heading-level="3" audio-summary-api="http://127.0.0.1:8787">
+              <script type="application/ld+json">
+                {
+                  "@context": "https://schema.org",
+                  "@type": "JobPosting",
+                  "@id": "job-braille-caption-production-assistant",
+                  "title": "Braille & Caption Production Assistant",
+                  "description": "Prepare reviewed Amharic and English caption files and tactile study handouts for university courses.",
+                  "datePosted": "2026-10-01",
+                  "validThrough": "2026-12-15",
+                  "employmentType": "PART_TIME",
+                  "hiringOrganization": {
+                    "@type": "Organization",
+                    "name": "Addis Ababa University Library",
+                    "sameAs": "https://example.org/aau-library-jobs"
+                  },
+                  "jobLocation": {
                     "@type": "Place",
                     "address": {
                       "@type": "PostalAddress",
                       "addressLocality": "Addis Ababa",
                       "addressCountry": "ET"
                     }
-                  },
-                  {
-                    "@type": "Place",
-                    "address": {
-                      "@type": "PostalAddress",
-                      "addressLocality": "Hawassa",
-                      "addressCountry": "ET"
-                    }
-                  }
-                ],
-                "baseSalary": {
-                  "@type": "MonetaryAmount",
-                  "currency": "ETB",
-                  "value": {
-                    "@type": "QuantitativeValue",
-                    "minValue": 20000,
-                    "maxValue": 26000,
-                    "unitText": "MONTH"
-                  }
-                },
-                "url": "https://example.org/jobs/junior-data-quality-analyst/apply"
-              }
-            </script>
-          </abol-job-card>
-
-          <abol-job-card lang="am-ET" heading-level="3">
-            <script type="application/ld+json">
-              {
-                "@context": "https://schema.org",
-                "@type": "JobPosting",
-                "inLanguage": "am-ET",
-                "title": "ጀማሪ የሶፍትዌር ሙከራ ባለሙያ",
-                "description": "የድር እና የሞባይል መተግበሪያዎችን ተደራሽነት ይፈትሻሉ። ያገኙትን ችግር በግልጽ ቃላት ይመዘግባሉ።\n\nለሙከራ መሣሪያዎቹ ሥልጠና ይሰጣል።",
-                "datePosted": "2026-11-15",
-                "validThrough": "2026-12-30T23:59:59+03:00",
-                "employmentType": "FULL_TIME",
-                "jobLocationType": "TELECOMMUTE",
-                "applicantLocationRequirements": { "@type": "Country", "name": "ET" },
-                "hiringOrganization": {
-                  "@type": "Organization",
-                  "name": "ሲዳማ ዲጂታል ሶሉሽንስ",
-                  "sameAs": "https://example.org/sidama-digital"
-                },
-                "baseSalary": {
-                  "@type": "MonetaryAmount",
-                  "currency": "ETB",
-                  "value": {
-                    "@type": "QuantitativeValue",
-                    "minValue": 22000,
-                    "maxValue": 28000,
-                    "unitText": "MONTH"
-                  }
-                },
-                "url": "https://example.org/jobs/junior-software-tester/apply"
-              }
-            </script>
-          </abol-job-card>
-
-          <abol-job-card heading-level="3" audio-summary-api="http://127.0.0.1:8787">
-            <script type="application/ld+json">
-              {
-                "@context": "https://schema.org",
-                "@type": "JobPosting",
-                "@id": "job-braille-caption-production-assistant",
-                "title": "Braille & Caption Production Assistant",
-                "description": "Prepare reviewed Amharic and English caption files and tactile study handouts for university courses.",
-                "datePosted": "2026-10-01",
-                "validThrough": "2026-11-01",
-                "employmentType": "PART_TIME",
-                "hiringOrganization": {
-                  "@type": "Organization",
-                  "name": "Addis Ababa University Library",
-                  "sameAs": "https://example.org/aau-library-jobs"
-                },
-                "jobLocation": {
-                  "@type": "Place",
-                  "address": {
-                    "@type": "PostalAddress",
-                    "addressLocality": "Addis Ababa",
-                    "addressCountry": "ET"
                   }
                 }
-              }
-            </script>
-          </abol-job-card>
+              </script>
+            </abol-job-card>
+          </div>
+        </div>
+      </section>
+
+      <section class="frameworks" aria-labelledby="fw-h">
+        <h2 id="fw-h">In React, Vue, Angular</h2>
+        <div class="grid">
+          <pre class="snippet" tabindex="0"><code>// React
+import { AbolJobCard } from '@abolkit/job-card/react'
+
+&lt;AbolJobCard
+  jobUrl="/jobs/1.json"
+  audioSummaryApi="https://api.example"
+  onJobApply={(d) =&gt; console.log(d.job.title)}
+/&gt;</code></pre>
+          <pre class="snippet" tabindex="0"><code>// Vue — mark abol-* as custom elements
+isCustomElement: (tag) =&gt; tag.startsWith('abol-')
+
+&lt;abol-job-card job-url="/jobs/1.json" /&gt;</code></pre>
+          <pre class="snippet" tabindex="0"><code>// Angular
+schemas: [CUSTOM_ELEMENTS_SCHEMA]
+import '@abolkit/job-card'
+
+&lt;abol-job-card [attr.job-url]="url"&gt;&lt;/abol-job-card&gt;</code></pre>
         </div>
       </section>
     </div>
