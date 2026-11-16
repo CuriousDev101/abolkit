@@ -7,7 +7,7 @@
 
 ## Context
 
-`<abol-player>` embeds videos by URL (YouTube or a direct media file). Hosts want captions for those videos without uploading files: the backend should pull the audio, produce a WebVTT transcript, translate it into Amharic, Afaan Oromo, Tigrinya and Afar, and serve all of it fast to any page that embeds the same video.
+`<abol-player>` embeds videos by URL (YouTube or a direct media file). Hosts want captions for those videos without uploading files: the backend should pull the audio, produce a WebVTT transcript, translate it into Amharic, Afaan Oromoo, Tigrinya and Afar, and serve all of it fast to any page that embeds the same video.
 
 That brings requirements ADR 0005 did not have:
 

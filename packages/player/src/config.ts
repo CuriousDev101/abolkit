@@ -24,7 +24,7 @@ export interface LessonConfig {
 const LANGUAGE_FALLBACKS: Record<string, string> = {
   aa: 'Afar',
   am: 'Amharic',
-  om: 'Oromo',
+  om: 'Afaan Oromoo',
   ti: 'Tigrinya',
 }
 
@@ -32,13 +32,16 @@ const LANGUAGE_FALLBACKS: Record<string, string> = {
 export function languageName(lang: string, locale = 'en'): string {
   const code = lang.trim().toLowerCase()
   if (!code) return lang
+  const primary = code.split(/[-_]/)[0] || code
+  // Intl.DisplayNames returns "Oromo" / ኦሮሚኛ; caption UI always uses the endonym.
+  if (primary === 'om') return 'Afaan Oromoo'
   try {
     const name = new Intl.DisplayNames([locale, 'en'], { type: 'language' }).of(code)
-    if (name && name.toLowerCase() !== code) return name
+    if (name && name.toLowerCase() !== code && name.toLowerCase() !== primary) return name
   } catch {
     /* fall through */
   }
-  return LANGUAGE_FALLBACKS[code] ?? lang.trim()
+  return LANGUAGE_FALLBACKS[primary] ?? lang.trim()
 }
 
 const TRACK_KINDS = ['captions', 'subtitles', 'descriptions', 'chapters']

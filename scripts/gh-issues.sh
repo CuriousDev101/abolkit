@@ -446,7 +446,7 @@ issue 56 "stretch: recorded-session viewer with captions and chat log" "team:ab,
 Viewer for a recorded live session with captions and chat log.
 EOF
 
-issue 57 "stretch: Afaan Oromo / Tigrinya / Afar transcript feasibility" "team:ol,P2-stretch,type:stretch,area:pipeline" "#7" "docs-internal/modules/pipeline.md" <<'EOF'
+issue 57 "stretch: Afaan Oromoo / Tigrinya / Afar transcript feasibility" "team:ol,P2-stretch,type:stretch,area:pipeline" "#7" "docs-internal/modules/pipeline.md" <<'EOF'
 Check current language support of each engine; document what is and is not possible. Do not promise beyond English and Amharic.
 EOF
 

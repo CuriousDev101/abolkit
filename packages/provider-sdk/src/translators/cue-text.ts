@@ -26,7 +26,7 @@ export function withTranslatedText(source: readonly Cue[], texts: readonly strin
 const LANGUAGE_PROMPT_NAMES: Record<string, string> = {
   en: 'English',
   am: 'Amharic (Ethiopic script)',
-  om: 'Afaan Oromo (Latin script, Qubee)',
+  om: 'Afaan Oromoo (Latin script, Qubee)',
   ti: 'Tigrinya (Ethiopic script)',
   aa: 'Afar (Latin script, Qafar af)',
 }

@@ -52,7 +52,7 @@ Must run inside Savanna and install elsewhere by: **Level 1** script tag, **Leve
 - No sign-language avatar, no gesture recognition, no generated signing (wrong signs would harm the people we serve).
 - No user accounts or authentication beyond what credentials need.
 - No full LMS. Hosts are the Savanna static pages and one plain demo page.
-- No promise of Afaan Oromo, Tigrinya or Afar transcripts (feasibility only, #57).
+- No promise of Afaan Oromoo, Tigrinya or Afar transcripts (feasibility only, #57).
 - Braille, tagged PDF and session viewer only after all P0/P1 work.
 - Do not advertise Amharic `.brf` as verified accessibility until `#55` human verification is recorded (experimental opt-in only — see Braille status above).
 
