@@ -114,6 +114,9 @@ importers:
       '@abolkit/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@abolkit/job-card':
+        specifier: workspace:*
+        version: link:../../packages/job-card
       '@abolkit/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs

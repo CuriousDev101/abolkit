@@ -9,11 +9,29 @@ An accessible job card that graduates can use to find work: readable by screen r
 
 ## Contract
 
-- **Element:** `<abol-job-card src="/jobs/123.json">` or an inline JSON-LD `<script type="application/ld+json">` inside the element.
+- **Element (preferred):** `<abol-job-card job-url="…" audio-summary-api="https://HOST">` — a JobPosting **URL**. Cross-origin `job-url` values are loaded via `GET /api/job-postings/resolve?url=…` on the API origin (server-side fetch — avoids browser CORS). Same-origin URLs are fetched directly. Accepts:
+  - JSON / JSON-LD (`application/json` or `application/ld+json`)
+  - an HTML career page with `<script type="application/ld+json">` JobPosting
+  - an HTML career page **without** JSON-LD (scraped from Open Graph / microdata / common career markup)
+- **Element (fallback):** inline JSON-LD `<script type="application/ld+json">` inside the element when you cannot host a URL.
+- After load, the card always emits clean JobPosting JSON-LD in the light DOM for crawlers (generated if you used a URL).
 - **Data:** a JobPosting object (title, hiringOrganization, jobLocation or applicantLocationRequirements, employmentType, datePosted, validThrough, description, baseSalary if provided) plus optional `abolAudioSummary` URL and `abolSummaryText`.
-- **Audio API:** optional `audio-summary-api="http://127.0.0.1:8787"` calls `POST /api/job-summaries/audio` with `{ jobId, text, lang }` (English TTS via AssemblyAI). Audio is generated once per job id + text hash and reused until the summary text changes. Prefer a JobPosting `@id` / `identifier` for stable cache keys.
+- **Audio API:** the same `audio-summary-api` origin also serves `POST /api/job-summaries/audio` with `{ jobId, text, lang }` (English TTS via AssemblyAI). Audio is generated once per job id + text hash and reused until the summary text changes. Prefer a JobPosting `@id` / `identifier` for stable cache keys.
 - **Events:** `abol:job-apply` (host handles the apply action), `abol:summary-play`.
 - **CSS variables:** same as the player.
+
+### Level 1 install
+
+```bash
+pnpm --filter @abolkit/job-card build
+```
+
+```html
+<script src="https://HOST/widget/abol-job-card.js"></script>
+<abol-job-card job-url="https://HOST/jobs/123.json" audio-summary-api="https://HOST"></abol-job-card>
+```
+
+Browser IIFE: `packages/job-card/dist/abol-job-card.js` (Shadow DOM CSS is bundled). Served by the API at `/widget/abol-job-card.js`.
 
 ## Design
 

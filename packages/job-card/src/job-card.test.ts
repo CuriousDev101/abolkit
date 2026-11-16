@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
   composePlainSummary,
+  extractJsonLdDocuments,
   formatDeadlineStatus,
   formatEmploymentTypes,
   formatJobDate,
@@ -14,7 +15,9 @@ import {
   jt,
   parseDescriptionBlocks,
   parseJobPosting,
+  parseJobPostingFromRemote,
   sanitizeLangTag,
+  scrapeJobPostingFromHtml,
   serializeJsonLdScript,
   splitPlainParagraphs,
   stripHtmlToPlainText,
@@ -270,5 +273,52 @@ describe('@abolkit/job-card schema, plain-language copy & JSON-LD', () => {
     )
     expect(jt('am-ET', 'applyButton')).toBe('ለዚህ ሥራ ያመልክቱ')
     expect(stripHtmlToPlainText('<div>Hello   <b>world</b>!</div>')).toBe('Hello world !')
+  })
+
+  it('loads a JobPosting from a bare JSON URL body or from HTML-embedded JSON-LD', () => {
+    const jsonBody = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'JobPosting',
+      title: 'Remote Support Associate',
+      description: 'Help graduates by phone.',
+      employmentType: 'PART_TIME',
+    })
+    expect(parseJobPostingFromRemote(jsonBody, 'application/ld+json').job.title).toBe(
+      'Remote Support Associate',
+    )
+    expect(parseJobPostingFromRemote(jsonBody, 'application/ld+json').extractedFrom).toBe('json')
+
+    const html = `<!doctype html><html><head>
+      <script type="application/ld+json">${jsonBody}</script>
+    </head><body></body></html>`
+    const docs = extractJsonLdDocuments(html)
+    expect(docs).toHaveLength(1)
+    const fromLd = parseJobPostingFromRemote(html, 'text/html')
+    expect(fromLd.job.title).toBe('Remote Support Associate')
+    expect(fromLd.extractedFrom).toBe('json-ld')
+  })
+
+  it('scrapes a JobPosting from HTML career pages that have no JSON-LD', () => {
+    const html = `<!doctype html><html><head>
+      <meta property="og:title" content="Accessibility Intern" />
+      <meta property="og:description" content="Support caption review with mentors." />
+      <meta property="og:site_name" content="Abol Careers" />
+      <meta property="og:url" content="https://careers.example/jobs/intern" />
+    </head><body>
+      <h1>Accessibility Intern</h1>
+      <div class="job-location">Hawassa, Ethiopia</div>
+      <div class="job-description"><p>Support caption review with mentors.</p></div>
+      <a class="apply-button" href="https://careers.example/jobs/intern/apply">Apply</a>
+    </body></html>`
+
+    const scraped = scrapeJobPostingFromHtml(html, 'https://careers.example/jobs/intern')
+    expect(scraped.title).toBe('Accessibility Intern')
+    expect(scraped.hiringOrganization).toEqual({ '@type': 'Organization', name: 'Abol Careers' })
+
+    const parsed = parseJobPostingFromRemote(html, 'text/html', 'https://careers.example/jobs/intern')
+    expect(parsed.extractedFrom).toBe('html')
+    expect(parsed.job.title).toBe('Accessibility Intern')
+    expect(parsed.job.summaryText.length).toBeGreaterThan(0)
+    expect(parsed.jsonLd['@type']).toBe('JobPosting')
   })
 })

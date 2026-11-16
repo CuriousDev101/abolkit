@@ -1,0 +1,29 @@
+{
+  "@context": "https://schema.org",
+  "@type": "JobPosting",
+  "@id": "job-junior-software-tester-am",
+  "inLanguage": "am-ET",
+  "title": "ጀማሪ የሶፍትዌር ሙከራ ባለሙያ",
+  "description": "የድር እና የሞባይል መተግበሪያዎችን ተደራሽነት ይፈትሻሉ። ያገኙትን ችግር በግልጽ ቃላት ይመዘግባሉ።\n\nለሙከራ መሣሪያዎቹ ሥልጠና ይሰጣል።",
+  "datePosted": "2026-11-15",
+  "validThrough": "2026-12-30T23:59:59+03:00",
+  "employmentType": "FULL_TIME",
+  "jobLocationType": "TELECOMMUTE",
+  "applicantLocationRequirements": { "@type": "Country", "name": "ET" },
+  "hiringOrganization": {
+    "@type": "Organization",
+    "name": "ሲዳማ ዲጂታል ሶሉሽንስ",
+    "sameAs": "https://example.org/sidama-digital"
+  },
+  "baseSalary": {
+    "@type": "MonetaryAmount",
+    "currency": "ETB",
+    "value": {
+      "@type": "QuantitativeValue",
+      "minValue": 22000,
+      "maxValue": 28000,
+      "unitText": "MONTH"
+    }
+  },
+  "url": "https://example.org/jobs/junior-software-tester/apply"
+}

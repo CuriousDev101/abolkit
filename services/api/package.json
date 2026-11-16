@@ -19,6 +19,7 @@
   "dependencies": {
     "@abolkit/caption-store": "workspace:*",
     "@abolkit/core": "workspace:*",
+    "@abolkit/job-card": "workspace:*",
     "@abolkit/jobs": "workspace:*",
     "@abolkit/provider-sdk": "workspace:*",
     "@hono/node-server": "^2.1.8",

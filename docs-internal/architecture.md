@@ -83,6 +83,7 @@ All fields except `media.video` and one caption track are optional; the player h
 | Method and path | Purpose |
 |---|---|
 | `GET /api/health` | Liveness |
+| `GET /api/job-postings/resolve?url=` | Server-side JobPosting fetch/parse for `<abol-job-card>` (CORS proxy; JSON, JSON-LD, or HTML scrape) |
 | `GET /openapi.json`, `GET /docs` | Spec and Scalar docs |
 | `POST /api/assets` | Upload media (multipart) → `{ id }` |
 | `GET /api/assets/:id` | Metadata or signed download |

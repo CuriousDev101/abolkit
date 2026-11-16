@@ -4,8 +4,14 @@
   "private": false,
   "type": "module",
   "main": "src/index.ts",
+  "browser": "./dist/abol-job-card.js",
+  "unpkg": "./dist/abol-job-card.js",
+  "jsdelivr": "./dist/abol-job-card.js",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./load-job": "./src/load-job.ts",
+    "./dist/abol-job-card.js": "./dist/abol-job-card.js",
+    "./package.json": "./package.json"
   },
   "description": "<abol-job-card>: accessible job card with schema.org/JobPosting data and an audio summary.",
   "scripts": {
