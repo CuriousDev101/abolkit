@@ -10,7 +10,7 @@
 # Legacy SQLite stack: docker compose -f compose.sqlite.yaml up --build
 
 name: abolkit
-
+docker-compose
 x-backend-env:
   &backend-env
   POSTGRES_URL: postgres://${POSTGRES_USER:-abolkit}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-abolkit}
@@ -119,6 +119,7 @@ services:
       - ./packages/core:/app/packages/core
       - ./packages/caption-store:/app/packages/caption-store
       - ./packages/jobs:/app/packages/jobs
+      - ./packages/job-card:/app/packages/job-card
       - ./packages/provider-sdk:/app/packages/provider-sdk
       - ./services/api:/app/services/api
       - api-sqlite:/data

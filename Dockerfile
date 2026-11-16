@@ -20,6 +20,7 @@ COPY pnpm-workspace.docker.yaml ./pnpm-workspace.yaml
 COPY packages/core/package.json packages/core/
 COPY packages/caption-store/package.json packages/caption-store/
 COPY packages/jobs/package.json packages/jobs/
+COPY packages/job-card/package.json packages/job-card/
 COPY packages/provider-sdk/package.json packages/provider-sdk/
 COPY services/api/package.json services/api/
 COPY services/worker/package.json services/worker/
@@ -29,6 +30,7 @@ FROM deps AS source
 COPY packages/core packages/core
 COPY packages/caption-store packages/caption-store
 COPY packages/jobs packages/jobs
+COPY packages/job-card packages/job-card
 COPY packages/provider-sdk packages/provider-sdk
 COPY services/api services/api
 COPY services/worker services/worker
