@@ -56,3 +56,12 @@ spikes/09-ffmpeg/out/
 
 # generated test copies of the Savanna pages
 **/_abol-test-*.html
+
+# local deploy / EC2 demo scratch (do not commit)
+packages/player/demo/live-ec2.html
+packages/player/demo/live-local.html
+packages/player/demo/live3.html
+scripts/smoke-remote.sh
+youtube-cookies.txt
+**/youtube-cookies.txt
+**/cookies.txt

@@ -106,6 +106,12 @@ services:
       HOST: 0.0.0.0
       PORT: '8787'
       NODE_ENV: production
+      # Job-card summary audio (SQLite cache + AssemblyAI TTS).
+      DATABASE_URL: ${DATABASE_URL:-file:/data/abolkit.sqlite}
+      TTS: ${TTS:-assemblyai}
+      TTS_OFF_HOST_CONSENT: ${TTS_OFF_HOST_CONSENT:-true}
+    volumes:
+      - api-sqlite:/data
     ports:
       - 127.0.0.1:${API_PORT:-8787}:8787
 
@@ -123,3 +129,4 @@ volumes:
   postgres-data:
   redis-data:
   minio-data:
+  api-sqlite:

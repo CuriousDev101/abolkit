@@ -109,6 +109,10 @@ services:
       HOST: 0.0.0.0
       PORT: '8787'
       NODE_ENV: development
+      # Job-card summary audio (SQLite cache + AssemblyAI TTS). Not used by URL captions.
+      DATABASE_URL: ${DATABASE_URL:-file:/data/abolkit.sqlite}
+      TTS: ${TTS:-assemblyai}
+      TTS_OFF_HOST_CONSENT: ${TTS_OFF_HOST_CONSENT:-true}
     ports:
       - 127.0.0.1:${API_PORT:-8787}:8787
     volumes:
@@ -117,6 +121,7 @@ services:
       - ./packages/jobs:/app/packages/jobs
       - ./packages/provider-sdk:/app/packages/provider-sdk
       - ./services/api:/app/services/api
+      - api-sqlite:/data
 
   worker:
     <<: *backend
@@ -133,8 +138,10 @@ services:
       - ./packages/jobs:/app/packages/jobs
       - ./packages/provider-sdk:/app/packages/provider-sdk
       - ./services/worker:/app/services/worker
+      - ./youtube-cookies.txt:/data/youtube-cookies.txt
 
 volumes:
   postgres-data:
   redis-data:
   minio-data:
+  api-sqlite:

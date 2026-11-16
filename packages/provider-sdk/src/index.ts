@@ -48,6 +48,7 @@ export { createCloudStubTranscriber } from './transcribers/cloud-stub.ts'
 
 export {
   createGeminiTranslator,
+  DEFAULT_GEMINI_BATCH_SIZE,
   DEFAULT_GEMINI_MODEL,
   geminiConfigFromEnv,
   type GeminiTranslatorOptions,

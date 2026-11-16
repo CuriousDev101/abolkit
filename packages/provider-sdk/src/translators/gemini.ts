@@ -11,34 +11,50 @@ export interface GeminiTranslatorOptions {
   /** Gemini model id, e.g. `gemini-3.8-flash`. */
   model?: string
   baseUrl?: string
-  /** Cues per request. Each batch is translated in order so nearby lines give context. */
+  /**
+   * Max cues per Gemini call. Short videos with fewer cues go in **one shot**.
+   * Input context is huge (~1M); the real limit is **output** completeness for
+   * structured JSON — on failure we retry, then split the batch.
+   */
   batchSize?: number
   temperature?: number
-  /** Extra tries after a 429 or 503. Gemini 3.8 Flash often answers 503 while it is busy. */
+  /** Extra tries after a 429, 503, or incomplete structured reply. */
   retryLimit?: number
   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>
   fetch?: typeof fetch
 }
 
 export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash'
+/**
+ * Prefer one request for typical short/medium captions (e.g. ~2–3 min speech).
+ * Override with GEMINI_BATCH_SIZE. Gemini Flash output ceiling is 65_536 tokens;
+ * caption JSON is tiny next to that, but models still occasionally skip an index.
+ */
+export const DEFAULT_GEMINI_BATCH_SIZE = 80
+/** Soft budget so structured replies are not cut off mid-JSON. */
+const MAX_OUTPUT_TOKENS_CAP = 8_192
 const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 
-const RESPONSE_SCHEMA = {
-  type: 'object',
-  properties: {
-    translations: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          i: { type: 'integer', description: 'Index of the source line' },
-          text: { type: 'string', description: 'The translated line' },
+function responseSchemaFor(lineCount: number) {
+  return {
+    type: 'object',
+    properties: {
+      translations: {
+        type: 'array',
+        minItems: lineCount,
+        maxItems: lineCount,
+        items: {
+          type: 'object',
+          properties: {
+            i: { type: 'integer', description: 'Index of the source line' },
+            text: { type: 'string', description: 'The translated line' },
+          },
+          required: ['i', 'text'],
         },
-        required: ['i', 'text'],
       },
     },
-  },
-  required: ['translations'],
+    required: ['translations'],
+  }
 }
 
 type GenerateResponse = {
@@ -56,17 +72,17 @@ export function createGeminiTranslator(options: GeminiTranslatorOptions): Transl
   if (!apiKey) throw new ProviderError('BAD_CONFIG', 'TRANSLATOR=gemini requires GEMINI_API_KEY')
   const model = options.model?.trim() || DEFAULT_GEMINI_MODEL
   const baseUrl = (options.baseUrl?.trim() || DEFAULT_BASE_URL).replace(/\/$/, '')
-  const batchSize = Math.max(1, Math.trunc(options.batchSize ?? 60))
+  const batchSize = Math.max(1, Math.trunc(options.batchSize ?? DEFAULT_GEMINI_BATCH_SIZE))
   const retryLimit = Math.max(0, Math.trunc(options.retryLimit ?? 4))
   const fetchFn = options.fetch ?? globalThis.fetch
   const sleep = options.sleep ?? abortableSleep
 
-  async function translateBatch(
+  async function requestTranslations(
     lines: string[],
     from: string,
     to: string,
     signal?: AbortSignal,
-  ): Promise<string[]> {
+  ): Promise<{ translations?: Array<{ i?: unknown; text?: unknown }> }> {
     const instruction = [
       `Translate video captions from ${languagePromptName(from)} to ${languagePromptName(to)}.`,
       'The input is JSON: {"lines":[{"i":number,"text":string}]}. Lines are consecutive captions of one video.',
@@ -84,12 +100,15 @@ export function createGeminiTranslator(options: GeminiTranslatorOptions): Transl
       ],
       generationConfig: {
         temperature: options.temperature ?? 0.2,
+        // Caption JSON is small; leave headroom so Ethiopic script + schema wrapping fit.
+        maxOutputTokens: Math.min(MAX_OUTPUT_TOKENS_CAP, Math.max(1_024, lines.length * 96)),
         responseMimeType: 'application/json',
-        responseJsonSchema: RESPONSE_SCHEMA,
+        responseJsonSchema: responseSchemaFor(lines.length),
       },
     }
 
-    const timeout = AbortSignal.timeout(45_000)
+    const timeoutMs = Math.min(120_000, 30_000 + lines.length * 400)
+    const timeout = AbortSignal.timeout(timeoutMs)
     const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout
     let res: Response
     try {
@@ -102,7 +121,11 @@ export function createGeminiTranslator(options: GeminiTranslatorOptions): Transl
     } catch (err) {
       if (signal?.aborted) throw err
       if (timeout.aborted) {
-        throw new ProviderError('TIMEOUT', 'Gemini did not respond within 45 s', 503)
+        throw new ProviderError(
+          'TIMEOUT',
+          `Gemini did not respond within ${Math.round(timeoutMs / 1000)} s`,
+          503,
+        )
       }
       const message = err instanceof Error ? err.message : String(err)
       throw new ProviderError('UNREACHABLE', `Gemini unreachable: ${message}`)
@@ -134,30 +157,67 @@ export function createGeminiTranslator(options: GeminiTranslatorOptions): Transl
     }
 
     const candidate = parsed.candidates?.[0]
-    const text = candidate?.content?.parts?.map((part) => part.text ?? '').join('') ?? ''
-    let reply: { translations?: Array<{ i?: unknown; text?: unknown }> }
-    try {
-      reply = JSON.parse(text) as typeof reply
-    } catch {
+    const finishReason = candidate?.finishReason ?? 'unknown'
+    if (finishReason === 'MAX_TOKENS') {
       throw new ProviderError(
         'BAD_RESPONSE',
-        `Gemini reply was not valid JSON (finishReason ${candidate?.finishReason ?? 'unknown'})`,
+        `Gemini hit maxOutputTokens mid-reply (${lines.length} lines)`,
         502,
       )
     }
+    const text = candidate?.content?.parts?.map((part) => part.text ?? '').join('') ?? ''
+    try {
+      return JSON.parse(text) as { translations?: Array<{ i?: unknown; text?: unknown }> }
+    } catch {
+      throw new ProviderError(
+        'BAD_RESPONSE',
+        `Gemini reply was not valid JSON (finishReason ${finishReason})`,
+        502,
+      )
+    }
+  }
 
-    const out = new Array<string | undefined>(lines.length)
-    for (const item of reply.translations ?? []) {
+  /**
+   * Prefer index-aligned replies; if indices are wrong but the count matches, use order.
+   * Returns undefined slots when the model still skipped lines.
+   */
+  function assembleTranslations(
+    lineCount: number,
+    reply: { translations?: Array<{ i?: unknown; text?: unknown }> },
+  ): Array<string | undefined> {
+    const items = reply.translations ?? []
+    // Dense array — sparse `new Array(n)` makes `.every()` skip holes and look "complete".
+    const byIndex: Array<string | undefined> = Array.from({ length: lineCount }, () => undefined)
+    for (const item of items) {
       if (
         typeof item.i === 'number' &&
         typeof item.text === 'string' &&
+        Number.isInteger(item.i) &&
         item.i >= 0 &&
-        item.i < lines.length
+        item.i < lineCount
       ) {
-        out[item.i] = item.text
+        byIndex[item.i] = item.text
       }
     }
-    const missing = out.findIndex((value) => value === undefined)
+    if (byIndex.every((value) => typeof value === 'string')) return byIndex
+
+    const texts = items
+      .filter((item): item is { i?: unknown; text: string } => typeof item.text === 'string')
+      .map((item) => item.text)
+    if (texts.length === lineCount) return texts
+
+    return byIndex
+  }
+
+  async function translateBatch(
+    lines: string[],
+    from: string,
+    to: string,
+    signal?: AbortSignal,
+  ): Promise<string[]> {
+    const reply = await requestTranslations(lines, from, to, signal)
+    const out = assembleTranslations(lines.length, reply)
+    const missing = out.findIndex((value) => typeof value !== 'string')
     if (missing >= 0) {
       throw new ProviderError(
         'BAD_RESPONSE',
@@ -166,6 +226,18 @@ export function createGeminiTranslator(options: GeminiTranslatorOptions): Transl
       )
     }
     return out as string[]
+  }
+
+  function isRetryable(error: unknown): boolean {
+    return (
+      error instanceof ProviderError &&
+      (error.status === 429 ||
+        error.status === 502 ||
+        error.status === 503 ||
+        error.code === 'BAD_RESPONSE' ||
+        error.code === 'UNREACHABLE' ||
+        error.code === 'TIMEOUT')
+    )
   }
 
   async function translateBatchWithRetry(
@@ -178,15 +250,32 @@ export function createGeminiTranslator(options: GeminiTranslatorOptions): Transl
       try {
         return await translateBatch(lines, from, to, signal)
       } catch (error) {
-        const retryable =
-          error instanceof ProviderError &&
-          (error.status === 429 ||
-            error.status === 503 ||
-            error.code === 'UNREACHABLE' ||
-            error.code === 'TIMEOUT')
-        if (!retryable || attempt >= retryLimit) throw error
+        if (!isRetryable(error) || attempt >= retryLimit) throw error
         await sleep(2_000 * 2 ** attempt, signal)
       }
+    }
+  }
+
+  /**
+   * One shot when `lines` fit in batchSize. If Gemini still flakes after retries,
+   * split in half (output-size / skip-index recovery) instead of failing the job.
+   */
+  async function translateLines(
+    lines: string[],
+    from: string,
+    to: string,
+    signal?: AbortSignal,
+  ): Promise<string[]> {
+    try {
+      return await translateBatchWithRetry(lines, from, to, signal)
+    } catch (error) {
+      if (!(error instanceof ProviderError) || error.code !== 'BAD_RESPONSE' || lines.length < 2) {
+        throw error
+      }
+      const mid = Math.ceil(lines.length / 2)
+      const left = await translateLines(lines.slice(0, mid), from, to, signal)
+      const right = await translateLines(lines.slice(mid), from, to, signal)
+      return [...left, ...right]
     }
   }
 
@@ -195,10 +284,11 @@ export function createGeminiTranslator(options: GeminiTranslatorOptions): Transl
     label: `Gemini (${model}, cloud)`,
     sendsDataOffHost: true,
     async translate(cues: Cue[], opts) {
+      // Prefer one Gemini call for the whole short transcript (cues.length ≤ batchSize).
       const texts: string[] = []
       for (let at = 0; at < cues.length; at += batchSize) {
         const batch = cues.slice(at, at + batchSize).map((cue) => cue.text)
-        texts.push(...(await translateBatchWithRetry(batch, opts.from, opts.to, opts.signal)))
+        texts.push(...(await translateLines(batch, opts.from, opts.to, opts.signal)))
       }
       return withTranslatedText(cues, texts)
     },
