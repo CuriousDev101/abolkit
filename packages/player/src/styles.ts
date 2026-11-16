@@ -179,7 +179,26 @@ video.main::-webkit-media-text-track-container { display: none; }
 }
 .sign-bar button:hover { background: rgba(255, 255, 255, 0.18); }
 .sign-bar button[aria-pressed="true"] { background: color-mix(in srgb, var(--abol-accent) 60%, transparent); }
-.sign video { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #000; }
+.sign-media { display: block; width: 100%; background: #000; aspect-ratio: 4 / 3; }
+.sign-media > video,
+.sign-media > .sign-yt,
+.sign-media[data-youtube] > iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: #000;
+}
+/* Sign YouTube is follower-only: no iframe chrome / clicks. */
+.sign-media[data-youtube],
+.sign-media[data-youtube] > iframe,
+.sign-media > .sign-yt {
+  pointer-events: none;
+}
 .sign-note {
   position: absolute;
   left: 4px;
@@ -259,28 +278,6 @@ button[aria-pressed="true"], button[aria-expanded="true"] {
   flex: none;
   align-items: center;
   gap: 6px;
-}
-.tr-braille {
-  margin: 0;
-  padding: 0.35rem 0.55rem;
-  border: 1px solid var(--tr-line);
-  border-radius: 6px;
-  background: var(--tr-bg-raised);
-  color: inherit;
-  font: inherit;
-  font-size: 0.72rem;
-  line-height: 1.2;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.tr-braille:hover,
-.tr-braille:focus-visible {
-  border-color: color-mix(in srgb, var(--abol-accent) 55%, var(--tr-line));
-  outline: none;
-}
-.tr-braille:disabled {
-  opacity: 0.65;
-  cursor: wait;
 }
 .tr-head h2 {
   margin: 0;

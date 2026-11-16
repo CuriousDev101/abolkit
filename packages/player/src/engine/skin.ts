@@ -24,6 +24,7 @@ registerIcons('compat', {
   transcript: `<svg ${SVG}><rect width="14" height="14" x="2" y="2" stroke="currentColor" stroke-linejoin="round" stroke-width="2" rx="2"/><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M5.5 6.5h7m-7 3h7m-7 3h4"/></svg>`,
   sign: `<svg ${SVG}><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M5.5 9.5V4.25a1.25 1.25 0 0 1 2.5 0V8.5m0-.5V2.75a1.25 1.25 0 0 1 2.5 0V8.5m0 0V3.75a1.25 1.25 0 0 1 2.5 0V10m0 0V6.25a1.25 1.25 0 0 1 2.5 0V11a5.5 5.5 0 0 1-5.5 5.5H9.2a4 4 0 0 1-2.9-1.25L2.9 11.7a1.3 1.3 0 0 1 1.85-1.8l.75.7V9.5"/></svg>`,
   offline: `<svg ${SVG}><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 3.5v7.5m0 0-2.75-2.75M9 11l2.75-2.75M3.5 13.25V14A1.5 1.5 0 0 0 5 15.5h8A1.5 1.5 0 0 0 14.5 14v-.75"/></svg>`,
+  braille: `<svg ${SVG}><circle cx="6" cy="4.5" r="1.4" fill="currentColor"/><circle cx="12" cy="4.5" r="1.4" fill="currentColor"/><circle cx="6" cy="9" r="1.4" fill="currentColor"/><circle cx="6" cy="13.5" r="1.4" fill="currentColor"/><circle cx="12" cy="13.5" r="1.4" fill="currentColor"/></svg>`,
 })
 
 /**
@@ -73,6 +74,7 @@ export class ToggleButtonElement extends UIElement {
   }
 
   #activate = (): void => {
+    if (this.hasAttribute('disabled') || this.getAttribute('aria-disabled') === 'true') return
     this.dispatchEvent(
       new CustomEvent(TOGGLE_EVENT, {
         bubbles: true,
@@ -247,7 +249,7 @@ const toggle = (action: string, name: string) =>
   `<abol-toggle-button class="media-button abol-toggle-button" id="abol-${action}-trigger" data-action="${action}" hidden>${icon(name)}</abol-toggle-button>
 ${tooltip(`abol-${action}-trigger`, `<span data-abol-tip="${action}"></span>`)}`
 
-/** Left to right: sign language, transcript, offline, audio, captions, speed, quality, settings. */
+/** Left to right: sign language, transcript, offline, audio, captions, braille, speed, quality, settings. */
 const CONTROLS = `
 ${toggle('sign', 'sign')}
 ${toggle('transcript', 'transcript')}
@@ -268,6 +270,7 @@ ${tooltip('abol-captions-trigger', LABEL_TIP)}
     <div class="abol-caption-status" hidden></div>
   </media-menu-content>
 </media-menu>
+${toggle('braille-export', 'braille')}
 
 <media-playback-rate-button commandfor="abol-speed-menu" class="media-button abol-speed-button" id="abol-speed-trigger">${icon('speed')}</media-playback-rate-button>
 ${tooltip('abol-speed-trigger', LABEL_TIP)}
@@ -295,6 +298,11 @@ const SKIN_CSS = `
 .abol-toggle-button[data-active]::after {
   content: ""; position: absolute; left: 25%; right: 25%; bottom: 3px; height: 2px;
   border-radius: 1px; background: currentColor;
+}
+.abol-toggle-button[disabled],
+.abol-toggle-button[aria-disabled="true"] {
+  opacity: 0.55;
+  pointer-events: none;
 }
 .abol-captions-button[data-abol-active] .media-captions-button-off-icon { display: none; }
 .abol-captions-button[data-abol-active] .media-captions-button-on-icon { display: block; }

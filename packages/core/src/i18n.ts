@@ -79,7 +79,7 @@ const EN = {
   removeOffline: 'Remove offline copy',
   offlineError: 'Offline download failed',
   offlinePackLink: 'Download offline pack zip',
-  exportBraille: 'Export Braille (.brf)',
+  exportBraille: 'Export Amharic Braille (.brf)',
   exportBrailleBusy: 'Exporting Braille…',
   exportBrailleReady: 'Braille file downloaded',
   exportBrailleFailed: 'Braille export failed',

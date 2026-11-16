@@ -26,7 +26,7 @@ Variants:
 
 ## Experimental Amharic Braille (`.brf`)
 
-When an Amharic caption track has cues, the transcript panel shows **Export Braille (.brf)**. The first click loads `abol-player.braille.js` (npm [`liblouis`](https://www.npmjs.com/package/liblouis) + `ethio-g1.ctb`) and downloads `transcript.am.brf`.
+When an Amharic caption track has cues, the control bar shows **Export Amharic Braille (.brf)** beside captions. The first click loads `abol-player.braille.js` (npm [`liblouis`](https://www.npmjs.com/package/liblouis) + `ethio-g1.ctb`) and downloads `transcript.am.brf`.
 
 > Experimental — not independently verified. Hide with `braille-export="off"`.
 
