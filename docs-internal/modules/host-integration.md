@@ -27,6 +27,8 @@
 <abol-player manifest="https://HOST/api/lessons/lesson-1"></abol-player>
 ```
 
+Serve `abol-player.sw.js` beside the player script so the embed can register the offline service worker (#36). The worker’s default scope is its directory (e.g. `/widget/`). Optional response header `Service-Worker-Allowed: /` widens scope when the host wants the lesson page shell cached too. Offline still needs HTTPS or `http://localhost`.
+
 ## Done when
 
 Player and job card render and work in copies of the Savanna pages; no new axe issues vs the baseline; works from a plain page on another origin.

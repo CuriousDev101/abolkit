@@ -8,12 +8,16 @@ export interface LessonConfig {
   /** Low-bandwidth audio-only version of the lesson. */
   audio?: string
   title?: string
+  /** Manifest lesson id when loaded from a lesson manifest. */
+  id?: string
   lang?: string
   tracks: MediaTrack[]
   sign?: { src: string; placeholder: boolean }
   transcript?: string
   /** AD voice clip manifest (`AdClip[]`). */
   adClips?: string
+  /** Static offline pack zip URL (#35); also enables the PWA Download control (#36). */
+  offlinePack?: string
 }
 
 /** Names Intl often omits or returns as the bare code (Ethiopian languages we generate). */
@@ -86,12 +90,14 @@ export function configFromAttributes(el: HTMLElement): LessonConfig {
     tracks,
     sign: sign ? { src: sign, placeholder: el.hasAttribute('sign-placeholder') } : undefined,
     transcript: url('transcript'),
+    offlinePack: url('offline-pack'),
   }
 }
 
 export function configFromManifest(m: LessonManifest, base: string): LessonConfig {
   const url = (value?: string) => (value ? new URL(value, base).href : undefined)
   return {
+    id: m.id,
     src: url(m.media.video),
     poster: url(m.media.poster),
     audio: url(m.media.audio),
@@ -115,6 +121,7 @@ export function configFromManifest(m: LessonManifest, base: string): LessonConfi
     sign: m.sign ? { src: url(m.sign.src)!, placeholder: m.sign.placeholder === true } : undefined,
     transcript: url(m.transcript?.src),
     adClips: url(m.descriptions?.[0]?.clips),
+    offlinePack: url(m.offlinePack),
   }
 }
 

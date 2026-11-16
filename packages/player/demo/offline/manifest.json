@@ -1,0 +1,25 @@
+{
+  "id": "demo-offline-1",
+  "title": "Offline demo lesson",
+  "lang": "en",
+  "media": {
+    "video": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+    "audio": "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3",
+    "poster": "https://interactive-examples.mdn.mozilla.net/media/cc0-images/grapefruit-slice.jpg"
+  },
+  "captions": [
+    {
+      "lang": "en",
+      "label": "English",
+      "src": "./captions.en.vtt",
+      "default": true
+    },
+    {
+      "lang": "am",
+      "label": "Amharic",
+      "src": "./captions.am.vtt"
+    }
+  ],
+  "transcript": { "src": "./transcript.html" },
+  "offlinePack": "./pack-note.txt"
+}

@@ -16,10 +16,12 @@ export interface PlayerOption {
   key: OptionKey
   label: UiStringKey
   /**
-   * Where the Video.js skin shows it: `main` in the settings menu, `caption` under "Caption style" in the captions
-   * menu, `bar` as its own control-bar button. The native fallback panel lists them all.
+   * Where the Video.js skin shows it: `main` in the settings menu (one level deep: root → choice page),
+   * `bar` as its own control-bar button. Caption style lives in `main` so the captions menu stays a
+   * single-level track picker — Video.js popovers close on blur across sibling submenu pages.
+   * The native fallback panel lists them all.
    */
-  group: 'main' | 'caption' | 'bar'
+  group: 'main' | 'bar'
   /** [value, label]; a label that is a UI string key is translated, anything else is shown as is. */
   choices: ReadonlyArray<readonly [string, string]>
 }
@@ -55,7 +57,7 @@ export const OPTIONS: readonly PlayerOption[] = [
   {
     key: 'fontScale',
     label: 'captionSize',
-    group: 'caption',
+    group: 'main',
     choices: [
       ['0.75', '75%'],
       ['1', '100%'],
@@ -67,7 +69,7 @@ export const OPTIONS: readonly PlayerOption[] = [
   {
     key: 'color',
     label: 'captionColor',
-    group: 'caption',
+    group: 'main',
     choices: [
       ['#ffffff', 'white'],
       ['#ffff00', 'yellow'],
@@ -78,7 +80,7 @@ export const OPTIONS: readonly PlayerOption[] = [
   {
     key: 'background',
     label: 'captionBackground',
-    group: 'caption',
+    group: 'main',
     choices: [
       ['#000000', 'black'],
       ['#0000aa', 'blue'],
@@ -88,7 +90,7 @@ export const OPTIONS: readonly PlayerOption[] = [
   {
     key: 'backgroundOpacity',
     label: 'backgroundOpacity',
-    group: 'caption',
+    group: 'main',
     choices: [
       ['0', '0%'],
       ['0.5', '50%'],
@@ -99,7 +101,7 @@ export const OPTIONS: readonly PlayerOption[] = [
   {
     key: 'position',
     label: 'captionPosition',
-    group: 'caption',
+    group: 'main',
     choices: [
       ['bottom', 'positionBottom'],
       ['top', 'positionTop'],
@@ -108,7 +110,7 @@ export const OPTIONS: readonly PlayerOption[] = [
   {
     key: 'edge',
     label: 'captionEdge',
-    group: 'caption',
+    group: 'main',
     choices: [
       ['none', 'edgeNone'],
       ['shadow', 'edgeShadow'],

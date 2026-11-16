@@ -16,7 +16,11 @@ Let a learner on a 3G or intermittent connection, possibly with a cheap Android 
    - `captions.en.vtt`, `captions.am.vtt`
    - optionally `lesson-240p.mp4` when the job is started with `includeVideo: true`
    - optionally `transcript.am.brf` when `includeBraille: true` (experimental Amharic Braille — see below)
-2. **PWA route:** service worker + Cache API for the player assets and the lesson files, IndexedDB for settings, transcripts and download state; a "Download for offline" button with progress and a "Remove" button.
+2. **PWA route (#36):** service worker + Cache API for the player assets and the lesson files, IndexedDB for settings, transcripts and download state; a "Download for offline" button with progress and a "Remove" button.
+   - Player code: `packages/player/src/offline/` (`abol-player.sw.js` built beside the IIFE bundles).
+   - Cache name `abol-lesson-v1`; IndexedDB `abol-offline` (stores `lessons`, `settings`).
+   - Demo: `packages/player/demo/offline.html` (serve over `http://localhost`).
+   - **Host note:** register the SW from the **page origin**. Serve `abol-player.sw.js` next to `abol-player.js` (e.g. `/widget/`). Default SW scope is that directory; for page-wide offline shell coverage, send `Service-Worker-Allowed: /`. The static zip remains the path for `file://` / phone file managers when a SW cannot run.
 
 ## Worker job (`offline-pack`, #35)
 
@@ -118,6 +122,14 @@ Target for ~10 minutes of lesson audio at 24 kbps Opus: well under a few MB (see
 ## Done when
 
 On Slow 3G throttling the pack downloads and opens; with airplane mode the audio and transcript still work; the pack plays from a phone file manager; size is reported on the job result; one real low-end Android test is logged.
+
+### Manual checklist (PWA #36 + phone)
+
+1. Serve player demos over `http://localhost` (not `file://`).
+2. Open `packages/player/demo/offline.html`, throttle to Slow 3G, use **Download for offline**.
+3. Go offline / airplane mode, reload: audio + captions + transcript still work.
+4. **Remove offline copy** clears Cache API + IndexedDB for that lesson.
+5. On a real phone: same flow over HTTPS or localhost tunnel; log device, browser, pack/cache size, and pass/fail.
 
 ## Test plan
 
