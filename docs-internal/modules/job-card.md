@@ -23,13 +23,17 @@ An accessible job card that graduates can use to find work: readable by screen r
 ### Level 1 install
 
 ```bash
+npm install @abolkit/job-card
+# or build from this repo:
 pnpm --filter @abolkit/job-card build
 ```
 
 ```html
-<script src="https://HOST/widget/abol-job-card.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@abolkit/job-card@0.1.1/dist/abol-job-card.js"></script>
 <abol-job-card job-url="https://HOST/jobs/123.json" audio-summary-api="https://HOST"></abol-job-card>
 ```
+
+Also: `import '@abolkit/job-card'` (ESM), React helper `@abolkit/job-card/react`, Vue `isCustomElement`, Angular `CUSTOM_ELEMENTS_SCHEMA`. Full attribute/event docs: `packages/job-card/README.md`.
 
 Browser IIFE: `packages/job-card/dist/abol-job-card.js` (Shadow DOM CSS is bundled). Served by the API at `/widget/abol-job-card.js`.
 

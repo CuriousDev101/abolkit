@@ -14,7 +14,7 @@
  *   We stub the loader: English is built in, other languages fall back to it.
  */
 import * as esbuild from 'esbuild'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
@@ -60,19 +60,20 @@ const videojsDiet = {
 }
 
 const bundles = [
-  { outfile: 'dist/abol-player.js', videojs: true, hls: false },
-  { outfile: 'dist/abol-player.stream.js', videojs: true, hls: true },
-  { outfile: 'dist/abol-player.lite.js', videojs: false, hls: false },
+  { outfile: 'dist/abol-player.js', videojs: true, hls: false, format: 'iife' },
+  { outfile: 'dist/abol-player.esm.js', videojs: true, hls: false, format: 'esm' },
+  { outfile: 'dist/abol-player.stream.js', videojs: true, hls: true, format: 'iife' },
+  { outfile: 'dist/abol-player.lite.js', videojs: false, hls: false, format: 'iife' },
 ]
 
 const kb = (n) => `${(n / 1024).toFixed(1)} KB`
 
-for (const { outfile, videojs, hls } of bundles) {
+for (const { outfile, videojs, hls, format } of bundles) {
   await esbuild.build({
     entryPoints: [join(root, 'src/index.ts')],
     outfile: join(root, outfile),
     bundle: true,
-    format: 'iife',
+    format,
     platform: 'browser',
     target: ['es2022'],
     minify: true,
@@ -87,6 +88,23 @@ for (const { outfile, videojs, hls } of bundles) {
     `${outfile.padEnd(28)} ${kb(bytes.length).padStart(9)}  (${kb(gzipSync(bytes, { level: 9 }).length)} gzip)`,
   )
 }
+
+writeFileSync(
+  join(root, 'dist/abol-player.d.ts'),
+  `export declare const PLAYER_TAG: 'abol-player'
+export declare class AbolPlayerElement extends HTMLElement {
+  static observedAttributes: string[]
+}
+export declare function registerAbolPlayer(tagName?: string): void
+declare global {
+  interface HTMLElementTagNameMap {
+    'abol-player': AbolPlayerElement
+  }
+}
+export {}
+`,
+)
+console.log('dist/abol-player.d.ts'.padEnd(28) + ' written')
 
 // Service worker (#36): separate classic script so hosts can register it beside the player bundle.
 {

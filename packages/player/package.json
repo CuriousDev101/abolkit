@@ -1,27 +1,51 @@
 {
   "name": "@abolkit/player",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "type": "module",
-  "main": "src/index.ts",
+  "description": "<abol-player>: embeddable accessible video player (custom element, Shadow DOM, IIFE + ESM builds).",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CuriousDev101/abolkit.git",
+    "directory": "packages/player"
+  },
+  "homepage": "https://github.com/CuriousDev101/abolkit/tree/main/packages/player#readme",
+  "sideEffects": [
+    "./dist/abol-player.js",
+    "./dist/abol-player.esm.js",
+    "./dist/abol-player.lite.js",
+    "./dist/abol-player.stream.js"
+  ],
+  "main": "./dist/abol-player.esm.js",
+  "module": "./dist/abol-player.esm.js",
+  "types": "./dist/abol-player.d.ts",
+  "browser": "./dist/abol-player.js",
+  "unpkg": "./dist/abol-player.js",
+  "jsdelivr": "./dist/abol-player.js",
   "exports": {
-    ".": "./src/index.ts"
-  },
-  "description": "<abol-player>: embeddable accessible video player (custom element, Shadow DOM, IIFE build).",
-  "scripts": {
-    "build": "node build.mjs",
-    "typecheck": "tsc -p tsconfig.json"
-  },
-  "dependencies": {
-    "@abolkit/core": "workspace:*",
-    "@videojs/html": "^10.4.0",
-    "@videojs/youtube-video": "10.4.0"
-  },
-  "devDependencies": {
-    "esbuild": "^0.28.2"
+    ".": {
+      "types": "./dist/abol-player.d.ts",
+      "import": "./dist/abol-player.esm.js",
+      "default": "./dist/abol-player.esm.js"
+    },
+    "./lite": "./dist/abol-player.lite.js",
+    "./stream": "./dist/abol-player.stream.js",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
-    "src"
-  ]
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "prepack": "node build.mjs",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@abolkit/core": "workspace:*",
+    "@videojs/html": "^10.4.0",
+    "@videojs/youtube-video": "10.4.0",
+    "esbuild": "^0.28.2"
+  }
 }
