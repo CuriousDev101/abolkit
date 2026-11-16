@@ -378,7 +378,8 @@ details[open] > summary::before {
   min-inline-size: 0;
 }
 
-button {
+button,
+a.apply {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -396,7 +397,8 @@ button {
   transition: background-color 0.14s ease, border-color 0.14s ease, transform 0.12s ease;
 }
 
-button:active {
+button:active,
+a.apply:active {
   transform: translateY(1px);
 }
 
@@ -412,10 +414,13 @@ button svg {
   color: #ffffff;
   border: 2px solid var(--_accent-ink);
   font-weight: 700;
+  text-decoration: none;
+  box-sizing: border-box;
 }
 
 .apply:hover {
   background: color-mix(in srgb, var(--_accent) 82%, #000000);
+  color: #ffffff;
 }
 
 .apply:active {

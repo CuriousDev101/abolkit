@@ -73,14 +73,14 @@ import '@abolkit/job-card'
 
 | Event | Detail | Notes |
 | --- | --- | --- |
-| `abol:job-apply` | `{ job, jsonLd, url? }` | Cancelable. If not canceled and `url` exists, the card opens it. |
+| `abol:job-apply` | `{ job, jsonLd, url? }` | Cancelable. When `url` exists the control is a new-tab link; `preventDefault()` stops navigation. |
 | `abol:summary-play` | `{ playing, src, job }` | Fires when the audio summary starts/stops. |
 
 ```js
 card.addEventListener('abol:job-apply', (event) => {
-  event.preventDefault()
-  // host handles apply
-  console.log(event.detail.job.title)
+  // Optional: take over apply and skip the card’s new-tab link
+  // event.preventDefault()
+  console.log(event.detail.job.title, event.detail.url)
 })
 ```
 

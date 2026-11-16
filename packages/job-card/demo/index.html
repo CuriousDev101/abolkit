@@ -349,6 +349,7 @@
                   "datePosted": "2026-10-01",
                   "validThrough": "2026-12-15",
                   "employmentType": "PART_TIME",
+                  "url": "https://example.org/jobs/braille-caption-production-assistant/apply",
                   "hiringOrganization": {
                     "@type": "Organization",
                     "name": "Addis Ababa University Library",
@@ -504,8 +505,12 @@ import '@abolkit/job-card'
       })
 
       document.addEventListener('abol:job-apply', (event) => {
-        event.preventDefault()
-        logEvent(`Apply for “${event.detail.job.title}” (host kept control).`)
+        const url = event.detail.url
+        logEvent(
+          url
+            ? `Apply for “${event.detail.job.title}” → opening ${url}`
+            : `Apply for “${event.detail.job.title}” (no apply URL on this posting).`,
+        )
       })
 
       document.addEventListener('abol:summary-play', (event) => {

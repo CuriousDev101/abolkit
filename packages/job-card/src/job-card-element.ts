@@ -127,6 +127,12 @@ export class AbolJobCardElement extends HostElement {
   #audioLoading = false
   /** Resolved clip URL from JobPosting or from the audio-summary API. */
   #resolvedAudioUrl: string | null = null
+  /** In-flight TTS/URL resolve so prefetch and click share one request. */
+  #audioUrlInflight: Promise<string> | null = null
+  /** Bumped when audio is torn down so late async work cannot overwrite UI. */
+  #audioGeneration = 0
+  #audioBtn: HTMLButtonElement | null = null
+  #audioNote: HTMLElement | null = null
   #connected = false
 
   constructor() {
@@ -143,6 +149,7 @@ export class AbolJobCardElement extends HostElement {
   set job(value: unknown) {
     this.#abort?.abort()
     this.#stopAudio()
+    this.#audioUrlInflight = null
     this.#resolvedAudioUrl = null
     if (value === null || value === undefined) {
       this.#job = null
@@ -283,6 +290,7 @@ export class AbolJobCardElement extends HostElement {
     this.#abort?.abort()
     this.#stopAudio()
     this.#audioFailed = false
+    this.#audioUrlInflight = null
     this.#resolvedAudioUrl = null
 
     const src = this.#jobUrlAttr()
@@ -444,6 +452,8 @@ export class AbolJobCardElement extends HostElement {
       audioBtn.setAttribute('aria-describedby', audioHint.id)
       const audioNote = el('p', 'audio-note', jt(lang, 'audioUnavailable'))
       audioNote.hidden = !this.#audioFailed
+      this.#audioBtn = audioBtn
+      this.#audioNote = audioNote
 
       this.#syncAudioButton(audioBtn, lang)
       audioBtn.addEventListener('click', () => {
@@ -451,6 +461,16 @@ export class AbolJobCardElement extends HostElement {
       })
       audioRow.append(audioBtn, audioHint)
       card.append(audioRow, audioNote)
+
+      // Prefetch the clip so the first Listen click stays inside the user-gesture window.
+      if (!this.#resolvedAudioUrl && this.#audioSummaryApiBase() && lang.startsWith('en')) {
+        void this.#ensureAudioUrl(job, summaryCopy, lang, null).catch(() => {
+          /* surface failure only when the user presses Listen */
+        })
+      }
+    } else {
+      this.#audioBtn = null
+      this.#audioNote = null
     }
 
     // 3. Key facts as a ruled definition list (<dl>)
@@ -495,12 +515,7 @@ export class AbolJobCardElement extends HostElement {
       actions.setAttribute('part', 'actions')
 
       if (!isClosed) {
-        const applyBtn = el('button', 'apply')
-        applyBtn.type = 'button'
-        applyBtn.setAttribute('part', 'apply-button')
-        applyBtn.textContent = jt(lang, 'applyButton')
-        applyBtn.addEventListener('click', () => this.#handleApply(job, lang))
-        actions.appendChild(applyBtn)
+        actions.appendChild(this.#buildApplyControl(job, lang))
       }
 
       if (job.hiringOrganization?.sameAs) {
@@ -606,12 +621,16 @@ export class AbolJobCardElement extends HostElement {
 
   #audioUiState(): AudioUiState {
     if (this.#audioLoading) return 'loading'
+    // Prefer the live media element so a stale failure flag cannot hide Pause.
+    if (this.#audio && !this.#audio.paused && !this.#audio.ended) return 'playing'
     if (this.#audioFailed) return 'error'
     if (this.#audioPlaying) return 'playing'
     return 'idle'
   }
 
-  #syncAudioButton(btn: HTMLButtonElement, lang: string): void {
+  #syncAudioButton(btn: HTMLButtonElement | null = this.#audioBtn, lang?: string): void {
+    if (!btn) return
+    const uiLang = lang ?? this.#effectiveLang(this.#job)
     const state = this.#audioUiState()
     btn.dataset.state = state
     btn.disabled = state === 'loading'
@@ -621,14 +640,35 @@ export class AbolJobCardElement extends HostElement {
     if (state === 'loading') {
       btn.innerHTML =
         `<span class="listen-glyph" aria-hidden="true"><span class="spin"></span></span><span class="listen-label"></span>`
-      btn.querySelector('.listen-label')!.textContent = jt(lang, 'audioSummaryLoading')
+      btn.querySelector('.listen-label')!.textContent = jt(uiLang, 'audioSummaryLoading')
       return
     }
 
     const icon = state === 'playing' ? ICONS.pause : ICONS.play
-    const label = jt(lang, state === 'playing' ? 'audioSummaryPause' : 'audioSummaryPlay')
+    const label = jt(uiLang, state === 'playing' ? 'audioSummaryPause' : 'audioSummaryPlay')
     btn.innerHTML = `<span class="listen-glyph" aria-hidden="true">${icon}</span><span class="listen-label"></span>`
     btn.querySelector('.listen-label')!.textContent = label
+  }
+
+  #showAudioNote(messageKey: 'audioUnavailable' | 'audioTapAgain', lang: string): void {
+    const note = this.#audioNote
+    if (!note) return
+    note.textContent = jt(lang, messageKey)
+    note.hidden = false
+    this.#announce(jt(lang, messageKey))
+  }
+
+  #hideAudioNote(): void {
+    if (this.#audioNote) this.#audioNote.hidden = true
+  }
+
+  #isNotAllowedError(err: unknown): boolean {
+    return (
+      (typeof DOMException !== 'undefined' &&
+        err instanceof DOMException &&
+        err.name === 'NotAllowedError') ||
+      (err instanceof Error && err.name === 'NotAllowedError')
+    )
   }
 
   async #toggleAudioSummary(
@@ -638,9 +678,11 @@ export class AbolJobCardElement extends HostElement {
     note: HTMLElement,
     lang: string,
   ): Promise<void> {
+    this.#audioBtn = btn
+    this.#audioNote = note
     if (this.#audioLoading) return
 
-    if (this.#audio && this.#audioPlaying) {
+    if (this.#audio && !this.#audio.paused && !this.#audio.ended) {
       this.#audio.pause()
       this.#audioPlaying = false
       this.#syncAudioButton(btn, lang)
@@ -648,61 +690,154 @@ export class AbolJobCardElement extends HostElement {
       return
     }
 
+    const generation = this.#audioGeneration
     try {
-      note.hidden = true
       this.#audioFailed = false
+      this.#hideAudioNote()
       const resolvedUrl = await this.#ensureAudioUrl(job, summaryText, lang, btn)
-      if (!this.#audio || this.#audio.src !== resolvedUrl) {
-        this.#stopAudio()
-        const audio = new Audio(resolvedUrl)
-        audio.preload = 'none'
-        audio.addEventListener('ended', () => {
-          this.#audioPlaying = false
-          this.#syncAudioButton(btn, lang)
-        })
-        audio.addEventListener('error', () => {
-          this.#audioPlaying = false
-          this.#audioFailed = true
-          note.hidden = false
-          this.#syncAudioButton(btn, lang)
-          this.#announce(jt(lang, 'audioUnavailable'))
-        })
-        this.#audio = audio
-      }
+      if (generation !== this.#audioGeneration || !this.#connected) return
 
-      await this.#audio.play()
-      this.#audioFailed = false
-      this.#audioPlaying = true
-      this.#syncAudioButton(btn, lang)
-      this.#emitSummaryPlay(true, resolvedUrl, job)
-    } catch {
+      await this.#playAudioUrl(resolvedUrl, btn, lang, job, generation)
+    } catch (err) {
+      if (generation !== this.#audioGeneration || !this.#connected) return
       this.#audioPlaying = false
       this.#audioLoading = false
       this.#audioFailed = true
-      note.hidden = false
+      // After a long TTS wait the browser may block autoplay; URL is cached so a second tap works.
+      this.#showAudioNote(this.#isNotAllowedError(err) ? 'audioTapAgain' : 'audioUnavailable', lang)
       this.#syncAudioButton(btn, lang)
-      this.#announce(jt(lang, 'audioUnavailable'))
     }
+  }
+
+  async #playAudioUrl(
+    resolvedUrl: string,
+    btn: HTMLButtonElement,
+    lang: string,
+    job: NormalizedJobPosting,
+    generation: number,
+  ): Promise<void> {
+    const audio = this.#bindAudioElement(resolvedUrl, lang)
+    this.#audioLoading = true
+    this.#syncAudioButton(btn, lang)
+    try {
+      await this.#waitUntilCanPlay(audio, generation)
+      if (generation !== this.#audioGeneration || !this.#connected) return
+      await audio.play()
+      if (generation !== this.#audioGeneration || !this.#connected) return
+      this.#audioFailed = false
+      this.#audioPlaying = true
+      this.#hideAudioNote()
+      this.#syncAudioButton(btn, lang)
+      this.#emitSummaryPlay(true, resolvedUrl, job)
+    } finally {
+      if (generation === this.#audioGeneration) {
+        this.#audioLoading = false
+        this.#syncAudioButton(btn, lang)
+      }
+    }
+  }
+
+  #bindAudioElement(resolvedUrl: string, lang: string): HTMLAudioElement {
+    if (this.#audio && this.#audio.src === resolvedUrl) return this.#audio
+
+    this.#detachAudioElement()
+    const audio = new Audio()
+    audio.preload = 'auto'
+    audio.src = resolvedUrl
+    audio.addEventListener('playing', () => {
+      this.#audioPlaying = true
+      this.#audioFailed = false
+      this.#audioLoading = false
+      this.#hideAudioNote()
+      this.#syncAudioButton()
+    })
+    audio.addEventListener('pause', () => {
+      if (audio.ended) return
+      this.#audioPlaying = false
+      this.#syncAudioButton()
+    })
+    audio.addEventListener('ended', () => {
+      this.#audioPlaying = false
+      this.#syncAudioButton()
+    })
+    audio.addEventListener('error', () => {
+      // Ignore teardown / src-clear noise; only fail when the element still owns this URL.
+      if (this.#audio !== audio || audio.src !== resolvedUrl) return
+      if (!audio.error) return
+      this.#audioPlaying = false
+      this.#audioLoading = false
+      this.#audioFailed = true
+      this.#showAudioNote('audioUnavailable', lang)
+      this.#syncAudioButton()
+    })
+    this.#audio = audio
+    return audio
+  }
+
+  #waitUntilCanPlay(audio: HTMLAudioElement, generation: number): Promise<void> {
+    if (generation !== this.#audioGeneration) return Promise.resolve()
+    if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) return Promise.resolve()
+    return new Promise((resolve, reject) => {
+      const onReady = () => {
+        cleanup()
+        resolve()
+      }
+      const onError = () => {
+        cleanup()
+        reject(audio.error ?? new Error('audio failed to load'))
+      }
+      const cleanup = () => {
+        audio.removeEventListener('canplay', onReady)
+        audio.removeEventListener('error', onError)
+      }
+      audio.addEventListener('canplay', onReady, { once: true })
+      audio.addEventListener('error', onError, { once: true })
+      if (audio.readyState === HTMLMediaElement.HAVE_NOTHING) {
+        try {
+          audio.load()
+        } catch {
+          /* ignore */
+        }
+      }
+    })
   }
 
   async #ensureAudioUrl(
     job: NormalizedJobPosting,
     summaryText: string,
     lang: string,
-    btn: HTMLButtonElement,
+    btn: HTMLButtonElement | null,
   ): Promise<string> {
     if (this.#resolvedAudioUrl) return this.#resolvedAudioUrl
     if (job.audioSummaryUrl) {
       this.#resolvedAudioUrl = new URL(job.audioSummaryUrl, this.baseURI).href
       return this.#resolvedAudioUrl
     }
+    if (this.#audioUrlInflight) {
+      if (btn) {
+        this.#audioLoading = true
+        this.#syncAudioButton(btn, lang)
+      }
+      try {
+        return await this.#audioUrlInflight
+      } finally {
+        if (btn) {
+          this.#audioLoading = false
+          this.#syncAudioButton(btn, lang)
+        }
+      }
+    }
 
     const apiBase = this.#audioSummaryApiBase()
     if (!apiBase) throw new Error('No audio summary source')
 
-    this.#audioLoading = true
-    this.#syncAudioButton(btn, lang)
-    try {
+    const syncUi = Boolean(btn)
+    if (syncUi && btn) {
+      this.#audioLoading = true
+      this.#syncAudioButton(btn, lang)
+    }
+
+    const request = (async () => {
       const endpoint = new URL('/api/job-summaries/audio', apiBase).href
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -716,11 +851,41 @@ export class AbolJobCardElement extends HostElement {
       if (!res.ok) throw new Error(`audio summary HTTP ${res.status}`)
       const body = (await res.json()) as { audioUrl?: string }
       if (!body.audioUrl) throw new Error('audio summary missing audioUrl')
-      this.#resolvedAudioUrl = new URL(body.audioUrl, apiBase).href
-      return this.#resolvedAudioUrl
+      return new URL(body.audioUrl, apiBase).href
+    })()
+
+    this.#audioUrlInflight = request
+    try {
+      const url = await request
+      // Drop the result if the card moved on to another job while TTS was running.
+      if (this.#audioUrlInflight === request) {
+        this.#resolvedAudioUrl = url
+        this.#audioUrlInflight = null
+      }
+      return url
+    } catch (err) {
+      if (this.#audioUrlInflight === request) this.#audioUrlInflight = null
+      throw err
     } finally {
-      this.#audioLoading = false
-      this.#syncAudioButton(btn, lang)
+      if (syncUi && btn) {
+        this.#audioLoading = false
+        this.#syncAudioButton(btn, lang)
+      }
+    }
+  }
+
+  #detachAudioElement(): void {
+    if (!this.#audio) return
+    const audio = this.#audio
+    this.#audio = null
+    audio.onerror = null
+    audio.pause()
+    // Clearing src can fire `error`; element is already detached from `#audio`.
+    audio.removeAttribute('src')
+    try {
+      audio.load()
+    } catch {
+      /* ignore */
     }
   }
 
@@ -802,11 +967,8 @@ export class AbolJobCardElement extends HostElement {
   }
 
   #stopAudio(): void {
-    if (this.#audio) {
-      this.#audio.pause()
-      this.#audio.removeAttribute('src')
-      this.#audio = null
-    }
+    this.#audioGeneration += 1
+    this.#detachAudioElement()
     this.#audioPlaying = false
     this.#audioLoading = false
   }
@@ -821,7 +983,34 @@ export class AbolJobCardElement extends HostElement {
     )
   }
 
-  #handleApply(job: NormalizedJobPosting, lang: string): void {
+  #buildApplyControl(job: NormalizedJobPosting, lang: string): HTMLElement {
+    const label = jt(lang, 'applyButton')
+    if (job.url) {
+      const applyLink = el('a', 'apply')
+      applyLink.href = job.url
+      applyLink.target = '_blank'
+      applyLink.rel = 'noopener noreferrer'
+      applyLink.setAttribute('part', 'apply-button')
+      applyLink.appendChild(document.createTextNode(label))
+      applyLink.appendChild(el('span', 'sr', ` (${jt(lang, 'opensNewTab')})`))
+      applyLink.addEventListener('click', (event) => {
+        if (!this.#emitApply(job, lang)) event.preventDefault()
+      })
+      return applyLink
+    }
+
+    const applyBtn = el('button', 'apply')
+    applyBtn.type = 'button'
+    applyBtn.setAttribute('part', 'apply-button')
+    applyBtn.textContent = label
+    applyBtn.addEventListener('click', () => {
+      this.#emitApply(job, lang)
+    })
+    return applyBtn
+  }
+
+  /** Returns false when a host canceled `abol:job-apply` (so an apply link should not navigate). */
+  #emitApply(job: NormalizedJobPosting, lang: string): boolean {
     const detail: JobApplyEventDetail = {
       job,
       jsonLd: toJobPostingJsonLd(job),
@@ -835,9 +1024,7 @@ export class AbolJobCardElement extends HostElement {
     })
     const notCancelled = this.dispatchEvent(event)
     this.#announce(jt(lang, 'applyAnnounce', { title: job.title }))
-    if (notCancelled && job.url && typeof window !== 'undefined') {
-      window.open(job.url, '_blank', 'noopener,noreferrer')
-    }
+    return notCancelled
   }
 
   #announce(text: string): void {
