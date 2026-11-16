@@ -51,19 +51,27 @@ importers:
 
   packages/core:
     devDependencies:
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
       vitest:
         specifier: ^5.1.0
         version: 5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(yaml@2.9.1))
 
   packages/job-card:
-    dependencies:
+    devDependencies:
       '@abolkit/core':
         specifier: workspace:*
         version: link:../core
-    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.3.0
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
+      react:
+        specifier: ^19.0.0
+        version: 19.3.1
       vitest:
         specifier: ^5.1.0
         version: 5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(yaml@2.9.1))
@@ -75,7 +83,7 @@ importers:
         version: 5.1.0(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(yaml@2.9.1))
 
   packages/player:
-    dependencies:
+    devDependencies:
       '@abolkit/core':
         specifier: workspace:*
         version: link:../core
@@ -85,7 +93,6 @@ importers:
       '@videojs/youtube-video':
         specifier: 10.4.0
         version: 10.4.0
-    devDependencies:
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
@@ -1038,6 +1045,9 @@ packages:
 
   '@types/pg@8.23.1':
     resolution: {integrity: sha512-fKVHpikPdg4GKks3JuLEhvwSyvwzF23hnabPy6DD8ljVbC7+6J5dQzdv4arV6jqq57djnMgs1HKBxX4P8aBI3A==}
+
+  '@types/react@19.3.0':
+    resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
@@ -4451,6 +4461,10 @@ snapshots:
       '@types/node': 26.6.6
       pg-protocol: 1.16.1
       pg-types: 2.2.0
+
+  '@types/react@19.3.0':
+    dependencies:
+      csstype: 3.2.3
 
   '@types/unist@3.0.3': {}
 
