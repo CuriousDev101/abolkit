@@ -1,0 +1,35 @@
+---
+title: Abol Kit
+description: Accessible player and job card web components. Install guides for version 0.1.1.
+template: splash
+hero:
+  tagline: Embeddable accessible video and career notices — script tag or npm @0.1.1.
+  actions:
+    - text: Quickstart
+      link: /getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: Install packages
+      link: /install/
+      icon: seti:npm
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components'
+
+## What you get
+
+<CardGrid stagger>
+  <Card title="<abol-player>" icon="seti:video">
+    Captions, settings, offline download. Pin CDN or `npm install @abolkit/player@0.1.1`.
+  </Card>
+  <Card title="<abol-job-card>" icon="document">
+    JobPosting JSON / HTML, audio summary. Pin CDN or `npm install @abolkit/job-card@0.1.1`.
+  </Card>
+  <Card title="Framework-ready" icon="puzzle">
+    Works in React, Vue, and Angular as custom elements — see [Frameworks](/install/frameworks/).
+  </Card>
+  <Card title="Always pin 0.1.1" icon="approve-check">
+    Docs examples never use `latest`. Use `@0.1.1` on npm and in CDN URLs.
+  </Card>
+</CardGrid>

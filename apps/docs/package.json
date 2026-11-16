@@ -1,0 +1,17 @@
+{
+  "name": "@abolkit/docs",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "description": "Public Abol Kit docs (Starlight). Package install guides pinned to @0.1.1.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.43.1",
+    "astro": "^7.2.10",
+    "sharp": "^0.34.4"
+  }
+}
