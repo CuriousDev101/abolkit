@@ -1,6 +1,6 @@
 {
   "name": "@abolkit/job-card",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "private": false,
   "type": "module",
   "description": "Accessible <abol-job-card> web component: schema.org/JobPosting, audio summary, works in React, Vue, and Angular.",

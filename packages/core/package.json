@@ -1,6 +1,6 @@
 {
   "name": "@abolkit/core",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "private": false,
   "type": "module",
   "description": "Shared pure TypeScript for Abol Kit: WebVTT, cues, settings, i18n, a11y helpers.",

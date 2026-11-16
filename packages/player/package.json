@@ -1,6 +1,6 @@
 {
   "name": "@abolkit/player",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "private": false,
   "type": "module",
   "description": "<abol-player>: embeddable accessible video player (custom element, Shadow DOM, IIFE + ESM builds).",
