@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Abol Player — Braille export (local test)</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: 'Noto Sans Ethiopic', 'Noto Sans', system-ui, sans-serif;
+        background: #e8eee9;
+        color: #122;
+      }
+      main {
+        max-width: 960px;
+        margin: 2rem auto;
+        padding: 0 1rem 3rem;
+      }
+      abol-player {
+        display: block;
+        margin-block: 1rem 1.5rem;
+      }
+      ol,
+      .log {
+        max-width: 65ch;
+      }
+      .log {
+        margin-top: 1.5rem;
+        padding: 0.75rem 1rem;
+        background: #dce6df;
+        border-radius: 6px;
+        font-family: ui-monospace, monospace;
+        font-size: 0.85rem;
+        white-space: pre-wrap;
+      }
+      code {
+        background: #dce6df;
+        padding: 0.1em 0.35em;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Braille export — local test</h1>
+      <p>
+        Branch feature: Amharic captions → <strong>Export Braille (.brf)</strong> (loads
+        <code>abol-player.braille.js</code> beside the player).
+      </p>
+      <ol>
+        <li>Confirm Amharic captions are present (sample track below).</li>
+        <li>In the video control bar, find <strong>Export Amharic Braille (.brf)</strong> beside the captions control (braille-dots icon).</li>
+        <li>Click it once — control may say busy while Liblouis loads.</li>
+        <li>A file like <code>transcript.am.brf</code> should download.</li>
+        <li>Open DevTools → Network: first click should fetch <code>abol-player.braille.js</code> and
+          <code>abol-player.braille.capi.js</code>.</li>
+        <li>Events below should show <code>abol:braille</code> with <code>status: "ready"</code>.</li>
+      </ol>
+
+      <abol-player
+        id="player"
+        src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+        lang="en"
+        title="Braille local sample"
+      >
+        <track
+          kind="captions"
+          srclang="en"
+          label="English"
+          src="./offline/captions.en.vtt"
+          default
+        />
+        <track kind="captions" srclang="am" label="አማርኛ" src="./offline/captions.am.vtt" />
+      </abol-player>
+
+      <p>
+        Optional: set <code>braille-export="off"</code> on the player — the Braille button must
+        <strong>hide</strong>.
+      </p>
+
+      <h2>Event log</h2>
+      <div class="log" id="log" role="log" aria-live="polite">Waiting for abol:braille…</div>
+    </main>
+    <script src="../dist/abol-player.js"></script>
+    <script>
+      const log = document.getElementById('log')
+      const player = document.getElementById('player')
+      player.addEventListener('abol:braille', (ev) => {
+        log.textContent = JSON.stringify(ev.detail, null, 2)
+        console.log('abol:braille', ev.detail)
+      })
+    </script>
+  </body>
+</html>
