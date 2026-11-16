@@ -15,7 +15,9 @@
     "./dist/abol-player.js",
     "./dist/abol-player.esm.js",
     "./dist/abol-player.lite.js",
-    "./dist/abol-player.stream.js"
+    "./dist/abol-player.stream.js",
+    "./dist/abol-player.braille.js",
+    "./dist/abol-player.braille.capi.js"
   ],
   "main": "./dist/abol-player.esm.js",
   "module": "./dist/abol-player.esm.js",
@@ -31,6 +33,7 @@
     },
     "./lite": "./dist/abol-player.lite.js",
     "./stream": "./dist/abol-player.stream.js",
+    "./braille": "./dist/abol-player.braille.js",
     "./package.json": "./package.json"
   },
   "files": [
@@ -40,12 +43,16 @@
   "scripts": {
     "build": "node build.mjs",
     "prepack": "node build.mjs",
+    "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {
     "@abolkit/core": "workspace:*",
     "@videojs/html": "^10.4.0",
     "@videojs/youtube-video": "10.4.0",
-    "esbuild": "^0.28.2"
+    "esbuild": "^0.28.2",
+    "liblouis": "0.4.0",
+    "liblouis-build": "3.2.0-rc",
+    "vitest": "^5.1.0"
   }
 }

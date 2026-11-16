@@ -66,11 +66,17 @@ export interface WatchOptions {
   pollMs?: number
   /** Stop polling after this long; the job keeps running on the server. */
   maxWaitMs?: number
+  /**
+   * Always POST `/generate` once before polling (used by Refresh).
+   * Default false: look up first, generate only when something is missing.
+   */
+  forceGenerate?: boolean
 }
 
 /**
  * Look up captions for the video; request the missing ones once; poll until no job is left, delivering
  * each caption file (the transcript and the requested languages) as it appears.
+ * Transcript / English source captions are delivered before translations.
  */
 export async function watchCaptions(options: WatchOptions): Promise<void> {
   const { signal } = options
@@ -92,8 +98,11 @@ export async function watchCaptions(options: WatchOptions): Promise<void> {
   }
 
   while (!signal.aborted && Date.now() < deadline) {
-    let status = await lookup(base, options.videoUrl, signal)
-    if (!requested && (!status || (status.status !== 'processing' && missing(status)))) {
+    let status = options.forceGenerate && !requested ? null : await lookup(base, options.videoUrl, signal)
+    if (
+      !requested &&
+      (options.forceGenerate || !status || (status.status !== 'processing' && missing(status)))
+    ) {
       requested = true
       status = await request(
         base,
@@ -106,7 +115,7 @@ export async function watchCaptions(options: WatchOptions): Promise<void> {
     if (!status) return
     options.onStatus?.(status)
 
-    for (const caption of status.captions) {
+    for (const caption of orderCaptionsForDelivery(status.captions)) {
       if (!wanted(caption) || delivered.has(caption.language)) continue
       const res = await fetch(caption.url, { signal })
       if (!res.ok) continue
@@ -116,6 +125,81 @@ export async function watchCaptions(options: WatchOptions): Promise<void> {
     if (status.status !== 'processing') return
     await sleep(pollMs, signal)
   }
+}
+
+/**
+ * Re-POST generate for the given languages (or transcript-only when `languages` is empty) and resume
+ * polling. Used by the captions menu Refresh control on failed rows.
+ */
+export function retryCaptions(options: WatchOptions): Promise<void> {
+  return watchCaptions({ ...options, forceGenerate: true })
+}
+
+/** Transcript (source) first, then translations in the order the API returned them. */
+export function orderCaptionsForDelivery(captions: ApiCaption[]): ApiCaption[] {
+  return [...captions].sort((a, b) => {
+    if (a.kind === b.kind) return 0
+    return a.kind === 'transcript' ? -1 : 1
+  })
+}
+
+/**
+ * Order jobs for status UI: source transcript first, then each wanted translation language.
+ * Returns display rows with a stable language code for labeling / retry.
+ */
+export function orderCaptionStatusRows(
+  status: CaptionStatus,
+  wanted: string[],
+  sourceLanguage = 'en',
+): Array<{
+  language: string
+  kind: 'transcript' | 'translation'
+  state: ApiCaptionJob['status']
+  progress?: number
+}> {
+  const jobs = status.jobs
+  const ready = new Set(status.captions.map((c) => c.language))
+  const transcriptCaption = status.captions.find((c) => c.kind === 'transcript')
+  const transcriptJob = jobs.find((j) => j.type === 'transcribe')
+  const transcriptLang =
+    transcriptCaption?.language ??
+    (transcriptJob?.language ? transcriptJob.language : null) ??
+    sourceLanguage
+
+  const rows: Array<{
+    language: string
+    kind: 'transcript' | 'translation'
+    state: ApiCaptionJob['status']
+    progress?: number
+  }> = []
+
+  if (ready.has(transcriptLang) || transcriptJob || status.status === 'processing' || status.status === 'failed') {
+    const state: ApiCaptionJob['status'] = ready.has(transcriptLang)
+      ? 'succeeded'
+      : (transcriptJob?.status ?? (status.status === 'failed' ? 'failed' : 'queued'))
+    rows.push({
+      language: transcriptLang,
+      kind: 'transcript',
+      state,
+      progress: transcriptJob?.progress,
+    })
+  }
+
+  for (const lang of wanted) {
+    if (lang === transcriptLang) continue
+    if (ready.has(lang)) {
+      rows.push({ language: lang, kind: 'translation', state: 'succeeded' })
+      continue
+    }
+    const job = jobs.find((j) => j.type === 'translate' && j.language === lang)
+    rows.push({
+      language: lang,
+      kind: 'translation',
+      state: job?.status ?? (status.status === 'processing' ? 'queued' : 'failed'),
+      progress: job?.progress,
+    })
+  }
+  return rows
 }
 
 async function lookup(

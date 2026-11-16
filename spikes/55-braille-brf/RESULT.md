@@ -31,11 +31,12 @@ Product choice: implement the pipeline now (opt-in, documented as experimental) 
 |---|---|
 | Liblouis Python bridge | `services/worker/scripts/liblouis_translate.py` |
 | Translate (no BRF layout) | `services/worker/src/pack/braille/translate.ts` |
-| BRF page layout | `services/worker/src/pack/braille/format-brf.ts` |
+| BRF page layout | `@abolkit/core` `brf.ts` (worker re-exports) |
 | VTT → BRF | `services/worker/src/pack/braille/export-brf.ts` (reuses `@abolkit/core` `parseVtt`) |
 | Offline-pack opt-in | `buildOfflinePack({ includeBraille: true })` → zip member `transcript.am.brf` |
 | Job params | `includeBraille` (default `false`), optional `brailleTable` |
 | Compose worker image | Root `Dockerfile` target `worker` installs `python3`, `python3-louis`, `liblouis-data` |
+| Player client export | `packages/player` lazy-loads GPL `abol-player.braille.js` (npm `liblouis` + embedded `ethio-g1`) from the transcript panel |
 
 Default offline packs are unchanged. Failed translation does **not** fall back to print text.
 

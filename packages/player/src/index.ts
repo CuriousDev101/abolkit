@@ -6,7 +6,10 @@ export type { EngineEvent, MediaEngine, MediaSource, MediaTrack } from './engine
 export type { LessonConfig } from './config.js'
 export {
   GENERATABLE_LANGUAGES,
+  orderCaptionStatusRows,
+  orderCaptionsForDelivery,
   parseGenerateCaptions,
+  retryCaptions,
   watchCaptions,
 } from './caption-api.js'
 export type { ApiCaption, ApiCaptionJob, CaptionStatus } from './caption-api.js'

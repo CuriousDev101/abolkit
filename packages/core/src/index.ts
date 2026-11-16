@@ -34,3 +34,6 @@ export type { UiLang, UiStringKey } from './i18n.ts'
 export { isUiStringKey, resolveUiLang, t } from './i18n.ts'
 
 export { captionLangAnnouncement, formatTime, MIN_TARGET_PX, shouldReduceMotion } from './a11y.ts'
+
+export type { BrfLayoutOptions } from './brf.ts'
+export { DEFAULT_BRF_LAYOUT, encodeBrf, formatBrf, wrapBrailleLine } from './brf.ts'

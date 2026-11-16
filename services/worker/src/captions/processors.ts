@@ -32,7 +32,12 @@ import {
 } from '@abolkit/provider-sdk'
 import { UnrecoverableError } from 'bullmq'
 
-import { extractAudio, probeSource, type SourceTools } from './source.ts'
+import {
+  extractAudio,
+  probeSource,
+  tryImportYoutubeVtt,
+  type SourceTools,
+} from './source.ts'
 
 export interface CaptionProcessorDeps {
   db: Db
@@ -158,36 +163,59 @@ export function createCaptionProcessors(deps: CaptionProcessorDeps): CaptionProc
         await mkdir(deps.workDir, { recursive: true })
         const dir = await mkdtemp(join(deps.workDir, `caption-${video.id}-`))
         try {
-          const audio = await extractAudio(source, dir, {
-            ...deps.tools,
-            maxDurationSeconds: config.maxDurationSeconds,
-            signal,
-          })
-          await setJobProgress(db, record.id, 40)
           // Trust the request language when present; otherwise always assume the server default (English).
           const language = normalizeLanguage(record.sourceLanguage ?? config.defaultSourceLanguage)
-          const result = await transcribeWithDetails(deps.transcriber, audio, {
-            lang: language,
-            fallbackLang: config.defaultSourceLanguage,
-            signal,
-          })
-          if (!result.cues.length)
-            throw new UnrecoverableError('The transcriber found no speech in this video')
-          await store({
-            videoId: video.id,
-            language,
-            cues: result.cues,
-            kind: 'transcript',
-            provider: deps.transcriber.id,
-            providerRef: result.providerRef,
-          })
-          await updateVideoDetails(db, video.id, { sourceLanguage: language })
-          log({
-            event: 'captions.transcribed',
-            videoId: video.id,
-            language,
-            cues: result.cues.length,
-          })
+
+          // Prefer YouTube manual/auto VTT before paying for AssemblyAI (or other STT).
+          const imported = await tryImportYoutubeVtt(source, dir, language, deps.tools, signal)
+          if (imported?.cues.length) {
+            const storedLang = normalizeLanguage(imported.language)
+            await setJobProgress(db, record.id, 40)
+            await store({
+              videoId: video.id,
+              language: storedLang,
+              cues: imported.cues,
+              kind: 'transcript',
+              provider: 'youtube-subs',
+            })
+            await updateVideoDetails(db, video.id, { sourceLanguage: storedLang })
+            log({
+              event: 'captions.imported_youtube_vtt',
+              videoId: video.id,
+              language: storedLang,
+              cues: imported.cues.length,
+              file: imported.file,
+            })
+          } else {
+            const audio = await extractAudio(source, dir, {
+              ...deps.tools,
+              maxDurationSeconds: config.maxDurationSeconds,
+              signal,
+            })
+            await setJobProgress(db, record.id, 40)
+            const result = await transcribeWithDetails(deps.transcriber, audio, {
+              lang: language,
+              fallbackLang: config.defaultSourceLanguage,
+              signal,
+            })
+            if (!result.cues.length)
+              throw new UnrecoverableError('The transcriber found no speech in this video')
+            await store({
+              videoId: video.id,
+              language,
+              cues: result.cues,
+              kind: 'transcript',
+              provider: deps.transcriber.id,
+              providerRef: result.providerRef,
+            })
+            await updateVideoDetails(db, video.id, { sourceLanguage: language })
+            log({
+              event: 'captions.transcribed',
+              videoId: video.id,
+              language,
+              cues: result.cues.length,
+            })
+          }
         } finally {
           await rm(dir, { recursive: true, force: true })
         }

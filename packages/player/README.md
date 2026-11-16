@@ -22,6 +22,15 @@ Variants:
 - `dist/abol-player.js` — default
 - `dist/abol-player.lite.js` — native `<video>`, smallest
 - `dist/abol-player.stream.js` — HLS extras
+- `dist/abol-player.braille.js` + `dist/abol-player.braille.capi.js` — **GPL-3.0** Liblouis companion (lazy-loaded for Amharic `.brf` export; serve both beside the player script)
+
+## Experimental Amharic Braille (`.brf`)
+
+When an Amharic caption track has cues, the transcript panel shows **Export Braille (.brf)**. The first click loads `abol-player.braille.js` (npm [`liblouis`](https://www.npmjs.com/package/liblouis) + `ethio-g1.ctb`) and downloads `transcript.am.brf`.
+
+> Experimental — not independently verified. Hide with `braille-export="off"`.
+
+Main player bundles stay **MIT** and do not embed Liblouis.
 
 ## ESM
 
@@ -39,4 +48,4 @@ Same pattern as `@abolkit/job-card`:
 
 ## License
 
-MIT
+MIT for the player. `dist/abol-player.braille.js` and `dist/abol-player.braille.capi.js` are **GPL-3.0** (Liblouis).

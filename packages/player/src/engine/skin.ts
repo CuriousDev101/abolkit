@@ -265,6 +265,7 @@ ${tooltip('abol-captions-trigger', LABEL_TIP)}
   <media-menu-content class="media-menu-content abol-captions-root">
     ${mediaGroup('media-captions-radio-group', '<span data-part="badge" class="media-menu-badge"></span>')}
     <abol-option-group class="media-menu-radio-group abol-caption-tracks" data-opt="captionTrack" hidden></abol-option-group>
+    <div class="abol-caption-status" hidden></div>
   </media-menu-content>
 </media-menu>
 
@@ -314,6 +315,44 @@ const SKIN_CSS = `
   min-height: 2.35rem;
   padding-inline: 0.7rem;
   border-radius: 6px;
+}
+#abol-captions-menu .abol-caption-status {
+  display: grid;
+  gap: 2px;
+  padding: 2px 0.35rem 4px;
+}
+#abol-captions-menu .abol-caption-status[hidden] { display: none !important; }
+#abol-captions-menu .abol-caption-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 2.1rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.92em;
+  opacity: 0.92;
+}
+#abol-captions-menu .abol-caption-status-row[data-state="failed"] { color: #ffb4a8; }
+#abol-captions-menu .abol-caption-status-row[data-state="running"],
+#abol-captions-menu .abol-caption-status-row[data-state="queued"] { color: #ffd27a; }
+#abol-captions-menu .abol-caption-status-meta { opacity: 0.9; white-space: nowrap; }
+#abol-captions-menu .abol-caption-refresh {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font: inherit;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+#abol-captions-menu .abol-caption-refresh:hover,
+#abol-captions-menu .abol-caption-refresh:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+  outline: none;
 }
 
 /* Transcript covers the right of the frame; the bars are absolutely positioned, so inset them. */

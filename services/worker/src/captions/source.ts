@@ -1,7 +1,9 @@
 import { spawn } from 'node:child_process'
+import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import type { VideoSourceKind } from '@abolkit/caption-store'
+import { parseVtt, type Cue } from '@abolkit/core'
 
 import { runFfmpeg } from '../ffmpeg/run.ts'
 
@@ -119,6 +121,76 @@ export async function extractAudio(
     { bin: options.ffmpegBin, signal: options.signal },
   )
   return output
+}
+
+/**
+ * Prefer YouTube manual/auto-generated subtitles before AssemblyAI.
+ * Returns cues when a usable VTT was written; `null` when none are available.
+ */
+export async function tryImportYoutubeVtt(
+  source: { url: string; kind: VideoSourceKind },
+  workDir: string,
+  language: string,
+  tools: SourceTools,
+  signal?: AbortSignal,
+): Promise<{ cues: Cue[]; language: string; file: string } | null> {
+  if (source.kind !== 'youtube') return null
+  const lang = language.split(/[-_]/)[0]!.toLowerCase()
+  // Prefer exact lang, then YouTube's region variants, then plain English for the default path.
+  const subLangs =
+    lang === 'en' ? `${lang}.*,${lang},en.*` : `${lang}.*,${lang},en.*,en`
+  const outTemplate = join(workDir, 'subs.%(ext)s')
+  try {
+    await runProcess(
+      tools.ytDlpBin || 'yt-dlp',
+      [
+        ...ytDlpCommonArgs(tools),
+        '--skip-download',
+        '--write-subs',
+        '--write-auto-subs',
+        '--sub-langs',
+        subLangs,
+        '--sub-format',
+        'vtt',
+        '-o',
+        outTemplate,
+        source.url,
+      ],
+      signal,
+    )
+  } catch {
+    // No subs / yt-dlp error → fall through to AssemblyAI.
+    return null
+  }
+
+  const files = (await readdir(workDir))
+    .filter((name) => name.endsWith('.vtt'))
+    .sort((a, b) => scoreVttName(a, lang) - scoreVttName(b, lang))
+  for (const name of files) {
+    const file = join(workDir, name)
+    const raw = await readFile(file, 'utf8')
+    // Strip YouTube's optional WEBVTT header noise / cue settings that parseVtt tolerates.
+    const cues = parseVtt(raw).filter((cue) => cue.text.trim().length > 0)
+    if (!cues.length) continue
+    const fileLang = languageFromVttName(name) ?? lang
+    return { cues, language: fileLang, file }
+  }
+  return null
+}
+
+/** Lower score = better match for the requested language. */
+function scoreVttName(name: string, lang: string): number {
+  const lower = name.toLowerCase()
+  if (lower.includes(`.${lang}.`) || lower.endsWith(`.${lang}.vtt`)) return 0
+  if (lower.includes(`.${lang}-`) || lower.includes(`.${lang}_`)) return 1
+  if (lang === 'en' && (lower.includes('.en.') || lower.includes('.en-'))) return 2
+  return 10
+}
+
+function languageFromVttName(name: string): string | null {
+  // e.g. subs.en.vtt, video.en-US.vtt, subs.en-orig.vtt
+  const match = /\.([a-z]{2,3})(?:[-_][a-z0-9]+)?\.vtt$/i.exec(name)
+  return match?.[1]?.toLowerCase() ?? null
 }
 
 function ytDlpCommonArgs(tools: SourceTools): string[] {

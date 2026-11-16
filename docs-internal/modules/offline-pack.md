@@ -59,9 +59,11 @@ When `includeBraille: true`:
 
 1. Worker reads `captions/am.vtt` (same VTT parse path as transcript HTML).
 2. Each cue (and optional title) is translated with **Liblouis** table **`ethio-g1.ctb`** via `services/worker/scripts/liblouis_translate.py` (Python `louis` bindings).
-3. Output is formatted as plain-text BRF (`transcript.am.brf` in the zip): default **40 cells × 25 lines**, CRLF line endings, form-feed page breaks (configurable in `format-brf.ts`).
+3. Output is formatted as plain-text BRF (`transcript.am.brf` in the zip): default **40 cells × 25 lines**, CRLF line endings, form-feed page breaks (shared `@abolkit/core` `formatBrf` / worker re-export).
 4. `index.html` links the BRF with an “experimental / not independently verified” label.
 5. If Liblouis or the table is missing, the job **fails** with a clear error — it does **not** fall back to print Amharic text.
+
+**Player (client-side):** `<abol-player>` can also export `transcript.am.brf` from Amharic caption cues via a lazy GPL companion (`dist/abol-player.braille.js`, npm `liblouis` + `ethio-g1.ctb`). Same experimental framing; main player bundles remain MIT.
 
 **Runtime (worker image / host):**
 

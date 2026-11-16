@@ -44,6 +44,8 @@ const EN = {
   captionsTranslating: 'Translating captions',
   captionsFailed: 'Caption generation failed',
   captionsProgress: 'Captions',
+  captionsRefresh: 'Refresh',
+  captionsRetry: 'Retry caption generation',
   progress: 'Playback progress',
   audioOnly: 'Audio only',
   captionSettings: 'Caption style',
@@ -77,6 +79,12 @@ const EN = {
   removeOffline: 'Remove offline copy',
   offlineError: 'Offline download failed',
   offlinePackLink: 'Download offline pack zip',
+  exportBraille: 'Export Braille (.brf)',
+  exportBrailleBusy: 'Exporting Braille…',
+  exportBrailleReady: 'Braille file downloaded',
+  exportBrailleFailed: 'Braille export failed',
+  exportBrailleExperimental:
+    'Experimental Amharic Braille — not independently verified',
 } as const
 
 export type UiStringKey = keyof typeof EN
@@ -125,6 +133,8 @@ const AM: Record<UiStringKey, string> = {
   captionsTranslating: 'ጽሁፍ በመተርጎም ላይ',
   captionsFailed: 'የጽሁፍ ትርጉም ማመንጨት አልተሳካም',
   captionsProgress: 'የጽሁፍ ትርጉም',
+  captionsRefresh: 'አድስ',
+  captionsRetry: 'የጽሁፍ ትርጉም ማመንጨት እንደገና ሞክር',
   progress: 'የመልሶ ማጫወት ሂደት',
   audioOnly: 'ድምጽ ብቻ',
   captionSettings: 'የጽሁፍ ቅንብሮች',
@@ -158,6 +168,11 @@ const AM: Record<UiStringKey, string> = {
   removeOffline: 'ከመስመር ውጭ ቅጂ አስወግድ',
   offlineError: 'ከመስመር ውጭ ማውረድ አልተሳካም',
   offlinePackLink: 'የከመስመር ውጭ ጥቅል ዚፕ አውርድ',
+  exportBraille: 'ብሬይል አውርድ (.brf)',
+  exportBrailleBusy: 'ብሬይል በመላክ ላይ…',
+  exportBrailleReady: 'የብሬይል ፋይል ወርዷል',
+  exportBrailleFailed: 'ብሬይል ማውረድ አልተሳካም',
+  exportBrailleExperimental: 'የሙከራ አማርኛ ብሬይል — ገና አልተረጋገጠም',
 }
 
 const TABLES: Record<UiLang, Record<UiStringKey, string>> = { en: EN, am: AM }

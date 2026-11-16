@@ -7,8 +7,12 @@ import {
   resolveUiLang,
   t,
 } from '@abolkit/core'
+import { downloadBrf, exportBrfFromLines } from './braille/export-brf.js'
+import { ensureBrailleCompanion } from './braille/load-companion.js'
 import {
+  orderCaptionStatusRows,
   parseGenerateCaptions,
+  retryCaptions,
   watchCaptions,
   type CaptionStatus,
 } from './caption-api.js'
@@ -65,7 +69,10 @@ const TEMPLATE = `
           <h2 id="abol-tr-h" data-l="transcript"></h2>
           <span class="tr-lang" hidden></span>
         </div>
-        <button type="button" class="tr-close" data-a="transcript" data-la="hideTranscript">${CLOSE_ICON}</button>
+        <div class="tr-head-actions">
+          <button type="button" class="tr-braille" data-a="braille-export" hidden></button>
+          <button type="button" class="tr-close" data-a="transcript" data-la="hideTranscript">${CLOSE_ICON}</button>
+        </div>
       </header>
       <div class="tr-search" role="search">
         <label class="tr-search-field">
@@ -177,6 +184,7 @@ export class AbolPlayerElement extends HTMLElement {
     'lang',
     'caption-api',
     'generate-captions',
+    'braille-export',
   ]
 
   #shadow: ShadowRoot
@@ -220,12 +228,31 @@ export class AbolPlayerElement extends HTMLElement {
   #cachedObjectUrls: string[] = []
   /** Network URLs for Cache API download/remove (kept when boot remaps src to blob:). */
   #offlineNetwork: OfflineLessonAssets | null = null
+  /** Live caption-api session so Refresh can re-POST without restarting the whole player. */
+  #captionApi: {
+    api: string
+    videoUrl: string
+    languages: string[]
+    sourceLanguage?: string
+    controller: AbortController
+    have: Set<string>
+    blobs: string[]
+  } | null = null
+  #captionStatus: CaptionStatus | null = null
+  #brailleBusy = false
 
   constructor() {
     super()
     this.#shadow = this.attachShadow({ mode: 'open' })
     this.#shadow.innerHTML = `<style>${PLAYER_CSS}</style>${TEMPLATE}`
     this.#shadow.addEventListener('click', (ev) => {
+      const refresh = (ev.target as Element).closest<HTMLElement>('[data-caption-refresh]')
+      if (refresh) {
+        ev.preventDefault()
+        ev.stopPropagation()
+        this.#retryCaptionLanguage(refresh.dataset.captionRefresh || '')
+        return
+      }
       const target = (ev.target as Element).closest<HTMLElement>('[data-a]')
       if (target) this.#act(target.dataset.a!, target)
     })
@@ -480,18 +507,13 @@ export class AbolPlayerElement extends HTMLElement {
     }
     const controller = new AbortController()
     const blobs: string[] = []
-    this.#off.push(() => {
-      controller.abort()
-      for (const url of blobs) URL.revokeObjectURL(url)
-    })
     // Tracks the host supplied win over generated ones in the same language.
     const have = new Set(
       config.tracks
         .filter((tr) => tr.kind === 'captions' || tr.kind === 'subtitles')
         .map((tr) => tr.lang),
     )
-    let announced = false
-    watchCaptions({
+    this.#captionApi = {
       api: new URL(api, document.baseURI).href,
       videoUrl: config.src,
       languages: request.languages,
@@ -500,9 +522,39 @@ export class AbolPlayerElement extends HTMLElement {
         this.getAttribute('lang')?.trim() ||
         this.getAttribute('captions-lang')?.trim() ||
         undefined,
-      signal: controller.signal,
+      controller,
+      have,
+      blobs,
+    }
+    this.#off.push(() => {
+      controller.abort()
+      for (const url of blobs) URL.revokeObjectURL(url)
+      if (this.#captionApi?.controller === controller) {
+        this.#captionApi = null
+        this.#captionStatus = null
+      }
+    })
+    this.#runCaptionWatch(engine, false)
+  }
+
+  /** Poll (and optionally force-generate) using the current caption-api session. */
+  #runCaptionWatch(engine: MediaEngine, forceGenerate: boolean): void {
+    const session = this.#captionApi
+    if (!session) return
+    const signal = session.controller.signal
+    let announced = false
+    const run = forceGenerate ? retryCaptions : watchCaptions
+    run({
+      api: session.api,
+      videoUrl: session.videoUrl,
+      languages: session.languages,
+      sourceLanguage: session.sourceLanguage,
+      signal,
+      forceGenerate,
       onStatus: (status) => {
-        this.#renderCaptionJobs(status, request.languages)
+        this.#captionStatus = status
+        this.#renderCaptionJobs(status, session.languages)
+        this.#refreshAvailability()
         if (status.status === 'processing' && !announced) {
           announced = true
           this.#announce(t(this.#lang, 'captionsGenerating'))
@@ -514,10 +566,10 @@ export class AbolPlayerElement extends HTMLElement {
         })
       },
       onCaption: (caption, vtt) => {
-        if (have.has(caption.language)) return
-        have.add(caption.language)
+        if (session.have.has(caption.language)) return
+        session.have.add(caption.language)
         const src = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }))
-        blobs.push(src)
+        session.blobs.push(src)
         const label = languageName(caption.language, this.#lang)
         if (!engine.addTrack({ kind: 'captions', src, lang: caption.language, label })) return
         const preferred = this.#settings.captionsLang
@@ -534,7 +586,7 @@ export class AbolPlayerElement extends HTMLElement {
       },
     })
       .catch((err: unknown) => {
-        if (controller.signal.aborted) return
+        if (signal.aborted) return
         console.warn('[abol-player] Caption API:', err)
         this.#renderCaptionJobsError(err instanceof Error ? err.message : String(err))
         this.#emit('abol:captions', {
@@ -543,8 +595,34 @@ export class AbolPlayerElement extends HTMLElement {
         })
       })
       .finally(() => {
-        if (!controller.signal.aborted) this.#hideCaptionJobsSoon()
+        if (!signal.aborted) this.#hideCaptionJobsSoon()
       })
+  }
+
+  /**
+   * Re-request generate for a failed language (or the transcript when `lang` is empty / source).
+   * Aborts the previous poll loop and starts a fresh force-generate watch.
+   */
+  #retryCaptionLanguage(lang: string): void {
+    const session = this.#captionApi
+    const engine = this.#engine
+    if (!session || !engine) return
+    const source =
+      session.sourceLanguage?.split(/[-_]/)[0]?.toLowerCase() ||
+      this.#captionStatus?.captions.find((c) => c.kind === 'transcript')?.language ||
+      'en'
+    // Empty / source lang → ask for all configured languages (transcript may also be missing).
+    const languages =
+      !lang || lang === source
+        ? session.languages
+        : Array.from(new Set([...session.languages, lang]))
+    session.languages = languages
+    session.controller.abort()
+    const controller = new AbortController()
+    session.controller = controller
+    this.#off.push(() => controller.abort())
+    this.#announce(t(this.#lang, 'captionsRetry'))
+    this.#runCaptionWatch(engine, true)
   }
 
   #mountOverlays(engine: MediaEngine, config: LessonConfig): void {
@@ -700,8 +778,20 @@ export class AbolPlayerElement extends HTMLElement {
       if (group.dataset.opt === 'captionTrack') this.#selectCaption(value)
       else this.#setOption(group.dataset.opt as OptionKey, value)
     }
+    // Refresh lives beside failed language rows in the captions menu (not a radio value).
+    const onClick = (ev: Event) => {
+      const refresh = (ev.target as Element | null)?.closest?.<HTMLElement>('[data-caption-refresh]')
+      if (!refresh || !controls.contains(refresh)) return
+      ev.preventDefault()
+      ev.stopPropagation()
+      this.#retryCaptionLanguage(refresh.dataset.captionRefresh || '')
+    }
     controls.addEventListener('value-change', onValue)
-    this.#off.push(() => controls.removeEventListener('value-change', onValue))
+    controls.addEventListener('click', onClick, true)
+    this.#off.push(() => {
+      controls.removeEventListener('value-change', onValue)
+      controls.removeEventListener('click', onClick, true)
+    })
   }
 
   #onTrackListChange(): void {
@@ -741,9 +831,10 @@ export class AbolPlayerElement extends HTMLElement {
   #refreshAvailability(): void {
     const config = this.#config
     const captions = this.#captionTracks()
+    const jobUi = this.#captionJobMenuActive()
     // YouTube / CueTrack: our abol-option-group owns the list. Hide Video.js's media-captions-radio-group so
-    // Off/English are not listed twice (YouTube-native + host/API tracks).
-    const useCustomCaptions = !!this.#engine?.customTracks && captions.length > 0
+    // Off/English are not listed twice (YouTube-native + host/API tracks). Also show while API jobs run.
+    const useCustomCaptions = !!this.#engine?.customTracks && (captions.length > 0 || jobUi)
     const available: Partial<Record<OptionKey | 'captionTrack', boolean>> = {
       adMode: !!this.#descTrack(),
       signVisible: !!config?.sign,
@@ -786,10 +877,158 @@ export class AbolPlayerElement extends HTMLElement {
         ])
       }
     }
+    this.#renderCaptionMenuStatus()
     if (useCustomCaptions) this.#reflectCaptions()
     for (const node of this.#all(toggles('transcript'))) node.hidden = !this.#hasTranscript()
     for (const node of this.#all(toggles('sign'))) node.hidden = !config?.sign
+    this.#reflectBrailleExport()
     this.#reflectOffline()
+  }
+
+  /** Hosts may set `braille-export="off"` to hide the control even when Amharic cues exist. */
+  #brailleExportAllowed(): boolean {
+    const raw = this.getAttribute('braille-export')?.trim().toLowerCase()
+    return raw !== 'off' && raw !== 'false' && raw !== '0'
+  }
+
+  #amharicCaptionTrack(): TextTrack | undefined {
+    return this.#captionTracks().find((tr) => tr.language.split(/[-_]/)[0]?.toLowerCase() === 'am')
+  }
+
+  #amharicCueTexts(): string[] {
+    const track = this.#amharicCaptionTrack()
+    if (!track) return []
+    if (track.mode === 'disabled') track.mode = 'hidden'
+    return Array.from(track.cues ?? [])
+      .map((cue) => cueText(cue))
+      .filter(Boolean)
+  }
+
+  #reflectBrailleExport(): void {
+    const show =
+      this.#brailleExportAllowed() &&
+      !!this.#amharicCaptionTrack() &&
+      this.#amharicCueTexts().length > 0
+    for (const btn of this.#all<HTMLButtonElement>('.tr-braille')) {
+      btn.hidden = !show
+      btn.disabled = this.#brailleBusy
+      btn.textContent = this.#brailleBusy
+        ? t(this.#lang, 'exportBrailleBusy')
+        : t(this.#lang, 'exportBraille')
+      const label = `${btn.textContent} — ${t(this.#lang, 'exportBrailleExperimental')}`
+      btn.setAttribute('aria-label', label)
+      btn.title = label
+    }
+  }
+
+  async #exportBraille(): Promise<void> {
+    if (this.#brailleBusy || !this.#brailleExportAllowed()) return
+    const lines = this.#amharicCueTexts()
+    if (!lines.length) {
+      this.#announce(t(this.#lang, 'exportBrailleFailed'))
+      return
+    }
+    this.#brailleBusy = true
+    this.#reflectBrailleExport()
+    this.#announce(t(this.#lang, 'exportBrailleBusy'))
+    try {
+      const companion = await ensureBrailleCompanion()
+      const result = await exportBrfFromLines({
+        lines,
+        title: this.#config?.title,
+        translateFn: (text, table) => companion.translate(text, table),
+      })
+      downloadBrf(result.bytes, result.filename)
+      this.#announce(
+        `${t(this.#lang, 'exportBrailleReady')}. ${t(this.#lang, 'exportBrailleExperimental')}`,
+      )
+      this.#emit('abol:braille', {
+        status: 'ready',
+        filename: result.filename,
+        cueCount: result.cueCount,
+        experimental: true,
+      })
+    } catch (err) {
+      console.warn('[abol-player] Braille export:', err)
+      this.#announce(t(this.#lang, 'exportBrailleFailed'))
+      this.#emit('abol:braille', {
+        status: 'error',
+        message: err instanceof Error ? err.message : String(err),
+      })
+    } finally {
+      this.#brailleBusy = false
+      this.#reflectBrailleExport()
+    }
+  }
+
+  /** True while the caption API still has in-flight or failed languages to surface in the menu. */
+  #captionJobMenuActive(): boolean {
+    const status = this.#captionStatus
+    if (!status || !this.#captionApi) return false
+    if (status.status === 'processing' || status.status === 'failed') return true
+    return status.jobs.some((j) => j.status === 'queued' || j.status === 'running' || j.status === 'failed')
+  }
+
+  /**
+   * Per-language generation rows under the captions track list: EN/source first, then translations.
+   * Failed rows get a Refresh control; ready languages stay in the radio group only.
+   */
+  #renderCaptionMenuStatus(): void {
+    const session = this.#captionApi
+    const status = this.#captionStatus
+    for (const host of this.#all<HTMLElement>('.abol-caption-status')) {
+      if (!session || !status || !this.#captionJobMenuActive()) {
+        host.hidden = true
+        host.replaceChildren()
+        continue
+      }
+      const source = session.sourceLanguage?.split(/[-_]/)[0]?.toLowerCase() || 'en'
+      const ready = new Set(this.#captionTracks().map((tr) => tr.language))
+      const rows = orderCaptionStatusRows(status, session.languages, source).filter(
+        (row) => row.state !== 'succeeded' || !ready.has(row.language),
+      )
+      // Drop succeeded rows that already appear as selectable tracks.
+      const pending = rows.filter((row) => !ready.has(row.language))
+      if (!pending.length) {
+        host.hidden = true
+        host.replaceChildren()
+        continue
+      }
+      host.hidden = false
+      host.replaceChildren(
+        ...pending.map((row) => {
+          const el = document.createElement('div')
+          el.className = 'abol-caption-status-row'
+          el.dataset.state = row.state
+          el.dataset.lang = row.language
+          const name = document.createElement('span')
+          name.className = 'abol-caption-status-lang'
+          name.textContent = languageName(row.language, this.#lang) || row.language
+          const meta = document.createElement('span')
+          meta.className = 'abol-caption-status-meta'
+          meta.textContent = this.#captionStateLabel(row.state, row.progress)
+          el.append(name, meta)
+          if (row.state === 'failed') {
+            const btn = document.createElement('button')
+            btn.type = 'button'
+            btn.className = 'abol-caption-refresh'
+            btn.dataset.captionRefresh = row.language
+            btn.textContent = t(this.#lang, 'captionsRefresh')
+            btn.setAttribute('aria-label', `${t(this.#lang, 'captionsRefresh')}: ${name.textContent}`)
+            el.append(btn)
+          }
+          return el
+        }),
+      )
+    }
+  }
+
+  #captionStateLabel(state: string, progress?: number): string {
+    if (state === 'succeeded') return t(this.#lang, 'captionsReady')
+    if (state === 'failed') return t(this.#lang, 'captionsFailed')
+    if (state === 'running')
+      return `${t(this.#lang, 'captionsGenerating')}${progress != null ? ` ${progress}%` : ''}`
+    return t(this.#lang, 'captionsQueued')
   }
 
   #offlineAssets(config: LessonConfig): OfflineLessonAssets {
@@ -1315,6 +1554,7 @@ export class AbolPlayerElement extends HTMLElement {
     badge.textContent = label
     this.#search(this.#trQuery)
     this.#syncTranscript(true)
+    this.#reflectBrailleExport()
   }
 
   #renderEmptyTranscript(): void {
@@ -1480,6 +1720,9 @@ export class AbolPlayerElement extends HTMLElement {
         return
       case 'offline-pack':
         return
+      case 'braille-export':
+        void this.#exportBraille()
+        return
       case 'settings': {
         const panel = this.#q('#abol-st')
         panel.hidden = !panel.hidden
@@ -1527,6 +1770,7 @@ export class AbolPlayerElement extends HTMLElement {
     this.#sign?.setAttribute('aria-label', t(lang, 'signWindow'))
     this.#reflectTranscript()
     this.#reflectSign()
+    this.#reflectBrailleExport()
     this.#reflectOffline()
     this.#applyStyle()
   }
@@ -1583,16 +1827,16 @@ export class AbolPlayerElement extends HTMLElement {
     const list = panel.querySelector('.caption-jobs-list')
     if (!title || !list) return
 
-    const jobs = status.jobs.filter(
-      (job) =>
-        job.type === 'transcribe' ||
-        (job.type === 'translate' && job.language && wanted.includes(job.language)),
+    const source =
+      this.#captionApi?.sourceLanguage?.split(/[-_]/)[0]?.toLowerCase() || 'en'
+    const rows = orderCaptionStatusRows(status, wanted, source)
+    const active = rows.filter((row) => row.state === 'queued' || row.state === 'running')
+    const failed = rows.filter((row) => row.state === 'failed')
+    const transcriptPending = rows.some(
+      (row) => row.kind === 'transcript' && row.state !== 'succeeded',
     )
-    const active = jobs.filter((job) => job.status === 'queued' || job.status === 'running')
-    const failed = jobs.filter((job) => job.status === 'failed')
-    const readyLangs = new Set(status.captions.map((c) => c.language))
 
-    if (status.status === 'ready' && active.length === 0) {
+    if (status.status === 'ready' && active.length === 0 && failed.length === 0) {
       panel.hidden = true
       panel.removeAttribute('data-state')
       return
@@ -1606,54 +1850,38 @@ export class AbolPlayerElement extends HTMLElement {
 
     if (panel.dataset.state === 'failed') {
       title.textContent = t(this.#lang, 'captionsFailed')
-    } else if (jobs.some((j) => j.type === 'transcribe' && j.status !== 'succeeded')) {
+    } else if (transcriptPending) {
       title.textContent = t(this.#lang, 'captionsTranscribing')
-    } else if (active.some((j) => j.type === 'translate')) {
+    } else if (active.some((row) => row.kind === 'translation')) {
       title.textContent = t(this.#lang, 'captionsTranslating')
     } else {
       title.textContent = t(this.#lang, 'captionsGenerating')
-    }
-
-    const rows: Array<{ lang: string; state: string; progress?: number }> = []
-    const transcriptJob = jobs.find((j) => j.type === 'transcribe')
-    if (transcriptJob && transcriptJob.status !== 'succeeded') {
-      rows.push({
-        lang: t(this.#lang, 'captionsProgress'),
-        state: transcriptJob.status,
-        progress: transcriptJob.progress,
-      })
-    }
-    for (const lang of wanted) {
-      if (readyLangs.has(lang)) {
-        rows.push({ lang: languageName(lang, this.#lang), state: 'succeeded' })
-        continue
-      }
-      const job = jobs.find((j) => j.type === 'translate' && j.language === lang)
-      rows.push({
-        lang: languageName(lang, this.#lang),
-        state: job?.status ?? (status.status === 'processing' ? 'queued' : 'failed'),
-        progress: job?.progress,
-      })
     }
 
     list.replaceChildren(
       ...rows.map((row) => {
         const li = document.createElement('li')
         li.dataset.state = row.state
+        li.dataset.lang = row.language
         const name = document.createElement('span')
         name.className = 'caption-jobs-lang'
-        name.textContent = row.lang
+        name.textContent = languageName(row.language, this.#lang) || row.language
         const meta = document.createElement('span')
         meta.className = 'caption-jobs-meta'
-        meta.textContent =
-          row.state === 'succeeded'
-            ? t(this.#lang, 'captionsReady')
-            : row.state === 'failed'
-              ? t(this.#lang, 'captionsFailed')
-              : row.state === 'running'
-                ? `${t(this.#lang, 'captionsGenerating')}${row.progress != null ? ` ${row.progress}%` : ''}`
-                : t(this.#lang, 'captionsQueued')
+        meta.textContent = this.#captionStateLabel(row.state, row.progress)
         li.append(name, meta)
+        if (row.state === 'failed') {
+          const btn = document.createElement('button')
+          btn.type = 'button'
+          btn.className = 'caption-jobs-refresh'
+          btn.dataset.captionRefresh = row.language
+          btn.textContent = t(this.#lang, 'captionsRefresh')
+          btn.setAttribute(
+            'aria-label',
+            `${t(this.#lang, 'captionsRefresh')}: ${name.textContent}`,
+          )
+          li.append(btn)
+        }
         return li
       }),
     )
@@ -1671,7 +1899,16 @@ export class AbolPlayerElement extends HTMLElement {
       list.replaceChildren()
       const li = document.createElement('li')
       li.dataset.state = 'failed'
-      li.textContent = message
+      const text = document.createElement('span')
+      text.className = 'caption-jobs-lang'
+      text.textContent = message
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'caption-jobs-refresh'
+      btn.dataset.captionRefresh = ''
+      btn.textContent = t(this.#lang, 'captionsRefresh')
+      btn.setAttribute('aria-label', t(this.#lang, 'captionsRetry'))
+      li.append(text, btn)
       list.append(li)
     }
   }

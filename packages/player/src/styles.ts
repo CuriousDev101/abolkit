@@ -73,6 +73,8 @@ video.main::-webkit-media-text-track-container { display: none; }
   line-height: 1.35;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(6px);
+  /* Layers are pointer-events:none; re-enable for Refresh on failed rows. */
+  pointer-events: auto;
 }
 .caption-jobs[data-state="failed"] { outline: 1px solid rgba(255, 120, 100, 0.55); }
 .caption-jobs-title {
@@ -89,16 +91,35 @@ video.main::-webkit-media-text-track-container { display: none; }
 }
 .caption-jobs-list li {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   opacity: 0.92;
 }
 .caption-jobs-list li[data-state="succeeded"] .caption-jobs-meta { color: #9fe7c7; }
 .caption-jobs-list li[data-state="running"] .caption-jobs-meta { color: #ffd27a; }
 .caption-jobs-list li[data-state="queued"] .caption-jobs-meta { color: #c9d4cf; }
 .caption-jobs-list li[data-state="failed"] .caption-jobs-meta { color: #ffb4a8; }
-.caption-jobs-lang { font-weight: 500; }
-.caption-jobs-meta { text-align: end; }
+.caption-jobs-lang { font-weight: 500; min-width: 0; }
+.caption-jobs-meta { text-align: end; white-space: nowrap; }
+.caption-jobs-refresh {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.12rem 0.4rem;
+  border: 1px solid rgba(255, 180, 168, 0.45);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffb4a8;
+  font: inherit;
+  font-size: 0.85em;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.caption-jobs-refresh:hover,
+.caption-jobs-refresh:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
+}
 
 .captions {
   position: absolute;
@@ -233,6 +254,34 @@ button[aria-pressed="true"], button[aria-expanded="true"] {
   border-bottom: 1px solid var(--tr-line);
 }
 .tr-head-text { min-width: 0; display: grid; gap: 4px; }
+.tr-head-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+.tr-braille {
+  margin: 0;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--tr-line);
+  border-radius: 6px;
+  background: var(--tr-bg-raised);
+  color: inherit;
+  font: inherit;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tr-braille:hover,
+.tr-braille:focus-visible {
+  border-color: color-mix(in srgb, var(--abol-accent) 55%, var(--tr-line));
+  outline: none;
+}
+.tr-braille:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
 .tr-head h2 {
   margin: 0;
   font-size: 0.95rem;

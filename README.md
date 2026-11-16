@@ -31,7 +31,7 @@ scripts/    gh-labels.sh, gh-issues.sh
 
 ## Local development (Docker) — ADR 0007 captions
 
-Default Compose ([`docker-compose.yml`](docker-compose.yml)) starts **Postgres**, **Redis**, **MinIO**, the **API**, and the **worker** for URL caption generation (YouTube → AssemblyAI → Gemini).
+Default Compose ([`docker-compose.yml`](docker-compose.yml)) starts **Postgres**, **Redis**, **MinIO**, the **API**, and the **worker** for URL caption generation (YouTube VTT when available, else AssemblyAI → Gemini).
 
 ### Prerequisites
 
