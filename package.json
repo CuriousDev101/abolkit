@@ -19,6 +19,8 @@
     "test": "pnpm -r --if-present test",
     "dev:api": "pnpm --filter @abolkit/api dev",
     "dev:worker": "pnpm --filter @abolkit/worker dev",
+    "dev:docs": "pnpm --filter @abolkit/docs dev",
+    "build:docs": "pnpm --filter @abolkit/docs build",
     "smoke:api": "pnpm --filter @abolkit/api smoke",
     "smoke:assets": "pnpm --filter @abolkit/api smoke:assets",
     "gh:labels": "bash scripts/gh-labels.sh",

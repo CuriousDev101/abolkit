@@ -8,16 +8,16 @@ Adoption is worth 25 points: a judge should install the module in about an hour 
 
 ## Docs site
 
-- **Starlight (Astro)**, chosen for accessibility, light pages and built-in search; the docs site itself must pass axe. Verify current versions when installing.
+- **Starlight (Astro)** in `apps/docs` (`@abolkit/docs`). Run `pnpm dev:docs` / `pnpm build:docs`.
 - **API reference:** OpenAPI from the API, rendered by Scalar at `/docs`.
 - **Component reference:** generated from a Custom Elements Manifest where possible (attributes, events, CSS variables) plus the keyboard map.
 - **Live demos:** custom elements embed directly in the docs pages (also proves portability).
 
-### First pages to write
+### Pages (v0.1.1)
 
-1. Quickstart: one script tag and one element, copy-paste.
-2. Install at Level 1 / 2 / 3.
-3. Component reference (player, job card).
+1. Quickstart: one script tag and one element, copy-paste (`/getting-started/`).
+2. Install guides pinned to **`@0.1.1`**: overview, CDN, `@abolkit/job-card`, `@abolkit/player`, frameworks (`/install/…`).
+3. Component reference (player, job card) — expand beyond install attributes as needed.
 4. Self-host with Docker Compose: clean clone to running, expected output.
 5. Providers and privacy: what leaves the machine for each provider, how to enable or disable, retention.
 6. Accessibility statement: keyboard map, known limitations, link to the conformance report.
@@ -26,7 +26,7 @@ Adoption is worth 25 points: a judge should install the module in about an hour 
 ## Distribution
 
 - Built `abol-player.js` (and `abol-job-card.js`) served by the API at `/widget/*` and attached to Git releases.
-- **CDN:** jsDelivr can serve files from a pinned Git tag; docs examples always pin an exact version, never `latest`. Publishing to npm is optional (#58) and only after naming (#2).
+- **CDN:** jsDelivr / unpkg; docs examples always pin **`@0.1.1`**, never `latest`.
 - Size budget enforced by `size-limit` in CI (#51); budget numbers recorded in plan.md.
 
 ## Done when
