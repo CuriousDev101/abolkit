@@ -1,6 +1,6 @@
 ---
-title: '@abolkit/job-card@0.1.1'
-description: Install the <abol-job-card> web component at version 0.1.1.
+title: '@abolkit/job-card@1.0.0'
+description: Install the <abol-job-card> web component at version 1.0.0.
 ---
 
 import { LinkCard } from '@astrojs/starlight/components'
@@ -10,15 +10,15 @@ Accessible job notices from schema.org/JobPosting: JSON, JSON-LD, or HTML career
 ## Install
 
 ```bash
-npm install @abolkit/job-card@0.1.1
+npm install @abolkit/job-card@1.0.0
 ```
 
 ```bash
-pnpm add @abolkit/job-card@0.1.1
+pnpm add @abolkit/job-card@1.0.0
 ```
 
 ```bash
-yarn add @abolkit/job-card@0.1.1
+yarn add @abolkit/job-card@1.0.0
 ```
 
 ### ESM
@@ -38,7 +38,7 @@ import '@abolkit/job-card'
 ### CDN
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@abolkit/job-card@0.1.1/dist/abol-job-card.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@abolkit/job-card@1.0.0/dist/abol-job-card.js"></script>
 ```
 
 ## Next

@@ -1,6 +1,6 @@
 ---
-title: '@abolkit/player@0.1.1'
-description: Install the <abol-player> web component at version 0.1.1.
+title: '@abolkit/player@1.0.0'
+description: Install the <abol-player> web component at version 1.0.0.
 ---
 
 import { LinkCard } from '@astrojs/starlight/components'
@@ -10,15 +10,15 @@ Accessible video player (Shadow DOM) with captions, settings, sign video, transc
 ## Install
 
 ```bash
-npm install @abolkit/player@0.1.1
+npm install @abolkit/player@1.0.0
 ```
 
 ```bash
-pnpm add @abolkit/player@0.1.1
+pnpm add @abolkit/player@1.0.0
 ```
 
 ```bash
-yarn add @abolkit/player@0.1.1
+yarn add @abolkit/player@1.0.0
 ```
 
 ### ESM
@@ -39,13 +39,13 @@ import '@abolkit/player'
 ### CDN
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@abolkit/player@0.1.1/dist/abol-player.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@abolkit/player@1.0.0/dist/abol-player.js"></script>
 ```
 
 Lite (smallest):
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@abolkit/player@0.1.1/dist/abol-player.lite.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@abolkit/player@1.0.0/dist/abol-player.lite.js"></script>
 ```
 
 ## Next

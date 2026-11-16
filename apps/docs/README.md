@@ -1,7 +1,7 @@
 # apps/docs
 
 Public documentation site ([Starlight](https://starlight.astro.build/)).  
-Package install guides pin **`@0.1.1`**.
+Package install guides pin **`@1.0.0`**.
 
 ## Requirements
 

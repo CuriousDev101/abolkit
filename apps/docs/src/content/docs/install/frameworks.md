@@ -1,14 +1,14 @@
 ---
 title: Frameworks
-description: Use Abol Kit @0.1.1 web components in React, Vue, and Angular.
+description: Use Abol Kit @1.0.0 web components in React, Vue, and Angular.
 ---
 
-Install the package first (pin **0.1.1**):
+Install the package first (pin **1.0.0**):
 
 ```bash
-npm install @abolkit/job-card@0.1.1
+npm install @abolkit/job-card@1.0.0
 # and/or
-npm install @abolkit/player@0.1.1
+npm install @abolkit/player@1.0.0
 ```
 
 Import once so the custom element registers, then use the tag in your template.
@@ -140,6 +140,6 @@ export class JobsComponent {
 
 ## Version checklist
 
-- `package.json` → `"@abolkit/job-card": "0.1.1"` (or `^0.1.1` if you accept patches)
-- CDN → `…/@abolkit/job-card@0.1.1/dist/…`
+- `package.json` → `"@abolkit/job-card": "1.0.0"` (or `^1.0.0` if you accept patches)
+- CDN → `…/@abolkit/job-card@1.0.0/dist/…`
 - Do not document or ship `@latest`

@@ -1,9 +1,9 @@
 ---
 title: Quickstart
-description: Minimal copy-paste examples for Abol Kit @0.1.1.
+description: Minimal copy-paste examples for Abol Kit @1.0.0.
 ---
 
-Pin **@0.1.1** everywhere. Start with one of these pages, then open the component guide for more options.
+Pin **@1.0.0** everywhere. Start with one of these pages, then open the component guide for more options.
 
 ## Player (minimal)
 
@@ -23,7 +23,7 @@ Pin **@0.1.1** everywhere. Start with one of these pages, then open the componen
       lang="en"
     ></abol-player>
 
-    <script src="https://cdn.jsdelivr.net/npm/@abolkit/player@0.1.1/dist/abol-player.lite.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@abolkit/player@1.0.0/dist/abol-player.lite.js"></script>
   </body>
 </html>
 ```
@@ -45,7 +45,7 @@ More options (sign, transcript, YouTube, caption API): **[Player guide](/compone
   <body>
     <abol-job-card job-url="./job.json" lang="en"></abol-job-card>
 
-    <script src="https://cdn.jsdelivr.net/npm/@abolkit/job-card@0.1.1/dist/abol-job-card.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@abolkit/job-card@1.0.0/dist/abol-job-card.js"></script>
   </body>
 </html>
 ```

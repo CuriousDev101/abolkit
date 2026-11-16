@@ -1,17 +1,17 @@
 ---
 title: Install overview
-description: Install Abol Kit packages at version 0.1.1 (npm, CDN, or self-host).
+description: Install Abol Kit packages at version 1.0.0 (npm, CDN, or self-host).
 ---
 
-All public examples pin **`@0.1.1`**. Do not use `latest` in production or demos.
+All public examples pin **`@1.0.0`**. Do not use `latest` in production or demos.
 
 ## Packages
 
 | Package | Version | What it installs |
 | --- | --- | --- |
-| [`@abolkit/job-card`](/install/job-card/) | **0.1.1** | `<abol-job-card>` + optional React helper. [Usage](/components/job-card/) |
-| [`@abolkit/player`](/install/player/) | **0.1.1** | `<abol-player>` (Video.js bundled). [Usage](/components/player/) |
-| `@abolkit/core` | **0.1.1** | Shared helpers (usually pulled in by the above) |
+| [`@abolkit/job-card`](/install/job-card/) | **1.0.0** | `<abol-job-card>` + optional React helper. [Usage](/components/job-card/) |
+| [`@abolkit/player`](/install/player/) | **1.0.0** | `<abol-player>` (Video.js bundled). [Usage](/components/player/) |
+| `@abolkit/core` | **1.0.0** | Shared helpers (usually pulled in by the above) |
 
 Published builds are plain JS. There is **no `workspace:` dependency** in what npm installs.
 
@@ -24,16 +24,16 @@ Published builds are plain JS. There is **no `workspace:` dependency** in what n
 ## npm (pin the version)
 
 ```bash
-npm install @abolkit/job-card@0.1.1
-npm install @abolkit/player@0.1.1
+npm install @abolkit/job-card@1.0.0
+npm install @abolkit/player@1.0.0
 ```
 
 ```bash
-pnpm add @abolkit/job-card@0.1.1 @abolkit/player@0.1.1
+pnpm add @abolkit/job-card@1.0.0 @abolkit/player@1.0.0
 ```
 
 ```bash
-yarn add @abolkit/job-card@0.1.1 @abolkit/player@0.1.1
+yarn add @abolkit/job-card@1.0.0 @abolkit/player@1.0.0
 ```
 
 Then:

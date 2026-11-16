@@ -1,6 +1,6 @@
 ---
 title: CDN (script tag)
-description: Load Abol Kit @0.1.1 from jsDelivr or unpkg with a pinned version.
+description: Load Abol Kit @1.0.0 from jsDelivr or unpkg with a pinned version.
 ---
 
 Use a **pinned** CDN URL. Never load `@latest` in docs or production.
@@ -10,7 +10,7 @@ Use a **pinned** CDN URL. Never load `@latest` in docs or production.
 ### Job card
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@abolkit/job-card@0.1.1/dist/abol-job-card.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@abolkit/job-card@1.0.0/dist/abol-job-card.js"></script>
 
 <abol-job-card
   job-url="https://example.org/jobs/123.json"
@@ -21,7 +21,7 @@ Use a **pinned** CDN URL. Never load `@latest` in docs or production.
 ### Player
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@abolkit/player@0.1.1/dist/abol-player.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@abolkit/player@1.0.0/dist/abol-player.js"></script>
 
 <abol-player
   src="https://example.org/lesson.mp4"
@@ -43,7 +43,7 @@ Use a **pinned** CDN URL. Never load `@latest` in docs or production.
 Example lite:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@abolkit/player@0.1.1/dist/abol-player.lite.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@abolkit/player@1.0.0/dist/abol-player.lite.js"></script>
 ```
 
 See the **[player guide](/components/player/)** and **[job card guide](/components/job-card/)**.
@@ -53,8 +53,8 @@ See the **[player guide](/components/player/)** and **[job card guide](/componen
 Same files, pinned:
 
 ```text
-https://unpkg.com/@abolkit/job-card@0.1.1/dist/abol-job-card.js
-https://unpkg.com/@abolkit/player@0.1.1/dist/abol-player.js
+https://unpkg.com/@abolkit/job-card@1.0.0/dist/abol-job-card.js
+https://unpkg.com/@abolkit/player@1.0.0/dist/abol-player.js
 ```
 
 ## Self-host from the API
@@ -66,4 +66,4 @@ https://HOST/widget/abol-job-card.js
 https://HOST/widget/abol-player.js
 ```
 
-Prefer the npm CDN URLs with `@0.1.1` when you are not running the API.
+Prefer the npm CDN URLs with `@1.0.0` when you are not running the API.

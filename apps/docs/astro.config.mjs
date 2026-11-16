@@ -1,14 +1,14 @@
 import { defineConfig } from 'astro/config'
 import starlight from '@astrojs/starlight'
 
-/** Public docs for Abol Kit. Install snippets pin npm/CDN to @0.1.1. */
+/** Public docs for Abol Kit. Install snippets pin npm/CDN to @1.0.0. */
 export default defineConfig({
   site: 'https://abolkit.local',
   integrations: [
     starlight({
       title: 'Abol Kit',
       description:
-        'Accessible learning-media toolkit: <abol-player>, <abol-job-card>, and install guides for @0.1.1.',
+        'Accessible learning-media toolkit: <abol-player>, <abol-job-card>, and install guides for @1.0.0.',
       customCss: ['./src/styles/custom.css'],
       social: [
         {
@@ -29,7 +29,7 @@ export default defineConfig({
           ],
         },
         {
-          label: 'Install @0.1.1',
+          label: 'Install @1.0.0',
           items: [
             { label: 'Install overview', slug: 'install' },
             { label: 'CDN (script tag)', slug: 'install/cdn' },
